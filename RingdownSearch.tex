@@ -49,15 +49,197 @@
 \label{Intro}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+Signal model: damped sinusoid starting at $\tStart$:
+\begin{align}
+  \label{eq:1}
+  s(t;\,A, \phi_0\,, \tStart, \tau, f) &= A\,w(\Dt,\,\tau)\,\cos\left(2\pi f \Dt + \phi_0\right)\,,\\
+  \Dt & \equiv t - \tStart\,\\
+  w(\Dt, \tau) &=
+  \begin{cases}
+    \exp\left( -\frac{\Dt}{\tau} \right) & \text{if } \Dt \ge 0\,\\
+    0  & \text{if } \Dt < 0
+  \end{cases}
+\end{align}
+Rewrite waveform in terms of two unknown amplitudes $\As = A\,\sin\phi_0,\,\Ac = A\,\cos\phi_0$ \cite{bretthorst1988:_bayesian_spectrum}:
+\begin{equation}
+  \label{eq:2}
+  s(t; \parmsAll) = w(\Dt,\tau)\, \left[ \As\,\sin\left(2\pi f \Dt\right) + \Ac\,\cos\left(2\pi f \Dt\right) \right]\,,
+\end{equation}
+with the set of signal parameters
+\begin{equation}
+  \label{eq:11}
+  \parmsAll \equiv \{\As,\Ac, \parmsEvol\}\,,\quad \parmsEvol \equiv \{\tStart,\tau, f\}\,.
+\end{equation}
+The likelihoods for Gaussian (colored) noise $\HypG$ and the ringdown model $\HypS$ are
+\begin{align}
+  \label{eq:4}
+  \prob{x}{\HypG} &= c\,e^{-\frac{1}{2}\scalar{x}{x}}\,,\\
+  \prob{x}{\HypS,\parmsAll} &= c\,e^{-\frac{1}{2}\scalar{x-s(\parmsAll)}{x-s(\parmsAll)}}\,,
+\end{align}
+with the multi-detector scalar product (over detector index $X$) defined as
+\begin{equation}
+  \label{eq:5}
+  \scalar{x}{y}\equiv \sum_{X} \scalar{x^X}{y^X} = \sum_X 4\Re\int_0^\infty \frac{\FT{x}^X(f)\,\FT{y}^{*X}(f)}{S_X(f)}\,df
+\end{equation}
+The (marginal) likelihood for the signal model is therefore
+\begin{equation}
+  \label{eq:6}
+  \prob{x}{\HypS} = \int \prob{x}{\HypS,\parmsAll}\,\prob{\parmsAll}{\HypS}\,d\parmsAll\,,
+\end{equation}
+and the corresponding Bayes factor (or marignal likelihood ratio)
+\begin{equation}
+  \label{eq:7}
+  \BSG(x) \equiv \frac{\prob{x}{\HypS}}{\prob{x}{\HypG}} = \int \Lr(x;\parmsAll)\,\prob{\parmsAll}{\HypS}\,d\parmsAll\,,
+\end{equation}
+with the likelihood-ratio \emph{function}
+\begin{equation}
+  \label{eq:8}
+  \Lr(x;\parmsAll) \equiv \frac{\prob{x}{\HypS,\parmsAll}}{\prob{x}{\HypG}} = \exp\left(\scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\right)\,.
+\end{equation}
+
+\subsection{Computing $\scalar{x}{s(\parmsAll)}$}
+\label{sec:computing-scalarxs}
+
+Note that in the scalar product involving the data $x^X$ we can absorb the frequency-dependend noise-floors $S_X(f)$ by ``overwhitening'' the data, ie
+define
+\begin{equation}
+  \label{eq:12}
+  \FT{y}^X \equiv \frac{\FT{x}^X(f)}{S_X(f)/2}\,,
+\end{equation}
+which allows us to write the scalar product in time-domain form
+\begin{align}
+  \label{eq:13}
+  \scalar{x}{s} &= \sum_X \int_{-\infty}^{\infty} \FT{y}^X(f)\,\FT{s}^{*X}(f)\,df \\
+  &= \sum_X \int_{-\infty}^{\infty} y^X(t)\,s^X(t)\,dt\,.
+\end{align}
+Instead of this general multi-detector formultion, we can simply the problem here given the short duration of the signal and the similar
+antenna-pattern functions (?) for the two detectors 'H1' and 'L1' considered: time-shift the L1 data by the +7.3ms time-delay for this particular
+signal, and multiply the L1 data by $-1$ to account for the changed sign in antenn response function.
+So defining a new combined multi-IFO data stream $z(t)$ as
+\begin{equation}
+  \label{eq:14}
+  z(t) \equiv y^{H1}(t) + (-y^{L1})(t+7.3\ms)\,,
+\end{equation}
+we can now apply a single template $s(t)$, where time '$t$' now refers to Hanford arrival time.
+The multi-detector ``matched-filtering'' scalar product can therefore be written as
+\begin{equation}
+  \label{eq:15}
+  \scalar{x}{s(\parmsAll)} = \int_{\tStart}^{\tStart + T} z(t)\,s(t;\parmsAll)\,dt\,,
+\end{equation}
+where $T \gg \tau$ is some duration long enough so that $s(\tStart+T)\approx0$.
+Using Eq.~\eqref{eq:2} we can further write
+\begin{equation}
+  \label{eq:9}
+  \scalar{x}{s(\parmsAll)} = \As\,\xs(\parmsEvol) + \Ac\,\xc(\parmsEvol)\,,
+\end{equation}
+with
+\begin{align}
+  \label{eq:10}
+  \xs(\parmsEvol) &\equiv \int_{0}^{T} y(\tStart+\Dt)\,e^{-\frac{\Dt}{\tau}}\sin(2\pi f\Dt)\,d\Dt,\\
+  \xc(\parmsEvol) &\equiv \int_{0}^{T} y(\tStart+\Dt)\,e^{-\frac{\Dt}{\tau}}\cos(2\pi f\Dt)\,d\Dt.\\
+\end{align}
+Note that
+\begin{align}
+  \label{eq:16}
+  \xc - i\xs &= \int_{0}^{T} y(\tStart+\Dt)\,e^{-\frac{\Dt}{\tau}}\,e^{-i2\pi f\Dt}\,d\Dt\\
+  &= \int_{0}^{T} y(\tStart+\Dt)\,e^{-\Dt \left(\frac{1}{\tau} + i2\pi f\right)}\,d\Dt\,,
+\end{align}
+is the Laplace transform with complex frequency $\frac{1}{\tau} + i2\pi f$.
+
+\subsection{Computing $\scalar{s}{s}$}
+\label{sec:computing-scalarss}
+Given that aLIGO noise-curve is relatively ``white'' over a broad-band in the ``bucket'', and the signal $s(t)$ of Eq.~\eqref{eq:1} is still
+relatively ``narrow band'' ($\sim \pm 100\Hz$), we can approximate the signal-normalization integral as
+\begin{align}
+  \label{eq:17}
+  \scalar{s}{s} &= \sum_X 2 \int_{-\infty}^{\infty} \frac{\FT{s}^X(f)\,\FT{s}^{*X}(f)}{S_X(f)}\,d f\\
+  &\sim \sum_X \frac{2}{S_X(f')} \, \int_{0}^{\infty} s^2(t;\parmsAll)\,dt\\
+  &= \left( \As^2\,\Is + 2\As\Ac\,\Isc + \Ac^2\,\Ic \right)\,\sum_X \frac{2}{S_X(f')}\,,
+\end{align}
+where $f'$ is some (unknown) frequency from the frequency band around the central signal frequency $f$ (using mean-value theorem), and where we have
+(again) assumed the signal model to be identical in both detectors, which will be a good approximation due to the similar antenna-patterns.
+The respective integrals to compute are
+\begin{align}
+  \label{eq:18}
+  \Is &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \sin^2\!\varphi\,d\varphi\\
+  \Ic &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\cos^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \cos^2\!\varphi\,d\varphi\\
+  \Isc &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin(2\pi f t)\cos(2\pi f t)\,dt = \frac{1}{4\pi f}\int e^{-\frac{\varphi}{Q}} \sin2\varphi\,d\varphi\,,
+\end{align}
+where we introduced the definitions
+\begin{align}
+  \label{eq:3}
+  \varphi &\equiv 2\pi f \Dt\,,\\
+  Q       &\equiv \pi f \tau\,,
+\end{align}
+where here we only consider non-critically damped signals, i.e. $Q\gtrsim \Ord{\pi}$.
+These integrals can be computed analytically to yield [move to appendix?]
+\begin{align}
+  \label{eq:19}
+  \Is &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ \sin2\varphi + 2Q + \frac{\sin^2\varphi}{Q}\right]\right|_0^\infty\\
+  &= \frac{2Q}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{Q}{4\pi f} = \frac{\tau}{4}\,,\\
+  \Ic &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ -\sin2\varphi + 2Q + \frac{\cos^2\varphi}{Q}\right]\right|_0^\infty\\
+  &= \frac{2Q + \frac{1}{Q}}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{Q}{4\pi f} = \frac{\tau}{4}\,,\\
+  \Isc &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ 2\cos^2\varphi - 1 + \frac{\sin2\varphi}{2Q}\right]\right|_0^\infty\\
+  &= \frac{1}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{1}{8\pi f} \sim \frac{1}{2Q}\,\Is \ll \Is \approx 0\,.
+\end{align}
+And so we finally obtain
+\begin{align}
+  \label{eq:20}
+  \scalar{s}{s} &= \left(\As^2 + \Ac^2\right)\frac{\tau}{2}\sum_X \frac{1}{S_X}\\
+  &=\left(\As^2 + \Ac^2\right)\,\frac{\Ndet\tau}{2\Sn}\,,
+\end{align}
+with the harmonic mean $\Sn^{-1} \equiv \frac{1}{\Ndet}\sum_X S_X^{-1}$. Note that here $\Ndet = 2$.
 
 
-%%\bibliography{MismatchForBinaryMetric}
+\subsection{Marginalizing over unknown amplitudes $\{\A_1,\A_2\}$}
+\label{sec:marg-over-unkn}
+
+Combining these expressions in the likelihood-ratio function of Eq.~\eqref{eq:8}, we obtain
+\begin{align}
+  \label{eq:21}
+  \ln \Lr(x;\parmsAll) &= \scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\\
+  &= -\frac{1}{2}\,\frac{\tau}{\Sn}\left(\As^2+\Ac^2\right) + \As\xs + \Ac\xc\,,
+\end{align}
+i.e.\ a 2-dimensional Gaussian in $\{\As,\Ac\}$, which can be integrated analytically for a suitable choice of prior.
+For unknown amplitude and initial phase, we can consider a simple isotropic (corresponding to uniform prior in phase $\phi_0$) Gaussian prior, with
+characteristic amplitude scale $H$, i.e.\
+\begin{equation}
+  \label{eq:22}
+  \prob{\A}{\HypS} = \frac{1}{2\pi\,H^2}\,e^{-\frac{1}{2H^2}\left(\As^2 + \Ac^2\right)}\,,
+\end{equation}
+And so the partially-marginalized Bayes factor of Eq.~\eqref{eq:7} would be found as
+\begin{align}
+  \label{eq:23}
+  \BSG(x) &= \int \BSG(x;\parmsEvol) \,\prob{\parmsEvol}{\HypS}\,d\parmsEvol\,,\\
+  \BSG(x;\parmsEvol) &\equiv \int \Lr(x;\A,\parmsEvol)\prob{\A}{\HypS}\,d^2\A\\
+  &= \frac{\Gam}{H^2} e^{\frac{1}{2}\Gam\left(\xs^2 + \xc^2\right)}\,,
+\end{align}
+with
+\begin{equation}
+  \label{eq:25}
+  \Gam^{-1} \equiv \frac{\tau}{\Sn} + \frac{1}{H^2} = \frac{\Sn H^2}{\Sn + H^2\tau}\,,
+\end{equation}
+and further
+\begin{equation}
+  \label{eq:26}
+  \BSG(x;\parmsEvol) = \left(1 + \frac{H^2\tau}{\Sn}\right)^{-1}\,\exp\left[\frac{\Gam}{2}\left(\xs^2+\xc^2\right)\right]\,.
+\end{equation}
+
+Alternatively, for relatively well-constrained amplitude $A^{\sig}$ and phase $\phi_0^\sig$, one could simply use $\prob{\A}{\HypS} =
+\delta(\As-\As^\sig)\delta(\Ac-\Ac^\sig)$ and obtain
+\begin{equation}
+  \label{eq:24}
+  \BSG(x;\parmsEvol) = \Lr(x;\A^\sig,\parmsEvol)\,.
+\end{equation}
+
+
+\bibliography{RingdownSearch}
 
 \end{document}
 
 %%% Local Variables:
 %%% ispell-local-dictionary: "american"
-%%% fill-column: 100
+%%% fill-column: 150
 %%% mode: latex
 %%% TeX-master: t
 %%% End:

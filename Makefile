@@ -20,7 +20,7 @@ extratex = git_tag.tex $(gnuplotcfg) $(generatedtables)
 
 main = RingdownSearch.pdf
 #
-##bibs = RingdownSearch.bib
+bibs = RingdownSearch.bib
 #
 texfigs = \
 #
