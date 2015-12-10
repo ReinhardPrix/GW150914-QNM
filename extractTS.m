@@ -1,32 +1,34 @@
 #!/usr/bin/octave -q
 
-function tS = extractTS ( varargin )
+function [ts, tsW, tsOW, psd] = extractTS ( varargin )
 
   uvar = parseOptions ( varargin,
                         {"fMin", "real,strictpos,scalar", 200 },
                         {"fMax", "real,strictpos,scalar", 300 },
+                        {"tCenter", "real,strictpos,scalar", 1126259462 },
                         {"Twindow", "real,strictpos,scalar", 10 },	%% time-window +- to extract around the event
+                        {"lineSigma", "real,positive,scalar", 5},	%% sigma deviations to indentify 'lines' in spectrum
+                        {"lineWidth", "real,positive,scalar", 0.1},	%% +- width in Hz to zero around 'lines'
                         {"showPlots", "bool", false },
-                        {"simulate", "bool", false }
+                        {"simulate", "bool", false },
+                        {"RngMedWindow", "real,positive,scalar", 100 }	%% window size to use for rngmed-based PSD estimation
                       );
   assert ( uvar.fMax > uvar.fMin );
-  tS = [];
-  tEvent = 1126259462; ## from GraceDB https://gracedb.ligo.org/events/view/G184098
 
-  fudge = 10 * eps;
   %% load frequency-domain data from SFTs:
   fNy = 1370;	%% 2x1370Hz sampling, enough to allow for resolved ~7.3ms time-shift ~ 20bins
   fnames = {"H-1_H1_1800SFT_ER8-1126257832-1800.sft"; "L-1_L1_1800SFT_ER8-1126258841-1800.sft" };
 
-  nukefreqs = []; %% [ 120, 128, 170.5, 180, 196.1, 218.8, 240, 244.4, 256, 300, 302.2, 303, 306.2, 307.5, 315, 318.3, 331.3, 331.9, 352, 392.2, 499.6 ];	%% will generously nuke around each
+  if ( uvar.simulate )
+    extraLabel = "-sim";
+  else
+    extraLabel = "";
+  endif
+  bname = sprintf ( "freq%.0fHz-%.0fHz-GPS%.0fs+-%.0fs%s", uvar.fMin, uvar.fMax, uvar.tCenter, uvar.Twindow, extraLabel);
 
-  %% list of frequencies to nuke, identified "by eye" from the SFT PSD spectrum in the range [50, 500]Hz
-  %% nukefreqs{1} = [ 60, 64, 73.9, 96.6, 120, 128, 144, 160, 180, 256, 288, 299.54, 299.705, 302.22, 303.305, 331.9, 352 ];	%% H1
-  %% nukefreqs{2} = [ 331.3, 499.6 ]; %% L1
-  nukewidth = 0.1;
-
-  iFig = 1;
   for X = 1:length(fnames)
+
+    %% ---------- Read SFT frequency-domain data ----------
     sft = readSFT ( fnames{X} );
     t0 = sft.header.epoch.gpsSeconds;
     f0 = sft.header.f0;
@@ -39,95 +41,91 @@ function tS = extractTS ( varargin )
       sqrtSn = 8e-24;
       sigma = sqrt(Tsft)/2 * sqrtSn;
       xk0{X} = normrnd ( 0, sigma, 1, Nfreq ) + I * normrnd ( 0, sigma, 1, Nfreq );
-      extraLabel = "-sim";
     else
       xk0{X} = sft.SFTdata(:,1) + I * sft.SFTdata(:,2);
-      extraLabel = "";
     endif
     assert ( length(fk0) == length(xk0) );
 
-    ## %% nuke lines
-    ## if ( length ( nukefreqs{X} ) > 0 )
-    ##   for i = 1 : length(nukefreqs{X})
-    ##     inds_nuke = find ( (fk0{X} >= nukefreqs{X}(i) - nukewidth) & (fk0{X} <= nukefreqs{X}(i) + nukewidth) );
-    ##     xk0{X}(inds_nuke) = 0;
-    ##   endfor
-    ## endif
+    bnameX = sprintf ( "%s-%s", IFO{X}, bname );
 
-    %% extract frequency band of interest [fMin,fMax]
-    inds0 = find ( (fk0{X} >= uvar.fMin * (1-fudge) ) & (fk0{X} <= uvar.fMax * ( 1 + fudge) ) );
+    %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
+    tsBand0 = freqBand2TS ( fk0{X}, xk0{X}, uvar.fMin - 1, uvar.fMax + 1, fNy );	%% 1Hz extra-band for median PSD estimates later
+    tsBand0.ti += t0;	%% label times by correct epoch
 
-    Sn{X} = median ( abs(xk0{X}(inds0)).^2 );
-    xkNorm{X} = xk0{X}(inds0) ./ sqrt( Sn{X} );
-    autolines_inds = find ( abs ( xkNorm{X} ) > 6 );
-    autolines{X} = fk0{X} ( inds0 ( autolines_inds ) );
+    %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
+    indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter + uvar.Twindow )) );
+    tsBand.ti = tsBand0.ti ( indsTrunc );
+    tsBand.xi = tsBand0.xi ( indsTrunc );
 
-    ## %% nuke lines auto-identified as frequencies exceeding norm > 5
-    for i = 1 : length(autolines{X})
-      inds_nuke = find ( (fk0{X} >= autolines{X}(i) - nukewidth) & (fk0{X} <= autolines{X}(i) + nukewidth) );
-      xk0{X}(inds_nuke) = 0;
-    endfor
+    %% ---------- re-compute PSD on shorter timeseries, extract 'physical' frequency band, pluse whiten + overwhitened TS ----------
+    [psd{X}, ts{X}, tsW{X}, tsOW{X}] = whitenTS ( tsBand, uvar.fMin, uvar.fMax, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow );
 
     if ( uvar.showPlots )
-      sleg = sprintf (";%s;", IFO{X} );
-
-      figure(iFig++); clf;
-      plot ( fk0{X}(inds0), abs(xkNorm{X}), sleg );
-
-      figure(iFig++); clf;
-      plot ( fk0{X}(inds0), abs(xk0{X}(inds0)), sleg );
+      ft = FourierTransform ( ts{X}.ti, ts{X}.xi );
+      figure(); clf;
+      plot ( ft.fk, abs(ft.xk)/sqrt(uvar.Twindow), "-", psd{X}.fk, sqrt(psd{X}.Sn), "o" );
+      xlim ( [uvar.fMin, uvar.fMax] );
+      xlabel ("Freq [Hz]");
+      ylabel ("sqrt(Sn)");
+      title ( bnameX );
     endif
 
-    %% place this band into a full spectrum including negative frequencies
-    fk1 = -fNy : df : fNy;
-    xk1 = zeros ( size(fk1) );
-    inds1P = find ( (fk1 >= uvar.fMin * ( 1-fudge) ) & (fk1 <= uvar.fMax * ( 1 + fudge) ) );
-    assert ( length(inds0) == length(inds1P) );
-    xk1(inds1P) = xk0{X}(inds0);
-
-    inds1N = find ( (fk1 >= -uvar.fMax * ( 1 + fudge) ) & (fk1 <= -uvar.fMin * ( 1 - fudge) ) );
-    assert ( length(inds0) == length(inds1N) );
-    xk1(inds1N) = conj ( xk0{X}( flipdim (inds0) ) );	%% mirror-image and complex-conjugate
-
-    tS0 = FourierTransformInv ( fk1, xk1 );
-    tS0.ti += t0;	%% label times by correct epoch
-
-    inds = find ( (tS0.ti >= (tEvent - uvar.Twindow)) & (tS0.ti <= (tEvent + uvar.Twindow )) );
-    tS{X}.ti = tS0.ti ( inds );
-    tS{X}.xi = tS0.xi ( inds );
-
-    %% check that we constructed a real-valued timeseries
-    err = max ( abs(imag( tS{X}.xi)) ./ abs(real(tS{X}.xi) ) );
-    assert ( err < 1e-6 );
-    tS{X}.xi = real ( tS{X}.xi );
-
-    out_fname = sprintf ( "TS-%s-freq%.0fHz-%.0fHz-%.0fs%s.dat", IFO{X}, uvar.fMin, uvar.fMax, 2*uvar.Twindow, extraLabel);
-    fid = fopen ( out_fname, "wb" );
-    fprintf ( fid, "%.9f  %g\n", [tS{X}.ti', tS{X}.xi']' );
+    psd_fname = sprintf ( "PSD-%s.dat", bnameX );
+    fid = fopen ( psd_fname, "wb" );
+    fprintf ( fid, "%.9f  %g\n", [psd{X}.fk', psd{X}.Sn']' );
     fclose(fid);
+
+    ts_fname = sprintf ( "TS-%s.dat", bnameX );
+    fid = fopen ( ts_fname, "wb" );
+    fprintf ( fid, "%.9f  %g\n", [ts{X}.ti', ts{X}.xi']' );
+    fclose(fid);
+
+    tsW_fname = sprintf ( "TSW-%s.dat", bnameX );
+    fid = fopen ( tsW_fname, "wb" );
+    fprintf ( fid, "%.9f  %g\n", [tsW{X}.ti', tsW{X}.xi']' );
+    fclose(fid);
+
+    tsOW_fname = sprintf ( "TSOW-%s.dat", bnameX );
+    fid = fopen ( tsOW_fname, "wb" );
+    fprintf ( fid, "%.9f  %g\n", [tsOW{X}.ti', tsOW{X}.xi']' );
+    fclose(fid);
+
   endfor %% X
 
   if ( uvar.showPlots )
-    figure(iFig++); clf; hold on;
     sleg1 = sprintf (";%s;", IFO{1} );
     sleg2 = sprintf (";%s;", IFO{2} );
-    plot ( tS{1}.ti - tEvent, tS{1}.xi, sleg1, "linewidth", 3, tS{2}.ti - tEvent + 7.3e-3, (-1)*tS{2}.xi, sleg2, "linewidth", 3 );
+
+    figure(); clf; hold on;
+    plot ( ts{1}.ti - uvar.tCenter, ts{1}.xi, sleg1, "linewidth", 3, ts{2}.ti - uvar.tCenter + 7.3e-3, (-1)*ts{2}.xi, sleg2, "linewidth", 3 );
     xlim ( [0.38, 0.46 ] );
-    xlabel ("tGPS - tEvent [s]");
+    xlabel ("tGPS - tCenter [s]");
     ylabel ("Strain");
-    tlabel = sprintf ( "TS-freq%.0fHz-%.0fHz%s", uvar.fMin, uvar.fMax, extraLabel );
-    title ( tlabel );
+    title ( sprintf ( "TS - %s", bname ) );
     grid on;
     yrange = [-1.2, 1.2] * 1e-21;
-    markers = [0.425, 0.427, 0.43, 0.431, 0.432, 0.433 ];
-    for l = 1:length(markers)
-      line ( [ 1, 1 ] * markers(l), yrange, "linestyle", "--" );
-    endfor
     ylim ( yrange );
     hold off;
-    plot2pdf ( tlabel );
-  endif
 
+    figure(); clf; hold on;
+    plot ( tsW{1}.ti - uvar.tCenter, tsW{1}.xi, sleg1, "linewidth", 3, tsW{2}.ti - uvar.tCenter + 7.3e-3, (-1)*tsW{2}.xi, sleg2, "linewidth", 3 );
+    xlim ( [0.38, 0.46 ] );
+    xlabel ("tGPS - tCenter [s]");
+    ylabel ("Strain/sqrt(SX(f))");
+    title ( sprintf ( "TS-W-%s", bname ) );
+    grid on;
+    hold off;
+
+    figure(); clf; hold on;
+    plot ( tsOW{1}.ti - uvar.tCenter, tsOW{1}.xi, sleg1, "linewidth", 3, tsOW{2}.ti - uvar.tCenter + 7.3e-3, (-1)*tsOW{2}.xi, sleg2, "linewidth", 3 );
+    xlim ( [0.38, 0.46 ] );
+    xlabel ("tGPS - tCenter [s]");
+    ylabel ("Strain/SX(f)");
+    title ( sprintf ( "TS-OW-%s", bname ) );
+    grid on;
+    hold off;
+
+  endif
 
   return;
 endfunction
