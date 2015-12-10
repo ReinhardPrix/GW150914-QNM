@@ -18,6 +18,8 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
   %% load frequency-domain data from SFTs:
   fNy = 1370;	%% 2x1370Hz sampling, enough to allow for resolved ~7.3ms time-shift ~ 20bins
   fnames = {"H-1_H1_1800SFT_ER8-1126257832-1800.sft"; "L-1_L1_1800SFT_ER8-1126258841-1800.sft" };
+  tOffs = { 0, +7.3e-3 };	%% delay L1 data by 7.3ms
+  scaleFact = { 1, -1 };	%% invert L1 data to be in phase with H1
 
   if ( uvar.simulate )
     extraLabel = "-sim";
@@ -45,19 +47,19 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
       xk0{X} = sft.SFTdata(:,1) + I * sft.SFTdata(:,2);
     endif
     assert ( length(fk0) == length(xk0) );
-
     bnameX = sprintf ( "%s-%s", IFO{X}, bname );
 
     %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
     tsBand0 = freqBand2TS ( fk0{X}, xk0{X}, uvar.fMin - 1, uvar.fMax + 1, fNy );	%% 1Hz extra-band for median PSD estimates later
-    tsBand0.ti += t0;	%% label times by correct epoch
+    tsBand0.ti += t0 + tOffs{X};	%% label times by correct epoch, shift by detector-specific offset
+    tsBand0.xi *= scaleFact{X};		%% apply detector-specific scale factor to time-series
 
     %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
     indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter + uvar.Twindow )) );
     tsBand.ti = tsBand0.ti ( indsTrunc );
     tsBand.xi = tsBand0.xi ( indsTrunc );
 
-    %% ---------- re-compute PSD on shorter timeseries, extract 'physical' frequency band, pluse whiten + overwhitened TS ----------
+    %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
     [psd{X}, ts{X}, tsW{X}, tsOW{X}] = whitenTS ( tsBand, uvar.fMin, uvar.fMax, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow );
 
     if ( uvar.showPlots )
@@ -97,7 +99,7 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
     sleg2 = sprintf (";%s;", IFO{2} );
 
     figure(); clf; hold on;
-    plot ( ts{1}.ti - uvar.tCenter, ts{1}.xi, sleg1, "linewidth", 3, ts{2}.ti - uvar.tCenter + 7.3e-3, (-1)*ts{2}.xi, sleg2, "linewidth", 3 );
+    plot ( ts{1}.ti - uvar.tCenter, ts{1}.xi, sleg1, "linewidth", 3, ts{2}.ti - uvar.tCenter, ts{2}.xi, sleg2, "linewidth", 3 );
     xlim ( [0.38, 0.46 ] );
     xlabel ("tGPS - tCenter [s]");
     ylabel ("Strain");
@@ -108,7 +110,7 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
     hold off;
 
     figure(); clf; hold on;
-    plot ( tsW{1}.ti - uvar.tCenter, tsW{1}.xi, sleg1, "linewidth", 3, tsW{2}.ti - uvar.tCenter + 7.3e-3, (-1)*tsW{2}.xi, sleg2, "linewidth", 3 );
+    plot ( tsW{1}.ti - uvar.tCenter, tsW{1}.xi, sleg1, "linewidth", 3, tsW{2}.ti - uvar.tCenter, tsW{2}.xi, sleg2, "linewidth", 3 );
     xlim ( [0.38, 0.46 ] );
     xlabel ("tGPS - tCenter [s]");
     ylabel ("Strain/sqrt(SX(f))");
@@ -117,7 +119,7 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
     hold off;
 
     figure(); clf; hold on;
-    plot ( tsOW{1}.ti - uvar.tCenter, tsOW{1}.xi, sleg1, "linewidth", 3, tsOW{2}.ti - uvar.tCenter + 7.3e-3, (-1)*tsOW{2}.xi, sleg2, "linewidth", 3 );
+    plot ( tsOW{1}.ti - uvar.tCenter, tsOW{1}.xi, sleg1, "linewidth", 3, tsOW{2}.ti - uvar.tCenter, tsOW{2}.xi, sleg2, "linewidth", 3 );
     xlim ( [0.38, 0.46 ] );
     xlabel ("tGPS - tCenter [s]");
     ylabel ("Strain/SX(f)");
