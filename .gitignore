@@ -1,4 +1,8 @@
+*.dat
+*.pdf
+*.sft
 *~
+/#*Inferior Octave*#
 /RingdownSearch.aux
 /RingdownSearch.bbl
 /RingdownSearch.blg
