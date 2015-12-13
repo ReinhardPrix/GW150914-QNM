@@ -50,5 +50,6 @@ function [psd, ts, tsW, tsOW] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, line
   tsW  = freqBand2TS ( fk_wide, xkW_wide,  fMin, fMax, fNyquist ); tsW.ti  += tStart;
   tsOW = freqBand2TS ( fk_wide, xkOW_wide, fMin, fMax, fNyquist ); tsOW.ti += tStart;
 
+  assert ( (ts.ti == tsW.ti) && (ts.ti == tsOW.ti) );
   return;
 endfunction
