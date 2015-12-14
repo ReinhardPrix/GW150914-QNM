@@ -17,13 +17,11 @@ function [psd, ts, tsW, tsOW] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, line
   %% ---------- estimate PSD using running-median over frequency ----------
   %% Wiener-Khintchine theorm
   %% Sn_double = 1/T * mean ( periodo );
-  window = 300;
-  rngmedbias = 0.69817; %%
   lal;
-  rngmedbias = XLALRngMedBias ( window );
+  rngmedbias = XLALRngMedBias ( RngMedWindow );
 
   periodo = abs ( ft.xk(indsWide) ).^2;
-  Sn_wide = 2/T * rngmed ( periodo, window ) / rngmedbias;	%% single-sided PSD
+  Sn_wide = 2/T * rngmed ( periodo, RngMedWindow ) / rngmedbias;	%% single-sided PSD
   psd.fk = ft.fk ( indsWide ( indsUse ) );
   psd.Sn = Sn_wide ( indsUse );
 
