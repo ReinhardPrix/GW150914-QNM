@@ -28,7 +28,7 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
   else
     extraLabel = "";
   endif
-  bname = sprintf ( "freq%.0fHz-%.0fHz-GPS%.0fs+-%.0fs%s", uvar.fMin, uvar.fMax, uvar.tCenter, uvar.Twindow, extraLabel);
+  bname = sprintf ( "freq%.0fHz-%.0fHz-GPS%.0fs+-%.0fs-ls%.1f-lw%.1f-rng%.0f%s", uvar.fMin, uvar.fMax, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow, extraLabel);
 
   for X = 1:length(fnames)
     bnameX = sprintf ( "%s-%s", IFO{X}, bname );
