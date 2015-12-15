@@ -4,32 +4,32 @@ function ret = searchRingdown ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
-                        {"fMin", "real,strictpos,scalar", 100 },
-                        {"fMax", "real,strictpos,scalar", 400 },
+                        {"data_FreqRange", "real,strictpos,vector", [100,300] },
                         {"tCenter", "real,strictpos,scalar", 1126259462 },
                         {"tOffs", "real,strictpos,scalar", 0.43 },
                         {"prior_FreqRange", "real,strictpos,vector", [220,  280] },
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
                         {"prior_H", "real,strictpos,scalar", 1e-22},
                         {"extraLabel", "char,vector", ""},
-                        {"showTSPlots", "bool", false },
                         {"plotResults", "bool", false },
                         {"useOW", "bool", true}	%% use overwhitening to handle matched-filtering noise estimate, alt: estimate ~const noise floor
                       );
-  assert ( uvar.fMax > uvar.fMin );
-  assert ( uvar.fMin < min(uvar.prior_FreqRange) );
-  assert ( uvar.fMax > max(uvar.prior_FreqRange) );
 
-  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.0fms-%.0fms-H%.2g-%s-%s",
+  NoiseBand = 20;	%% use +-20Hz noise band around signal frequency for (non-OW) PSD estimate
+  assert ( min(uvar.data_FreqRange) <= min(uvar.prior_FreqRange) - NoiseBand );
+  assert ( max(uvar.data_FreqRange) >= max(uvar.prior_FreqRange) + NoiseBand );
+
+  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.0fms-%.0fms-H%.2g-%s%s-tOffs%.4fs",
                     uvar.tCenter, min(uvar.prior_FreqRange), max(uvar.prior_FreqRange),
-                    min(uvar.prior_tauRange), max(uvar.prior_tauRange),
+                    1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
                     uvar.prior_H,
                     ifelse ( uvar.useOW, "OW", "constS" ),
-                    uvar.extraLabel
+                    uvar.extraLabel,
+                    uvar.tOffs
                   );
 
   DebugPrintf ( 1, "Extracting timeseries ... ");
-  [ts, tsW, tsOW, psd, IFO] = extractTS ( "fMin", uvar.fMin, "fMax", uvar.fMax, "tCenter", uvar.tCenter, "showPlots", uvar.showTSPlots, "lineSigma", 5, "lineWidth", 0.1, "RngMedWindow", 300 );
+  [ts, tsW, tsOW, psd, IFO] = extractTS ( "fMin", min(uvar.data_FreqRange), "fMax", max(uvar.data_FreqRange), "tCenter", uvar.tCenter );
   DebugPrintf ( 1, "done.\n");
   Ndet = length(ts);
 
@@ -80,7 +80,7 @@ function ret = searchRingdown ( varargin )
 
   %% ----- determine ~const noise-estimate in f0 +- 20Hz Band around each signal frequency f0
   inds_f0   = round ( (f0 - fMin)/df );
-  inds_Band = round(20 / df);
+  inds_Band = round( NoiseBand / df);
   offs = [-inds_Band : inds_Band ];
   [xx, yy] = meshgrid ( inds_f0, offs );
   inds_mat = xx + yy;
@@ -211,10 +211,6 @@ function ret = searchRingdown ( varargin )
     text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
     grid on;
     hold off;
-
-    %% ---------- output final results summary in input-specific collection file ----------
-    fname = sprintf ( "%s.png", bname );
-    ezprint ( fname, "width", 512 );
 
   endif %% plotResults
 
