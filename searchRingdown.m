@@ -13,16 +13,19 @@ function ret = searchRingdown ( varargin )
                         {"prior_H", "real,strictpos,scalar", 1e-22},
                         {"extraLabel", "char,vector", ""},
                         {"showTSPlots", "bool", false },
-                        {"plotResults", "bool", false }
+                        {"plotResults", "bool", false },
+                        {"useOW", "bool", true}	%% use overwhitening to handle matched-filtering noise estimate, alt: estimate ~const noise floor
                       );
   assert ( uvar.fMax > uvar.fMin );
   assert ( uvar.fMin < min(uvar.prior_FreqRange) );
   assert ( uvar.fMax > max(uvar.prior_FreqRange) );
 
-  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.0fms-%.0fms-H%.2g%s",
+  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.0fms-%.0fms-H%.2g-%s-%s",
                     uvar.tCenter, min(uvar.prior_FreqRange), max(uvar.prior_FreqRange),
                     min(uvar.prior_tauRange), max(uvar.prior_tauRange),
-                    uvar.prior_H, uvar.extraLabel
+                    uvar.prior_H,
+                    ifelse ( uvar.useOW, "OW", "constS" ),
+                    uvar.extraLabel
                   );
 
   DebugPrintf ( 1, "Extracting timeseries ... ");
@@ -60,7 +63,7 @@ function ret = searchRingdown ( varargin )
   Ntau = length(tau);
   [ff, ttau] = meshgrid ( f0, tau );
   lap_s = 1./ ttau + I * 2*pi * ff;	%% laplace 'frequency'
-  log10BSG_tot = match_tot = matchOW_tot = Gam_tot = zeros ( size ( lap_s ) );
+  log10BSG_tot = match_tot = Gam_tot = zeros ( size ( lap_s ) );
   DebugPrintf ( 1, "Searching ringdown %d templates ... ", length(ff(:)) );
 
   %% ----- prepare time-series stretch to analyze
@@ -70,7 +73,7 @@ function ret = searchRingdown ( varargin )
   Dt_i = t_i - t0;
 
   for X = 1:Ndet
-    log10BSG{X} = match{X} = matchOW{X} = Gam{X} = zeros ( size ( lap_s ) );
+    log10BSG{X} = match{X} = Gam{X} = zeros ( size ( lap_s ) );
     xOW_i{X} = tsOW{X}.xi(inds);
     x_i{X}   = ts{X}.xi(inds);
   endfor %% X
@@ -95,18 +98,21 @@ function ret = searchRingdown ( varargin )
   for l = 1 : Ntempl	%% loop over all templates
     template_l = exp ( - Dt_i  * lap_s(l) );
     for X = 1:Ndet
-      match{X}(l)   = 2 * dt / Sn_mat{X}(l) * sum ( x_i{X} .* template_l );
-      matchOW{X}(l) = 2 * dt * sum ( xOW_i{X} .* template_l );
+      if ( uvar.useOW )	%% use overwhitened time-series for match
+        match{X}(l) = 2 * dt * sum ( xOW_i{X} .* template_l );
+      else	%% use ~const noise-floor estimate in signal +-20Hz band
+        match{X}(l) = 2 * dt * sum ( x_i{X} .* template_l ) / Sn_mat{X}(l);
+      endif
+
     endfor %% X
   endfor %% l
 
   for X = 1:Ndet
     match_tot   += match{X};
-    matchOW_tot += matchOW{X};
-    log10BSG{X} = compute_log10BSG ( Gam{X}, matchOW{X}, uvar.prior_H );
+    log10BSG{X} = compute_log10BSG ( Gam{X}, match{X}, uvar.prior_H );
     BSG{X} = 10.^(log10BSG{X});
   endfor
-  log10BSG_tot = compute_log10BSG ( Gam_tot, matchOW_tot, uvar.prior_H );
+  log10BSG_tot = compute_log10BSG ( Gam_tot, match_tot, uvar.prior_H );
   BSG_tot = 10.^log10BSG_tot;
 
   DebugPrintf ( 1, "done.\n");
@@ -158,7 +164,7 @@ function ret = searchRingdown ( varargin )
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
-    surf ( ff, ttau * 1e3, BSG_tot ); colorbar("location", "NorthOutside"); view(2); shading("flat");
+    surf ( ff, ttau * 1e3, BSG_tot ); colorbar("location", "NorthOutside"); view(2); shading("interp");
     plot3 ( f0_MPE, tau_MPE * 1e3, 1.1*BSG_max, "marker", "o", "markersize", 3, "color", "white" );
     yrange = ylim();
     xlabel ("Freq [Hz]"); ylabel ("tau [ms]");
