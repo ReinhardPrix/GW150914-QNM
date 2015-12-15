@@ -1,6 +1,6 @@
 #!/usr/bin/octave -q
 
-function searchRingdown ( varargin )
+function ret = searchRingdown ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
@@ -12,7 +12,8 @@ function searchRingdown ( varargin )
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
                         {"prior_H", "real,strictpos,scalar", 1e-22},
                         {"extraLabel", "char,vector", ""},
-                        {"showTSPlots", "bool", false }
+                        {"showTSPlots", "bool", false },
+                        {"plotResults", "bool", false }
                       );
   assert ( uvar.fMax > uvar.fMin );
   assert ( uvar.fMin < min(uvar.prior_FreqRange) );
@@ -48,7 +49,6 @@ function searchRingdown ( varargin )
   df = df{1};
   fMin = fMin{1};
 
-  t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
   Tmax = 3 * max(uvar.prior_tauRange);	%% max time range considered = 5 * tauMax
 
   %% ---------- templated search over {freq, tau} space ----------
@@ -60,20 +60,22 @@ function searchRingdown ( varargin )
   Ntau = length(tau);
   [ff, ttau] = meshgrid ( f0, tau );
   lap_s = 1./ ttau + I * 2*pi * ff;	%% laplace 'frequency'
-  log10BSG_tot = match_tot = Gam_tot = zeros ( size ( lap_s ) );
+  log10BSG_tot = match_tot = matchOW_tot = Gam_tot = zeros ( size ( lap_s ) );
   DebugPrintf ( 1, "Searching ringdown %d templates ... ", length(ff(:)) );
 
   %% ----- prepare time-series stretch to analyze
+  t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
   inds = find ( (tsOW{1}.ti >= t0) & (tsOW{1}.ti <= t0 + Tmax) );
-  t_i  = tsOW{1}.ti(inds);
+  t_i  = ts{1}.ti(inds);
   Dt_i = t_i - t0;
 
   for X = 1:Ndet
-    log10BSG{X} = match{X} = Gam{X} = zeros ( size ( lap_s ) );
-    xOW_i{X}  = tsOW{X}.xi(inds);
+    log10BSG{X} = match{X} = matchOW{X} = Gam{X} = zeros ( size ( lap_s ) );
+    xOW_i{X} = tsOW{X}.xi(inds);
+    x_i{X}   = ts{X}.xi(inds);
   endfor %% X
 
-  %% ----- determine appropriate noise-estimate in f0 +- 20Hz Band around each signal frequency f0
+  %% ----- determine ~const noise-estimate in f0 +- 20Hz Band around each signal frequency f0
   inds_f0   = round ( (f0 - fMin)/df );
   inds_Band = round(20 / df);
   offs = [-inds_Band : inds_Band ];
@@ -93,16 +95,18 @@ function searchRingdown ( varargin )
   for l = 1 : Ntempl	%% loop over all templates
     template_l = exp ( - Dt_i  * lap_s(l) );
     for X = 1:Ndet
-      match{X}(l)   = 2 * dt * sum ( xOW_i{X} .* template_l );
+      match{X}(l)   = 2 * dt / Sn_mat{X}(l) * sum ( x_i{X} .* template_l );
+      matchOW{X}(l) = 2 * dt * sum ( xOW_i{X} .* template_l );
     endfor %% X
   endfor %% l
 
   for X = 1:Ndet
-    match_tot += match{X};
-    log10BSG{X} = compute_log10BSG ( Gam{X}, match{X}, uvar.prior_H );
+    match_tot   += match{X};
+    matchOW_tot += matchOW{X};
+    log10BSG{X} = compute_log10BSG ( Gam{X}, matchOW{X}, uvar.prior_H );
     BSG{X} = 10.^(log10BSG{X});
   endfor
-  log10BSG_tot = compute_log10BSG ( Gam_tot, match_tot, uvar.prior_H );
+  log10BSG_tot = compute_log10BSG ( Gam_tot, matchOW_tot, uvar.prior_H );
   BSG_tot = 10.^log10BSG_tot;
 
   DebugPrintf ( 1, "done.\n");
@@ -149,79 +153,68 @@ function searchRingdown ( varargin )
   %% ---------- Plot results ----------
 
   %% ----- Fig 1: Bayes factor / posterior over {f0,tau} ----------
-  figure(); clf;
-  subplot ( 2, 2, 1 );
-  hold on;
-  colormap ("jet");
-  surf ( ff, ttau * 1e3, BSG_tot ); colorbar("location", "NorthOutside"); view(2); shading("flat");
-  plot3 ( f0_MPE, tau_MPE * 1e3, 1.1*BSG_max, "marker", "o", "markersize", 3, "color", "white" );
-  yrange = ylim();
-  xlabel ("Freq [Hz]"); ylabel ("tau [ms]");
-  hold off;
+  if ( uvar.plotResults )
+    figure(); clf;
+    subplot ( 2, 2, 1 );
+    hold on;
+    colormap ("jet");
+    surf ( ff, ttau * 1e3, BSG_tot ); colorbar("location", "NorthOutside"); view(2); shading("flat");
+    plot3 ( f0_MPE, tau_MPE * 1e3, 1.1*BSG_max, "marker", "o", "markersize", 3, "color", "white" );
+    yrange = ylim();
+    xlabel ("Freq [Hz]"); ylabel ("tau [ms]");
+    hold off;
 
-  subplot ( 2, 2, 3 );
-  plot ( f0, posterior_f0, "linewidth", 2 );
-  grid on;
-  yrange = ylim();
-  line ( [f0_est.MPE, f0_est.MPE], yrange );
-  line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
-  ylim ( yrange );
-  xlabel ("Freq [Hz]");
-  ylabel ("pdf(Freq)");
+    subplot ( 2, 2, 3 );
+    plot ( f0, posterior_f0, "linewidth", 2 );
+    grid on;
+    yrange = ylim();
+    line ( [f0_est.MPE, f0_est.MPE], yrange );
+    line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
+    ylim ( yrange );
+    xlabel ("Freq [Hz]");
+    ylabel ("pdf(Freq)");
 
-  subplot ( 2, 2, 2 );
-  plot ( tau * 1e3, posterior_tau, "linewidth", 2 );
-  yrange = ylim();
-  line ( [tau_est.MPE, tau_est.MPE]*1e3, yrange );
-  line ( [tau_est.lower, tau_est.upper]* 1e3, [tau_est.pIso, tau_est.pIso] );
-  ylim ( yrange );
-  grid on;
-  xlabel ("tau [ms]");
-  ylabel ("pdf(tau)");
+    subplot ( 2, 2, 2 );
+    plot ( tau * 1e3, posterior_tau, "linewidth", 2 );
+    yrange = ylim();
+    line ( [tau_est.MPE, tau_est.MPE]*1e3, yrange );
+    line ( [tau_est.lower, tau_est.upper]* 1e3, [tau_est.pIso, tau_est.pIso] );
+    ylim ( yrange );
+    grid on;
+    xlabel ("tau [ms]");
+    ylabel ("pdf(tau)");
 
+    subplot ( 2, 2, 4 );
+    hold on;
+    colors = { "red", "blue" };
+    for X = 1:Ndet
+      sleg = sprintf (";%s;", IFO{X} );
+      plot ( ts{X}.ti - uvar.tCenter, ts{X}.xi, sleg, "linewidth", 2, "color", colors{X} );
+    endfor
+    plot ( ts{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
+    legend ( "location", "NorthWest");
+    yrange = ylim();
+    line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "-", "linewidth", 2 );
+    xlim ( [0.38, 0.46 ] );
+    ylim ( yrange );
+    xlabel ("tOffs [s]");
+    tOffs_text = sprintf ( "tOffs = %.3f s", uvar.tOffs );
+    x0 = uvar.tOffs + 0.02 * abs(diff(xlim()));
+    y0 = max(yrange) - 0.2*abs(diff(yrange));
+    text ( x0, y0, tOffs_text );
+    text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
+    grid on;
+    hold off;
 
-  subplot ( 2, 2, 4 );
-  hold on;
-  colors = { "red", "blue" };
-  for X = 1:Ndet
-    sleg = sprintf (";%s;", IFO{X} );
-    plot ( ts{X}.ti - uvar.tCenter, ts{X}.xi, sleg, "linewidth", 2, "color", colors{X} );
-  endfor
-  plot ( ts{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
-  legend ( "location", "NorthWest");
-  yrange = ylim();
-  line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "-", "linewidth", 2 );
-  xlim ( [0.38, 0.46 ] );
-  ylim ( yrange );
-  xlabel ("tOffs [s]");
-  tOffs_text = sprintf ( "tOffs = %.3f s", uvar.tOffs );
-  x0 = uvar.tOffs + 0.02 * abs(diff(xlim()));
-  y0 = max(yrange) - 0.2*abs(diff(yrange));
-  text ( x0, y0, tOffs_text );
-  text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
-  grid on;
-  hold off;
+    %% ---------- output final results summary in input-specific collection file ----------
+    fname = sprintf ( "%s.png", bname );
+    ezprint ( fname, "width", 512 );
 
-  %% ----- Fig 2: per-detector Bayes-factors / posteriors {f0, tau} ----------
-  ## figure(); clf;
-  ## for X = 1:Ndet
-  ##   subplot ( Ndet, 1, X );
-  ##   hold on;
-  ##   surf ( ff, ttau * 1e3, (BSG{X}) ); colorbar(); view(2); shading("flat");
-  ##   plot3 ( f0_MPE, tau_MPE * 1e3, 1.1*BSG_max, "marker", "x", "markersize", 5, "color", "white" );
-  ##   yrange = ylim(); xrange = xlim();
-  ##   xlabel ("Freq [Hz]"); ylabel ("$\\tau$ [ms]");
-  ##   hold off;
-  ## endfor
-
-
-  %% ---------- output final results summary in input-specific collection file ----------
-  fname = sprintf ( "%s.png", bname );
-  ezprint ( fname, "width", 512 );
-
+  endif %% plotResults
 
   %% summarize numerical outcomes on stdout
   BSG_mean = mean ( BSG_tot(:) );
+
   DebugPrintf (1, "tGPS    = %.0f + %f s\n", uvar.tCenter, uvar.tOffs );
   DebugPrintf (1, "<BSG>   = %.2g\n", BSG_mean );
   DebugPrintf (1, "f0_est  = { %.1f, %.1f, %1.f } Hz\n", f0_est.lower, f0_est.MPE, f0_est.upper );
@@ -231,7 +224,18 @@ function searchRingdown ( varargin )
   DebugPrintf (1, "sqrt(S)(f_MPE)= %.2g\n", sqrt(Stot_MPE) );
   SNR_MPE = A_MPE * sqrt ( Ndet * tau_est.MPE / (2 * Stot_MPE ) );
   DebugPrintf (1, "SNR_MPE = %.2g\n", SNR_MPE );
-  DebugPrintf (1, "sanity check: Gam(MPE)/H^2 * e^(SNR^2/2) = %.2g\n", Gam_MPE / uvar.prior_H^2 * exp ( SNR_MPE^2 / 2 ) );
+  DebugPrintf (1, "sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = %.2g\n", exp ( SNR_MPE^2 / 2 ) );
+
+
+  ret = struct ( "tGPS", uvar.tCenter + uvar.tOffs, ...
+                 "BSG_mean", BSG_mean, ...
+                 "A_MPE", A_MPE, ...
+                 "phi0_MPE", phi0_MPE, ...
+                 "f0_est", f0_est, ...
+                 "tau_est", tau_est, ...
+                 "SNR_MPE", SNR_MPE, ...
+                 "sqrtS_MPE", sqrt(Stot_MPE)
+               );
   return
 
 endfunction
