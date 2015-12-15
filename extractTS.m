@@ -12,6 +12,7 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
                         {"lineWidth", "real,positive,scalar", 0.1},	%% +- width in Hz to zero around 'lines'
                         {"plotResults", "bool", false },
                         {"simulate", "bool", false },
+                        {"shiftL", "real,positive,scalar", 7.1e-3},	%% time-shift to apply to L1 data wrt to H1
                         {"RngMedWindow", "real,positive,scalar", 300 }	%% window size to use for rngmed-based PSD estimation
                       );
   assert ( uvar.fMax > uvar.fMin );
@@ -20,7 +21,7 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
   fNy = 1370;	%% 2x1370Hz sampling, enough to allow for resolved ~7.3ms time-shift ~ 20bins
   fnames = {"H-1_H1_1800SFT_ER8-1126257832-1800.sft"; "L-1_L1_1800SFT_ER8-1126258841-1800.sft" };
   IFO = {"H1"; "L1"};
-  tOffs = { 0, +7.3e-3 };	%% delay L1 data by 7.3ms
+  tOffs = { 0, uvar.shiftL };	%% delay {H1,L1} data by this amount, respectively
   scaleFact = { 1, -1 };	%% invert L1 data to be in phase with H1
 
   if ( uvar.simulate )
@@ -28,7 +29,8 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
   else
     extraLabel = "";
   endif
-  bname = sprintf ( "freq%.0fHz-%.0fHz-GPS%.0fs+-%.0fs-ls%.1f-lw%.1f-rng%.0f%s", uvar.fMin, uvar.fMax, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow, extraLabel);
+  bname = sprintf ( "freq%.0fHz-%.0fHz-GPS%.0fs+-%.0fs-ls%.1f-lw%.1f-rng%.0f-shiftL%.2fms%s",
+                    uvar.fMin, uvar.fMax, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow, uvar.shiftL * 1e3, extraLabel);
 
   for X = 1:length(fnames)
     bnameX = sprintf ( "%s-%s", IFO{X}, bname );

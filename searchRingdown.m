@@ -12,6 +12,7 @@ function ret = searchRingdown ( varargin )
                         {"prior_H", "real,strictpos,scalar", 1e-22},
                         {"extraLabel", "char,vector", ""},
                         {"plotResults", "bool", false },
+                        {"shiftL", "real,positive,scalar", 7.1e-3},	%% time-shift to apply to L1 data wrt to H1
                         {"useOW", "bool", true}	%% use overwhitening to handle matched-filtering noise estimate, alt: estimate ~const noise floor
                       );
 
@@ -19,17 +20,18 @@ function ret = searchRingdown ( varargin )
   assert ( min(uvar.data_FreqRange) <= min(uvar.prior_FreqRange) - NoiseBand );
   assert ( max(uvar.data_FreqRange) >= max(uvar.prior_FreqRange) + NoiseBand );
 
-  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.0fms-%.0fms-H%.2g-%s%s-tOffs%.4fs",
+  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.0fms-%.0fms-H%.2g-%s%s-shiftL%.2fms-tOffs%.4fs",
                     uvar.tCenter, min(uvar.prior_FreqRange), max(uvar.prior_FreqRange),
                     1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
                     uvar.prior_H,
                     ifelse ( uvar.useOW, "OW", "constS" ),
                     uvar.extraLabel,
+                    1e3 * uvar.shiftL,
                     uvar.tOffs
                   );
 
   DebugPrintf ( 1, "Extracting timeseries ... ");
-  [ts, tsW, tsOW, psd, IFO] = extractTS ( "fMin", min(uvar.data_FreqRange), "fMax", max(uvar.data_FreqRange), "tCenter", uvar.tCenter );
+  [ts, tsW, tsOW, psd, IFO] = extractTS ( "fMin", min(uvar.data_FreqRange), "fMax", max(uvar.data_FreqRange), "tCenter", uvar.tCenter, "shiftL", uvar.shiftL );
   DebugPrintf ( 1, "done.\n");
   Ndet = length(ts);
 
@@ -204,7 +206,7 @@ function ret = searchRingdown ( varargin )
     xlim ( [0.38, 0.46 ] );
     ylim ( yrange );
     xlabel ("tOffs [s]");
-    tOffs_text = sprintf ( "tOffs = %.3f s", uvar.tOffs );
+    tOffs_text = sprintf ( "tOffs = %.4f s", uvar.tOffs );
     x0 = uvar.tOffs + 0.02 * abs(diff(xlim()));
     y0 = max(yrange) - 0.2*abs(diff(yrange));
     text ( x0, y0, tOffs_text );
