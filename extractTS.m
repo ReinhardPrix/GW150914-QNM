@@ -10,9 +10,9 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
                         {"Twindow", "real,strictpos,scalar", 10 },	%% time-window +- to extract around the event
                         {"lineSigma", "real,positive,scalar", 5},	%% sigma deviations to indentify 'lines' in spectrum
                         {"lineWidth", "real,positive,scalar", 0.1},	%% +- width in Hz to zero around 'lines'
-                        {"showPlots", "bool", false },
+                        {"plotResults", "bool", false },
                         {"simulate", "bool", false },
-                        {"RngMedWindow", "real,positive,scalar", 100 }	%% window size to use for rngmed-based PSD estimation
+                        {"RngMedWindow", "real,positive,scalar", 300 }	%% window size to use for rngmed-based PSD estimation
                       );
   assert ( uvar.fMax > uvar.fMin );
 
@@ -89,7 +89,7 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
       fclose(fid);
     endif %% if no previous results re-used
 
-    if ( uvar.showPlots )
+    if ( uvar.plotResults )
       ft = FourierTransform ( ts{X}.ti, ts{X}.xi );
       figure(); clf;
       plot ( ft.fk, abs(ft.xk)/sqrt(uvar.Twindow), "-", psd{X}.fk, sqrt(psd{X}.Sn), "o" );
@@ -97,6 +97,8 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
       xlabel ("Freq [Hz]");
       ylabel ("sqrt(Sn)");
       title ( bnameX );
+      fname = sprintf ( "%s.tex", bnameX);
+      ezprint ( fname, "width", 512 );
     endif
 
   endfor %% X
