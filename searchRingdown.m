@@ -241,6 +241,10 @@ function ret = searchRingdown ( varargin )
                  "SNR_MPE", SNR_MPE, ...
                  "sqrtS_MPE", sqrt(Stot_MPE)
                );
+
+  dump_fname = sprintf ( "Results/searchRingdown-%s.hdf5", bname );
+  save( "-hdf5", dump_fname );
+
   return
 
 endfunction

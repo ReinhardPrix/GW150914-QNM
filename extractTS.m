@@ -19,7 +19,7 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
 
   %% load frequency-domain data from SFTs:
   fNy = 1370;	%% 2x1370Hz sampling, enough to allow for resolved ~7.3ms time-shift ~ 20bins
-  fnames = {"H-1_H1_1800SFT_ER8-1126257832-1800.sft"; "L-1_L1_1800SFT_ER8-1126258841-1800.sft" };
+  fnames = {"./Data/H-1_H1_1800SFT_ER8-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-1126258841-1800.sft" };
   IFO = {"H1"; "L1"};
   tOffs = { 0, uvar.shiftL };	%% delay {H1,L1} data by this amount, respectively
   scaleFact = { 1, -1 };	%% invert L1 data to be in phase with H1
@@ -34,8 +34,8 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
 
   for X = 1:length(fnames)
     bnameX = sprintf ( "%s-%s", IFO{X}, bname );
-    psd_fname = sprintf ( "PSD-%s.dat", bnameX );
-    ts_fname = sprintf ( "TS-%s.dat", bnameX );
+    psd_fname = sprintf ( "Results/PSD-%s.dat", bnameX );
+    ts_fname = sprintf ( "Results/TS-%s.dat", bnameX );
     %% ---------- check if TS results for this parameters already exist: re-use if yes ----------
     if ( length ( glob ( { psd_fname; ts_fname } ) ) == 2 )
       DebugPrintf (2, "%s: Re-using previous TS results '%s'\n", funcName(), bnameX );
@@ -99,7 +99,7 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
       xlabel ("Freq [Hz]");
       ylabel ("sqrt(Sn)");
       title ( bnameX );
-      fname = sprintf ( "%s.tex", bnameX);
+      fname = sprintf ( "Results/%s.tex", bnameX);
       ezprint ( fname, "width", 512 );
     endif
 

@@ -43,15 +43,15 @@ for i = 1:Nsteps
   tau_uerr(i)  = ret{i}.tau_est.upper - tau_MPE(i);
 
   %% ---------- plot results summary page
-  fname = sprintf ( "%s.png", ret{i}.bname );
+  fname = sprintf ( "Results/%s.png", ret{i}.bname );
   ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
   %% create symlinks for movie-making
-  fnameM = sprintf ( "movie-frame-%02d.png", i - 1 );
+  fnameM = sprintf ( "Results/movie-frame-%02d.png", i - 1 );
   unlink ( fnameM); symlink ( fname, fnameM );
 endfor
 
 %% ----- store results dump ----------
-fname = sprintf ( "%s.hd5", ret{1}.bname );
+fname = sprintf ( "Results/RingdownDriver-%s.hd5", ret{1}.bname );
 save ("-hdf5", fname )
 
 %% ----- plot quantities vs tOffs ----------
@@ -72,5 +72,5 @@ errorbar ( tOffs, 1e3*tau_MPE, 1e3*tau_lerr, 1e3*tau_uerr, ";90%;" ); grid on;
 ylabel ("tau [ms]");
 xlabel ("tOffs [s]");
 
-fname = sprintf ( "%s-summary.pdf", ret{1}.bname );
-ezprint ( fname, "width", 512, "height", 1500 );
+fname = sprintf ( "Results/%s-summary.pdf", ret{1}.bname );
+ezprint ( fname, "width", 512 );
