@@ -1,4 +1,4 @@
-\documentclass[aps,prd,onecolumn,nofootinbib,superscriptaddress,altaffilletter,floatfix]{revtex4-1}
+\documentclass[aps,prd,onecolumn,notitlepage,nofootinbib,superscriptaddress,altaffilletter,floatfix]{revtex4-1}
 
 %\documentclass[twocolumn,superscriptaddress,showpacs,preprintnumbers,amsmath,amssymb]{revtex4}
 %\documentclass[,showpacs,preprintnumbers,amsmath,amssymb]{revtex4}
@@ -25,20 +25,44 @@
 \input{git_tag.tex}
 \begin{document}
 
-\title{Bayesian Ringdown Search}
+\title{(Yet another) QNM search on GW150914}
 
 %% \title{Template-based investigations to study the parameter-space metric for known continuous
 %% wave sources in binary systems}
 
 \author{Reinhard Prix}
 \altaffiliation{reinhard.prix@aei.mpg.de}
-\affiliation{Max-Planck-Institut f\"ur Gravitationsphysik, Albert-Einstein-Institut, D-30167 Hannover, Germany}
+%%\affiliation{Max-Planck-Institut f\"ur Gravitationsphysik, Albert-Einstein-Institut, D-30167 Hannover, Germany}
 \date{\commitDATE; \commitIDshort-\commitSTATUS}
 %\parbox[c]{1em}{\textcolor{red}{DRAFT}}
 
 
 \begin{abstract}
-  ...
+  We quantify the evidence for and estimate the parameters of QNM 'ringdown' in the GW150914 event.
+  This is done by Bayesian hypothesis testing and parameter estimation using a QNM ringdown model
+  $s(t\ge\tStart) = A\,e^{-\frac{t-\tStart}{\tau}}\cos\left(2\pi f (t-\tStart) + \phi_0\right)$ with unknown amplitude $A$, initial phase $\phi_0$,
+  frequency $f$ and decay time $\tau$, as a function of the QNM start-time $\tStart$.
+  Using a Gaussian-isotropic prior on $\{\As=A\sin\phi_0,\,\Ac=A\cos\phi_0\}$ we can approximate the Bayes factor by analytically marginalizing over
+  $\{A,\phi_0\}$, leaving an explicit template search over $\{f,\,\tau\}$. We search the range $f\in[210,\,270]\,\Hz$ and $\tau \in [0.2, 20]\,\ms$
+  assuming a uniform prior.
+
+  \textbf{Main result:}
+  There is very strong evidence (signal versus Gaussian noise Bayes factor $\BSG\sim10^{7}$, SNR in MPE point $\sim6.3$) for a 'final' detectable QNM
+  with $f\sim252\,\Hz,\,\tau\sim5\,\ms$ ($Q = \pi\,f\,\tau \sim 4$) 'starting' in H1 at $\tStart = \tEvent + 0.428s$, (and $\sim7\,\ms$ earlier in L1)
+  where $\tEvent = 1126259462\,$s is the reference GPS time of the event.
+  This QNM stops being detectable around $\tStart = \tEvent+0.434s$ (SNR$\sim1$), consistent with the exponential decay time.
+
+  \textbf{Caveats:}
+  \begin{itemize}
+  \item recently written from-scratch search pipeline, could still be bugs ...
+  \item although noise is fairly ``white'' in the band of interest, there is some frequency-dependence. The current handling of this
+    frequency-dependent noise-floor is not yet optimal, and results can change somewhat when changing noise-floor handling.
+    Ideally should treat unknown noise-floor by Bayesian marginalization as well [TODO].
+  \item TODO: collect data on noise-only distribution of $\BSG$
+  \item TODO: inject QNM signals and check PE accuracy
+  \item this pipeline searches for \emph{single} QNMs in Gaussian noise, while here it is likely that several QNMs are exited at the same time and
+    might/will interfere with each other. Ideally a multi-QNM search pipeline should be developed.
+  \end{itemize}
 \end{abstract}
 
 %%\pacs{04.80.Nn, 95.55.Ym, 95.75.-z, 97.60.Gb, 07.05.Kf}% PACS, the Physics and Astronomy
@@ -114,6 +138,7 @@ considered relatively ``narrow band'' ($\sim \pm 100\Hz$) with respect to this n
 \end{align}
 where $f'$ is some (unknown) frequency within the effective frequency band around the central signal frequency $f$ (using mean-value theorem), and we
 have used the assumption of identical signal model in both detectors (after time-shifting the data and correcting for antenna-pattern differences).
+
 The respective integrals to compute are
 \begin{align}
   \label{eq:18}
@@ -145,6 +170,8 @@ So we finally obtain the (perfect-match) SNR$^2$ as
   &=\left(\As^2 + \Ac^2\right)\,\frac{\Ndet\tau}{2\Sn(f)}\,,
 \end{align}
 with the harmonic mean $\Sn^{-1} \equiv \frac{1}{\Ndet}\sum_X S_X^{-1}$.
+Note: in the QNM search below we'll approximate $\Sn(f')$ in this expression by the arithmetic mean $\langle\Sn(f)\rangle_{f\pm20\Hz}$ around each
+template frequency $f$.
 
 
 \subsection{Expressing the ``matched filter'' $\scalar{x}{s(\parmsAll)}$}
@@ -248,7 +275,126 @@ The posterior is
     &\propto \exp\left[-\frac{1}{2}\,\Gam(\parmsEvol)\,\left(\As^2+\Ac^2\right) + \As\,\xs(\parmsEvol) + \Ac\,\xc(\parmsEvol)\right]\,\prob{\parmsEvol}{\HypS}\,.
 \end{align}
 where in the first line we have dropped the $\parmsAll$-independent normalization $1/\prob{x}{\HypS}$, and in the second line $\prob{x}{\HypG}$.
+After marginalization over $\{\As,\Ac\}$ we recover again the Bayes factor $\BSG(x;\parmsEvol)$ of \eqref{eq:29}, i.e.
+\begin{equation}
+  \label{eq:32}
+  \prob{\parmsEvol}{x,\HypS} \propto \BSG(x;\parmsEvol)\,.
+\end{equation}
 
+Finding the maximum-posterior estimates (MPE) for $\As,\Ac$ at fixed $\parmsEvol$ from \eqref{eq:30} yields
+\begin{equation}
+  \label{eq:31}
+  \As' = \Gam(\parmsEvol)\,\xs\,,\quad
+  \Ac' = \Gam(\parmsEvol)\,\xc\,.
+\end{equation}
+We will evaluate this at the MPE values found for $\parmsEvol$ in the Bayes-factor search using \eqref{eq:32}.
+From these we'll obtain $A' = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\left(\frac{\As}{\Ac}\right)$.
+
+
+\section{QNM search applied to GW150914}
+\label{sec:qnm-search-applied}
+
+\subsection{Data preparation}
+\label{sec:data-preparation}
+
+Band-passed data in $[100,\,300]\,\Hz$ using a 1800s Fourier-transform, from this extracted $T=20\,$s timeseries $x^X(t)$ centered on GPS time $\tEvent =
+1125269462\,$s. Time-shifted L1 data by (delaying it by) $+7.1\,\ms$ and multiplied it by (-1) to account for the inverse detector response.
+Fourier-transformed this again, zeroed-out all bins $\pm0.1\,\Hz$ around 'lines', identified as $\ge 5$ sigma deviation of unit-variance normalized
+FT.
+We estimate the (single-sided) PSD $S_X$ by 300-bin running-median on FT power, using Wiener-Khintchine theorem
+$S(f) = \frac{2}{T} E\left[|\FT{x}(f)|^2\right]$ (as is standard practice in CW search pipelines).
+
+\subsection{Prior choices}
+\label{sec:prior-choices}
+
+Isotropic 2D Gaussian amplitude prior \eqref{eq:22} on $\{\As,\Ac\}$ with characteristic amplitude $H = 4\times10^{-22}$, which corresponds to
+isotropic prior in $\phi_0$ and an $A$-prior of \eqref{eq:28}, as shown in Fig.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.5\textwidth]{prior_A-H4e-22.pdf}
+  \caption{Amplitude $A$ prior with characteristic scale $H=4\times10^{-22}$}
+  \label{fig:A-prior}
+\end{figure}
+
+We search the $\{f,\tau\}$ range with uniform priors in
+\begin{equation}
+  \label{eq:33}
+  f\in[210,\,270]\,\Hz,\quad
+  \tau\in[0.2,\,20]\,\ms\,.
+\end{equation}
+at fixed QNM start-time $\tStart$, which we vary in steps of $0.5\,\ms$ in the range $\tStart\in [0.422,\,0.438]\,s + \tEvent$ (referring to H1
+arrival times).
+
+\subsection{Numerical results}
+\label{sec:numerical-results}
+
+A few snapshots:
+
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4220s}.png}
+  \caption{$\tStart = \tEvent + 0.422\,$s: $\BSG = 1.2\times10^{30}$}
+  \label{fig:Result-0.422}
+\end{figure}
+
+
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4240s}.png}
+  \caption{$\tStart = \tEvent + 0.424\,$s: $\BSG = 4.9\times10^{19}$}
+  \label{fig:Result-0.424}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4255s}.png}
+  \caption{$\tStart = \tEvent + 0.4255\,$s: $\BSG = 9.3\times10^{23}$}
+  \label{fig:Result-0.4255}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4280s}.png}
+  \caption{$\tStart = \tEvent + 0.428\,$s: $\BSG = 3.2\times10^{7}$}
+  \label{fig:Result-0.428}
+\end{figure}
+
+
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4300s}.png}
+  \caption{$\tStart = \tEvent + 0.430\,$s: $\BSG = 1.1\times10^{3}$}
+  \label{fig:Result-0.430}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4340s}.png}
+  \caption{$\tStart = \tEvent + 0.434\,$s: $\BSG = 1.3$}
+  \label{fig:Result-0.434}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4350s}.png}
+  \caption{$\tStart = \tEvent + 0.435\,$s: $\BSG = 0.21$}
+  \label{fig:Result-0.435}
+\end{figure}
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{{Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4220s-summary}.pdf}
+  \caption{Summary plot}
+  \label{fig:summary}
+\end{figure}
 
 
 \bibliography{RingdownSearch}
