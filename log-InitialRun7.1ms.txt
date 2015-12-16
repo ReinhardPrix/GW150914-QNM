@@ -1,0 +1,396 @@
+tOffs = 0.4220 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.422000 s
+<BSG>   = 1.2e+30
+f0_est  = { 210.0, 210.0, 215 } Hz
+tau_est = { 6.0, 7.4, 9 } ms
+A_MPE   = 1.1e-21
+phi0_MPE= -1.6
+sqrt(S)(f_MPE)= 7.8e-24
+SNR_MPE = 12
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 6.8e+32
+tOffs = 0.4225 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.422500 s
+<BSG>   = 2.1e+31
+f0_est  = { 210.0, 214.3, 224 } Hz
+tau_est = { 5.6, 7.0, 9 } ms
+A_MPE   = 1.2e-21
+phi0_MPE= -1.2
+sqrt(S)(f_MPE)= 7.9e-24
+SNR_MPE = 12
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 2.2e+33
+tOffs = 0.4230 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.423000 s
+<BSG>   = 2.7e+30
+f0_est  = { 215.9, 225.4, 235 } Hz
+tau_est = { 5.4, 6.8, 9 } ms
+A_MPE   = 1.1e-21
+phi0_MPE= -0.8
+sqrt(S)(f_MPE)= 7.9e-24
+SNR_MPE = 12
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 4e+30
+tOffs = 0.4235 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.423500 s
+<BSG>   = 3.2e+27
+f0_est  = { 222.7, 234.1, 240 } Hz
+tau_est = { 5.4, 7.0, 9 } ms
+A_MPE   = 1.1e-21
+phi0_MPE= -0.36
+sqrt(S)(f_MPE)= 8.1e-24
+SNR_MPE = 11
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 8.5e+27
+tOffs = 0.4240 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.424000 s
+<BSG>   = 4.9e+19
+f0_est  = { 219.1, 234.2, 242 } Hz
+tau_est = { 5.8, 7.6, 10 } ms
+A_MPE   = 9e-22
+phi0_MPE= 0.4
+sqrt(S)(f_MPE)= 8e-24
+SNR_MPE = 9.8
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 5.1e+20
+tOffs = 0.4245 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.424500 s
+<BSG>   = 1.8e+22
+f0_est  = { 210.6, 222.8, 234 } Hz
+tau_est = { 4.4, 6.0, 8 } ms
+A_MPE   = 1.1e-21
+phi0_MPE= 1.4
+sqrt(S)(f_MPE)= 7.9e-24
+SNR_MPE = 10
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 2.2e+23
+tOffs = 0.4250 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.425000 s
+<BSG>   = 2.4e+27
+f0_est  = { 210.0, 213.9, 233 } Hz
+tau_est = { 3.2, 4.4, 6 } ms
+A_MPE   = 1.4e-21
+phi0_MPE= 2.1
+sqrt(S)(f_MPE)= 7.9e-24
+SNR_MPE = 12
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1.3e+30
+tOffs = 0.4255 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.425500 s
+<BSG>   = 9.3e+23
+f0_est  = { 233.8, 241.6, 248 } Hz
+tau_est = { 3.6, 5.0, 7 } ms
+A_MPE   = 1.2e-21
+phi0_MPE= 2.2
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 10
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 6.6e+23
+tOffs = 0.4260 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.426000 s
+<BSG>   = 1.8e+19
+f0_est  = { 237.8, 245.5, 254 } Hz
+tau_est = { 3.4, 5.0, 7 } ms
+A_MPE   = 1.1e-21
+phi0_MPE= 2.7
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 9.5
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 3.3e+19
+tOffs = 0.4265 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.426500 s
+<BSG>   = 2.6e+13
+f0_est  = { 239.6, 248.5, 258 } Hz
+tau_est = { 3.8, 5.8, 9 } ms
+A_MPE   = 8.8e-22
+phi0_MPE= -2.9
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 8.2
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 2.8e+14
+tOffs = 0.4270 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.427000 s
+<BSG>   = 7.3e+08
+f0_est  = { 231.8, 244.1, 254 } Hz
+tau_est = { 4.0, 6.6, 11 } ms
+A_MPE   = 7e-22
+phi0_MPE= -1.9
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 6.9
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 2.3e+10
+tOffs = 0.4275 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.427500 s
+<BSG>   = 6.6e+10
+f0_est  = { 230.1, 243.1, 254 } Hz
+tau_est = { 2.8, 4.8, 8 } ms
+A_MPE   = 8.7e-22
+phi0_MPE= -1.1
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 7.4
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 5.6e+11
+tOffs = 0.4280 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.428000 s
+<BSG>   = 3.2e+07
+f0_est  = { 240.7, 251.5, 264 } Hz
+tau_est = { 3.0, 5.4, 10 } ms
+A_MPE   = 7e-22
+phi0_MPE= -0.76
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 6.3
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 3.3e+08
+tOffs = 0.4285 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.428500 s
+<BSG>   = 6.7e+04
+f0_est  = { 243.9, 255.7, 268 } Hz
+tau_est = { 3.0, 6.2, 12 } ms
+A_MPE   = 5.5e-22
+phi0_MPE= -0.13
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 5.3
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1.1e+06
+tOffs = 0.4290 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.429000 s
+<BSG>   = 9.7e+02
+f0_est  = { 240.5, 252.9, 267 } Hz
+tau_est = { 3.6, 7.4, 15 } ms
+A_MPE   = 4.3e-22
+phi0_MPE= 0.78
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 4.6
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 3.3e+04
+tOffs = 0.4295 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.429500 s
+<BSG>   = 7.5e+02
+f0_est  = { 230.5, 248.5, 264 } Hz
+tau_est = { 2.8, 6.2, 14 } ms
+A_MPE   = 4.5e-22
+phi0_MPE= 1.8
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 4.4
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1.4e+04
+tOffs = 0.4300 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.430000 s
+<BSG>   = 1.1e+03
+f0_est  = { 233.7, 249.9, 266 } Hz
+tau_est = { 2.0, 5.2, 12 } ms
+A_MPE   = 5e-22
+phi0_MPE= 2.5
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 4.4
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1.7e+04
+tOffs = 0.4305 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.430500 s
+<BSG>   = 2.2e+02
+f0_est  = { 237.7, 252.7, 270 } Hz
+tau_est = { 1.6, 5.0, 13 } ms
+A_MPE   = 4.6e-22
+phi0_MPE= -3.1
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 4
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 2.8e+03
+tOffs = 0.4310 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.431000 s
+<BSG>   = 7.3
+f0_est  = { 227.9, 249.2, 269 } Hz
+tau_est = { 2.4, 6.4, 17 } ms
+A_MPE   = 3.2e-22
+phi0_MPE= -2.2
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 3.2
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1.5e+02
+tOffs = 0.4315 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.431500 s
+<BSG>   = 17
+f0_est  = { 222.4, 248.2, 267 } Hz
+tau_est = { 1.4, 4.8, 14 } ms
+A_MPE   = 3.9e-22
+phi0_MPE= -1.3
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 3.3
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 2.5e+02
+tOffs = 0.4320 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.432000 s
+<BSG>   = 7
+f0_est  = { 230.5, 251.7, 270 } Hz
+tau_est = { 1.2, 4.6, 15 } ms
+A_MPE   = 3.6e-22
+phi0_MPE= -0.77
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 3
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 85
+tOffs = 0.4325 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.432500 s
+<BSG>   = 2.2
+f0_est  = { 229.5, 257.5, 270 } Hz
+tau_est = { 0.6, 4.8, 16 } ms
+A_MPE   = 3.1e-22
+phi0_MPE= -0.12
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 2.6
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 31
+tOffs = 0.4330 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.433000 s
+<BSG>   = 0.94
+f0_est  = { 225.3, 251.1, 270 } Hz
+tau_est = { 0.2, 4.6, 16 } ms
+A_MPE   = 2.7e-22
+phi0_MPE= 0.77
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 2.2
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 12
+tOffs = 0.4335 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.433500 s
+<BSG>   = 1.1
+f0_est  = { 221.7, 248.8, 270 } Hz
+tau_est = { 0.2, 3.6, 15 } ms
+A_MPE   = 3.1e-22
+phi0_MPE= 1.8
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 2.3
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 13
+tOffs = 0.4340 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.434000 s
+<BSG>   = 1.3
+f0_est  = { 223.1, 250.1, 270 } Hz
+tau_est = { 0.2, 2.6, 14 } ms
+A_MPE   = 3.5e-22
+phi0_MPE= 2.4
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 2.2
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 11
+tOffs = 0.4345 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.434500 s
+<BSG>   = 0.82
+f0_est  = { 222.2, 262.0, 270 } Hz
+tau_est = { 0.2, 0.4, 14 } ms
+A_MPE   = 5.2e-22
+phi0_MPE= 3
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 1.3
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 2.3
+tOffs = 0.4350 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.435000 s
+<BSG>   = 0.21
+f0_est  = { 220.2, 263.2, 270 } Hz
+tau_est = { 0.2, 0.2, 16 } ms
+A_MPE   = 4.2e-23
+phi0_MPE= 2.8
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 0.072
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1
+tOffs = 0.4355 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.435500 s
+<BSG>   = 0.26
+f0_est  = { 219.9, 248.2, 270 } Hz
+tau_est = { 0.2, 0.2, 16 } ms
+A_MPE   = 7.7e-23
+phi0_MPE= -0.44
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 0.13
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1
+tOffs = 0.4360 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.436000 s
+<BSG>   = 0.24
+f0_est  = { 219.8, 263.8, 270 } Hz
+tau_est = { 0.2, 0.2, 15 } ms
+A_MPE   = 6.9e-23
+phi0_MPE= -0.63
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 0.12
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1
+tOffs = 0.4365 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.436500 s
+<BSG>   = 0.19
+f0_est  = { 218.7, 265.2, 270 } Hz
+tau_est = { 0.2, 0.2, 15 } ms
+A_MPE   = 1.1e-22
+phi0_MPE= -0.37
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 0.19
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1
+tOffs = 0.4370 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.437000 s
+<BSG>   = 0.16
+f0_est  = { 217.8, 265.2, 270 } Hz
+tau_est = { 0.2, 0.2, 15 } ms
+A_MPE   = 8.6e-23
+phi0_MPE= -0.029
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 0.15
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1
+tOffs = 0.4375 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.437500 s
+<BSG>   = 0.18
+f0_est  = { 217.4, 264.8, 270 } Hz
+tau_est = { 0.2, 0.2, 15 } ms
+A_MPE   = 6.6e-23
+phi0_MPE= 2.5
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 0.11
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1
+tOffs = 0.4380 s:
+Extracting timeseries ... done.
+Searching ringdown 60100 templates ... done.
+tGPS    = 1126259462 + 0.438000 s
+<BSG>   = 0.2
+f0_est  = { 217.5, 266.2, 270 } Hz
+tau_est = { 0.2, 0.6, 14 } ms
+A_MPE   = 3e-22
+phi0_MPE= 2.5
+sqrt(S)(f_MPE)= 8.2e-24
+SNR_MPE = 0.9
+sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = 1.5
