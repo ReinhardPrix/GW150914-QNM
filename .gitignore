@@ -1,14 +1,16 @@
+*.aux
+*.bbl
+*.blg
 *.dat
+*.log
+*.out
 *.pdf
 *.sft
 *~
 /#*Inferior Octave*#
-/RingdownSearch.aux
-/RingdownSearch.bbl
-/RingdownSearch.blg
-/RingdownSearch.log
-/RingdownSearch.out
-/git_tag.tex
+/*Inferior Octave*
+/OtherPresentationsNotes
 _region_*
 auto/
+git_tag.tex
 old/
