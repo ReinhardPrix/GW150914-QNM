@@ -36,7 +36,7 @@ Nsteps = length(tOffs);
 
 for i = 1:Nsteps
   DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffs(i) );
-  ret{i} = searchRingdown ( tsOW, psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_FreqRange", prior_FreqRange, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", true );
+  ret{i} = searchRingdown ( "tsOW", tsOW, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_FreqRange", prior_FreqRange, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", true );
 
   %% ----- save posterior in matrix format ----------
   if ( i == 1 )

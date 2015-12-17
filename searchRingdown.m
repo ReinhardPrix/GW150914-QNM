@@ -209,8 +209,6 @@ function ret = searchRingdown ( varargin )
     grid on;
     hold off;
 
-    figure();
-    surf ( ff, ttau * 1e3, SNR_est ); colorbar("location", "NorthOutside"); view(2); shading("interp");
   endif %% plotResults
 
   %% summarize numerical outcomes on stdout
