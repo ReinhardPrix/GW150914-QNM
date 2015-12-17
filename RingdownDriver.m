@@ -16,19 +16,46 @@ prior_FreqRange = [ 210, 270 ];
 prior_tauRange  = [ 0.2e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
 
-%% ----- plot data preparation -----
-[ts, tsW, tsOW, psd, IFO] = extractTS ( "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotResults", false );
+%% ----- data preparation -----
+DebugPrintf ( 1, "Extracting timeseries ... ");
+[ts, tsW, tsOW, psd] = extractTS ( "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotResults", false );
+DebugPrintf ( 1, "done.\n");
 
+%% create unique time-tagged 'ResultsDir' for each run:
+extraLabel = "";	%% provide extra info about what's specific in this run
+gm = gmtime ( time () );
+resDir = sprintf ( "Results-%02d%02d%02d-%02dh%02d%s", gm.year - 100, gm.mon, gm.mday, gm.hour, gm.min, extraLabel );
+[status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
+addpath ( pwd() );
+cd ( resDir );
+
+try
 %% ----- run search
 tOffs = tOffsStart : dtOffs : tOffsEnd;
 Nsteps = length(tOffs);
 
 for i = 1:Nsteps
   DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffs(i) );
-  ret{i} = searchRingdown ( "tOffs", tOffs(i), "tCenter", tCenter, "prior_FreqRange", prior_FreqRange, "prior_tauRange", prior_tauRange, "prior_H", prior_H, ...
-                            "data_FreqRange", data_FreqRange, "plotResults", true );
+  ret{i} = searchRingdown ( tsOW, psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_FreqRange", prior_FreqRange, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", true );
 
-  %% collect results for plotting
+  %% ----- save posterior in matrix format ----------
+  if ( i == 1 )
+    fname = sprintf ( "Freqs.dat", ret{i}.bname );
+    tmp = ret{i}.posterior.Freq;
+    save ( "-ascii", fname, "tmp" );
+    fname = sprintf ( "taus.dat", ret{i}.bname );
+    tmp = ret{i}.posterior.tau;
+    save ( "-ascii", fname, "tmp" );
+  endif
+  fname = sprintf ( "%s-BSG.dat", ret{i}.bname );
+  tmp = ret{i}.posterior.BSG;
+  save ( "-ascii", fname, "tmp" );
+
+  fname = sprintf ( "%s-SNR.dat", ret{i}.bname );
+  tmp = ret{i}.SNR;
+  save ( "-ascii", fname, "tmp" );
+
+  %% ---------- collect results for plotting
   BSG_mean(i) = ret{i}.BSG_mean;
   A_MPE(i)    = ret{i}.A_MPE;
   phi0_MPE(i) = ret{i}.phi0_MPE;
@@ -43,15 +70,15 @@ for i = 1:Nsteps
   tau_uerr(i)  = ret{i}.tau_est.upper - tau_MPE(i);
 
   %% ---------- plot results summary page
-  fname = sprintf ( "Results/%s.png", ret{i}.bname );
-  ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
-  %% create symlinks for movie-making
-  fnameM = sprintf ( "Results/movie-frame-%02d.png", i - 1 );
-  unlink ( fnameM); symlink ( fname, fnameM );
+  %%fname = sprintf ( "%s.png", ret{i}.bname );
+  %%ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
+  fname = sprintf ( "%s.pdf", ret{i}.bname );
+  ezprint ( fname, "width", 512 );
+
 endfor
 
 %% ----- store results dump ----------
-fname = sprintf ( "Results/RingdownDriver-%s.hd5", ret{1}.bname );
+fname = sprintf ( "RingdownDriver-%s.hd5", ret{1}.bname );
 save ("-hdf5", fname )
 
 %% ----- plot quantities vs tOffs ----------
@@ -72,5 +99,13 @@ errorbar ( tOffs, 1e3*tau_MPE, 1e3*tau_lerr, 1e3*tau_uerr, ";90%;" ); grid on;
 ylabel ("tau [ms]");
 xlabel ("tOffs [s]");
 
-fname = sprintf ( "Results/%s-summary.pdf", ret{1}.bname );
+fname = sprintf ( "%s-summary.pdf", ret{1}.bname );
 ezprint ( fname, "width", 512 );
+
+cd ("..");
+
+catch err
+  err
+  lasterror ( err );
+  cd ("..");	%% make sure we end up in main dir in case of failure
+end_try_catch

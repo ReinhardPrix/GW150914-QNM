@@ -4,36 +4,29 @@ function ret = searchRingdown ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
-                        {"data_FreqRange", "real,strictpos,vector", [100,300] },
+                        {"tsOW", "cell" },	%% cell-array [over detectors]: over-whitened timeseries [time-shifted and antenna-corrected!]
+                        {"psd", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
                         {"tCenter", "real,strictpos,scalar", 1126259462 },
                         {"tOffs", "real,strictpos,scalar", 0.43 },
-                        {"prior_FreqRange", "real,strictpos,vector", [220,  280] },
+                        {"prior_FreqRange", "real,strictpos,vector", [220,  270] },
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
-                        {"prior_H", "real,strictpos,scalar", 1e-22},
-                        {"extraLabel", "char,vector", ""},
-                        {"plotResults", "bool", false },
-                        {"shiftL", "real,positive,scalar", 7.1e-3},	%% time-shift to apply to L1 data wrt to H1
-                        {"useOW", "bool", true}	%% use overwhitening to handle matched-filtering noise estimate, alt: estimate ~const noise floor
+                        {"prior_H", "real,strictpos,scalar", 4e-22},
+                        {"plotResults", "bool", false }
                       );
 
   NoiseBand = 20;	%% use +-20Hz noise band around signal frequency for (non-OW) PSD estimate
-  assert ( min(uvar.data_FreqRange) <= min(uvar.prior_FreqRange) - NoiseBand );
-  assert ( max(uvar.data_FreqRange) >= max(uvar.prior_FreqRange) + NoiseBand );
+  assert ( min(uvar.psd{1}.fk) <= min(uvar.prior_FreqRange) - NoiseBand );
+  assert ( max(uvar.psd{1}.fk) >= max(uvar.prior_FreqRange) + NoiseBand );
 
-  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.0fms-%.0fms-H%.2g-%s%s-shiftL%.2fms-tOffs%.4fs",
+  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%.2g-tOffs%.4fs",
                     uvar.tCenter, min(uvar.prior_FreqRange), max(uvar.prior_FreqRange),
                     1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
                     uvar.prior_H,
-                    ifelse ( uvar.useOW, "OW", "constS" ),
-                    uvar.extraLabel,
-                    1e3 * uvar.shiftL,
                     uvar.tOffs
                   );
 
-  DebugPrintf ( 1, "Extracting timeseries ... ");
-  [ts, tsW, tsOW, psd, IFO] = extractTS ( "fMin", min(uvar.data_FreqRange), "fMax", max(uvar.data_FreqRange), "tCenter", uvar.tCenter, "shiftL", uvar.shiftL );
-  DebugPrintf ( 1, "done.\n");
-  Ndet = length(ts);
+  tsOW = uvar.tsOW; psd = uvar.psd;
+  Ndet = length(tsOW);
 
   %% ---------- estimate ~constant noise-floor level in search-band of ringdown frequencies ----------
   indsSearch = find ( (psd{1}.fk > min(uvar.prior_FreqRange)) & (psd{1}.fk < max(uvar.prior_FreqRange)) );
@@ -71,13 +64,12 @@ function ret = searchRingdown ( varargin )
   %% ----- prepare time-series stretch to analyze
   t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
   inds = find ( (tsOW{1}.ti >= t0) & (tsOW{1}.ti <= t0 + Tmax) );
-  t_i  = ts{1}.ti(inds);
+  t_i  = tsOW{1}.ti(inds);
   Dt_i = t_i - t0;
 
   for X = 1:Ndet
     log10BSG{X} = match{X} = Gam{X} = zeros ( size ( lap_s ) );
     xOW_i{X} = tsOW{X}.xi(inds);
-    x_i{X}   = ts{X}.xi(inds);
   endfor %% X
 
   %% ----- determine ~const noise-estimate in f0 +- 20Hz Band around each signal frequency f0
@@ -100,12 +92,7 @@ function ret = searchRingdown ( varargin )
   for l = 1 : Ntempl	%% loop over all templates
     template_l = exp ( - Dt_i  * lap_s(l) );
     for X = 1:Ndet
-      if ( uvar.useOW )	%% use overwhitened time-series for match
-        match{X}(l) = 2 * dt * sum ( xOW_i{X} .* template_l );
-      else	%% use ~const noise-floor estimate in signal +-20Hz band
-        match{X}(l) = 2 * dt * sum ( x_i{X} .* template_l ) / Sn_mat{X}(l);
-      endif
-
+      match{X}(l) = 2 * dt * sum ( xOW_i{X} .* template_l );
     endfor %% X
   endfor %% l
 
@@ -117,30 +104,12 @@ function ret = searchRingdown ( varargin )
   log10BSG_tot = compute_log10BSG ( Gam_tot, match_tot, uvar.prior_H );
   BSG_tot = 10.^log10BSG_tot;
 
+  posterior = struct ( "Freq", ff, "tau", ttau, "BSG", BSG_tot );
   DebugPrintf ( 1, "done.\n");
 
   DebugPrintf (2,  "<Gam> = %g, <Gam{1}> = %g, <Gam{2}> = %g\n", mean(Gam_tot(:)), mean(Gam{1}(:)), mean(Gam{2}(:)) );
   DebugPrintf (2,  "max|match| = %g, max|match{1}| = %g, max|match{2}| = %g\n", max(abs(match_tot(:))), max(abs(match{1}(:))), max(abs(match{2}(:))) );
   DebugPrintf (2,  "max[log10BSG] = %g, max[log10BSG{1}] = %g, max[log10BSG{2}] = %g\n", max(log10BSG_tot(:)), max(log10BSG{1}(:)), max(log10BSG{2}(:)) );
-  %% ---------- determine maximum-posterior estimates (MPE) ----------
-  BSG_max = max(BSG_tot(:));
-  l_MPE = (find ( BSG_tot(:) == BSG_max ))(1);
-  Stot_MPE = Stot_mat( l_MPE );
-  f0_MPE = ff ( l_MPE );
-  tau_MPE = ttau ( l_MPE );
-  Gam_MPE = Gam_tot (l_MPE);
-  F_MPE = match_tot(l_MPE);
-  %% amplitude estimates:
-  As_MPE = - Gam_MPE * imag ( F_MPE );
-  Ac_MPE =   Gam_MPE * real ( F_MPE );
-  A_MPE = sqrt ( As_MPE^2 + Ac_MPE^2 );
-  phi0_MPE = atan2 ( -As_MPE, Ac_MPE );
-
-  Dt = ts{1}.ti - t0;
-  indsRingdown = find ( Dt >= 0 );
-  tmpl_MPE = zeros ( size ( indsRingdown ) );
-  Dt_pos = Dt(indsRingdown);
-  tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
 
   %% ---------- compute marginalized posteriors on {f,tau} ----------
   %% renormalize to avoid overflow
@@ -158,6 +127,32 @@ function ret = searchRingdown ( varargin )
   confidence = 0.90;
   f0_est  = credibleInterval ( f0, posterior_f0, confidence );
   tau_est = credibleInterval ( tau, posterior_tau, confidence );
+
+  %% ---------- estimate SNR for all templates ----------
+  AVec_est = Gam_tot .* match_tot;
+  A_est = abs ( AVec_est );
+  phi0_est = arg ( AVec_est );
+  SNR_est = A_est .* sqrt ( Ndet * ttau ./ (2 * Stot_mat ) );
+
+  %% ---------- determine maximum-posterior estimates (MPE) ----------
+  BSG_max = max ( BSG_tot(:) );
+  l_MPE = ( find ( BSG_tot(:) == BSG_max ) )(1);
+  Stot_MPE = Stot_mat ( l_MPE );
+  f0_MPE = ff ( l_MPE );
+  tau_MPE = ttau ( l_MPE );
+  Gam_MPE = Gam_tot ( l_MPE );
+  F_MPE = match_tot ( l_MPE );
+
+  A_MPE = A_est(l_MPE);
+  phi0_MPE = phi0_est(l_MPE);
+  SNR_MPE = SNR_est(l_MPE);
+
+  Dt = tsOW{1}.ti - t0;
+  indsRingdown = find ( Dt >= 0 );
+  tmpl_MPE = zeros ( size ( indsRingdown ) );
+  Dt_pos = Dt(indsRingdown);
+  tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
+
   %% ---------- Plot results ----------
 
   %% ----- Fig 1: Bayes factor / posterior over {f0,tau} ----------
@@ -196,10 +191,10 @@ function ret = searchRingdown ( varargin )
     hold on;
     colors = { "red", "blue" };
     for X = 1:Ndet
-      sleg = sprintf (";%s;", IFO{X} );
-      plot ( ts{X}.ti - uvar.tCenter, ts{X}.xi, sleg, "linewidth", 2, "color", colors{X} );
+      sleg = sprintf (";%s;", tsOW{X}.IFO );
+      plot ( tsOW{X}.ti - uvar.tCenter, tsOW{X}.xi * Stot_MPE, sleg, "linewidth", 2, "color", colors{X} );
     endfor
-    plot ( ts{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
+    plot ( tsOW{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
     legend ( "location", "NorthWest");
     yrange = ylim();
     line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "-", "linewidth", 2 );
@@ -214,6 +209,8 @@ function ret = searchRingdown ( varargin )
     grid on;
     hold off;
 
+    figure();
+    surf ( ff, ttau * 1e3, SNR_est ); colorbar("location", "NorthOutside"); view(2); shading("interp");
   endif %% plotResults
 
   %% summarize numerical outcomes on stdout
@@ -226,7 +223,6 @@ function ret = searchRingdown ( varargin )
   DebugPrintf (1, "A_MPE   = %.2g\n", A_MPE );
   DebugPrintf (1, "phi0_MPE= %.2g\n", phi0_MPE );
   DebugPrintf (1, "sqrt(S)(f_MPE)= %.2g\n", sqrt(Stot_MPE) );
-  SNR_MPE = A_MPE * sqrt ( Ndet * tau_est.MPE / (2 * Stot_MPE ) );
   DebugPrintf (1, "SNR_MPE = %.2g\n", SNR_MPE );
   DebugPrintf (1, "sanity check: BSG_s = Lr_s ~ e^(SNR^2/2) = %.2g\n", exp ( SNR_MPE^2 / 2 ) );
 
@@ -239,11 +235,10 @@ function ret = searchRingdown ( varargin )
                  "f0_est", f0_est, ...
                  "tau_est", tau_est, ...
                  "SNR_MPE", SNR_MPE, ...
-                 "sqrtS_MPE", sqrt(Stot_MPE)
+                 "sqrtS_MPE", sqrt(Stot_MPE), ...
+                 "posterior", posterior, ...
+                 "SNR", SNR_est
                );
-
-  dump_fname = sprintf ( "Results/searchRingdown-%s.hdf5", bname );
-  save( "-hdf5", dump_fname );
 
   return
 

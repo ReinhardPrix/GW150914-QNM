@@ -1,10 +1,10 @@
 #!/usr/bin/octave -q
 
-function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
+function [ts, tsW, tsOW, psd] = extractTS ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
-                        {"fMin", "real,strictpos,scalar", 200 },
+                        {"fMin", "real,strictpos,scalar", 100 },
                         {"fMax", "real,strictpos,scalar", 300 },
                         {"tCenter", "real,strictpos,scalar", 1126259462 },
                         {"Twindow", "real,strictpos,scalar", 10 },	%% time-window +- to extract around the event
@@ -13,9 +13,13 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
                         {"plotResults", "bool", false },
                         {"simulate", "bool", false },
                         {"shiftL", "real,positive,scalar", 7.1e-3},	%% time-shift to apply to L1 data wrt to H1
-                        {"RngMedWindow", "real,positive,scalar", 300 }	%% window size to use for rngmed-based PSD estimation
+                        {"RngMedWindow", "real,positive,scalar", 300 }  %% window size to use for rngmed-based PSD estimation
                       );
   assert ( uvar.fMax > uvar.fMin );
+
+  resDir = "extractTS-Results";
+  [status, msg] = mkdir ( resDir );
+  assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 
   %% load frequency-domain data from SFTs:
   fNy = 1370;	%% 2x1370Hz sampling, enough to allow for resolved ~7.3ms time-shift ~ 20bins
@@ -34,8 +38,8 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
 
   for X = 1:length(fnames)
     bnameX = sprintf ( "%s-%s", IFO{X}, bname );
-    psd_fname = sprintf ( "Results/PSD-%s.dat", bnameX );
-    ts_fname = sprintf ( "Results/TS-%s.dat", bnameX );
+    psd_fname = sprintf ( "%s/PSD-%s.dat", resDir, bnameX );
+    ts_fname = sprintf ( "%s/TS-%s.dat", resDir, bnameX );
     %% ---------- check if TS results for this parameters already exist: re-use if yes ----------
     if ( length ( glob ( { psd_fname; ts_fname } ) ) == 2 )
       DebugPrintf (2, "%s: Re-using previous TS results '%s'\n", funcName(), bnameX );
@@ -91,6 +95,9 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
       fclose(fid);
     endif %% if no previous results re-used
 
+
+    ts{X}.IFO = tsW{X}.IFO = tsOW{X}.IFO = psd{X}.IFO = IFO{X};
+
     if ( uvar.plotResults )
       ft = FourierTransform ( ts{X}.ti, ts{X}.xi );
       figure(); clf;
@@ -99,7 +106,7 @@ function [ts, tsW, tsOW, psd, IFO] = extractTS ( varargin )
       xlabel ("Freq [Hz]");
       ylabel ("sqrt(Sn)");
       title ( bnameX );
-      fname = sprintf ( "Results/%s.tex", bnameX);
+      fname = sprintf ( "%s/%s.tex", resDir, bnameX);
       ezprint ( fname, "width", 512 );
     endif
 
