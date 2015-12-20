@@ -4,7 +4,7 @@ function ret = searchRingdown ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
-                        {"tsOW", "cell" },	%% cell-array [over detectors]: over-whitened timeseries
+                        {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
                         {"psd", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
                         {"tCenter", "real,strictpos,scalar", 1126259462 },
                         {"tOffs", "real,scalar", 0.43 },
@@ -27,15 +27,15 @@ function ret = searchRingdown ( varargin )
                     uvar.tOffs
                   );
 
-  tsOW = uvar.tsOW; psd = uvar.psd;
-  Ndet = length(tsOW);
+  ts = uvar.ts; psd = uvar.psd;
+  Ndet = length(ts);
 
   %% ---------- estimate ~constant noise-floor level in search-band of ringdown frequencies ----------
   indsSearch = find ( (psd{1}.fk > min(uvar.prior_FreqRange)) & (psd{1}.fk < max(uvar.prior_FreqRange)) );
   SinvSum = zeros ( size ( psd{1}.Sn ) );
   for X = 1:Ndet
     SinvSum += 1 ./ psd{X}.Sn;
-    dt{X} = mean( diff ( tsOW{X}.ti ) );
+    dt{X} = mean( diff ( ts{X}.ti ) );
     df{X} = mean ( diff ( psd{X}.fk ) );
     fMin{X} = min ( psd{X}.fk );
   endfor
@@ -70,14 +70,16 @@ function ret = searchRingdown ( varargin )
     log10BSG{X} = match{X} = Gam{X} = zeros ( size ( lap_s ) );
 
     %% prepare per-detector timeseries for matching
-    if ( strcmp ( tsOW{X}.IFO, "L1" ) )
-      tsOW{X}.ti += shiftL1;
-      tsOW{X}.xi *= -1;
+    if ( strcmp ( ts{X}.IFO, "L1" ) )
+      ts{X}.ti += shiftL1;
+      ts{X}.xi   *= -1;
+      ts{X}.xiW  *= -1;
+      ts{X}.xiOW *= -1;
     endif
 
-    inds_match = find ( (tsOW{X}.ti >= t0) & (tsOW{X}.ti <= t0 + Tmax) );
-    Dt_i{X}  = tsOW{X}.ti ( inds_match ) - t0;
-    xOW_i{X} = tsOW{X}.xi ( inds_match );
+    inds_match = find ( (ts{X}.ti >= t0) & (ts{X}.ti <= t0 + Tmax) );
+    Dt_i{X}  = ts{X}.ti ( inds_match ) - t0;
+    xOW_i{X} = ts{X}.xiOW ( inds_match );
   endfor %% X
 
   %% ----- determine ~const noise-estimate in f0 +- 20Hz Band around each signal frequency f0
@@ -136,8 +138,9 @@ function ret = searchRingdown ( varargin )
   try
     f0_est  = credibleInterval ( f0, posterior_f0, confidence );
     tau_est = credibleInterval ( tau, posterior_tau, confidence );
+    failed_intervals = false;
   catch
-    f0_est = tau_est = NA;
+    failed_intervals = true;
   end_try_catch
 
   %% ---------- estimate SNR for all templates ----------
@@ -159,12 +162,6 @@ function ret = searchRingdown ( varargin )
   phi0_MPE = phi0_est(l_MPE);
   SNR_MPE = SNR_est(l_MPE);
 
-  Dt = tsOW{1}.ti - t0;
-  indsRingdown = find ( Dt >= 0 );
-  tmpl_MPE = zeros ( size ( indsRingdown ) );
-  Dt_pos = Dt(indsRingdown);
-  tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
-
   %% ---------- Plot results ----------
 
   %% ----- Fig 1: Bayes factor / posterior over {f0,tau} ----------
@@ -183,8 +180,10 @@ function ret = searchRingdown ( varargin )
     plot ( f0, posterior_f0, "linewidth", 2 );
     grid on;
     yrange = ylim();
-    %%line ( [f0_est.MPE, f0_est.MPE], yrange );
-    %%line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
+    if ( !failed_intervals )
+      line ( [f0_est.MPE, f0_est.MPE], yrange );
+      line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
+    endif
     ylim ( yrange );
     xlabel ("Freq [Hz]");
     ylabel ("pdf(Freq)");
@@ -192,8 +191,10 @@ function ret = searchRingdown ( varargin )
     subplot ( 2, 2, 2 );
     plot ( tau * 1e3, posterior_tau, "linewidth", 2 );
     yrange = ylim();
-%%    line ( [tau_est.MPE, tau_est.MPE]*1e3, yrange );
-%%    line ( [tau_est.lower, tau_est.upper]* 1e3, [tau_est.pIso, tau_est.pIso] );
+    if ( !failed_intervals )
+      line ( [tau_est.MPE, tau_est.MPE]*1e3, yrange );
+      line ( [tau_est.lower, tau_est.upper]* 1e3, [tau_est.pIso, tau_est.pIso] );
+    endif
     ylim ( yrange );
     grid on;
     xlabel ("tau [ms]");
@@ -203,10 +204,14 @@ function ret = searchRingdown ( varargin )
     hold on;
     colors = { "red", "blue" };
     for X = 1:Ndet
-      sleg = sprintf (";%s;", tsOW{X}.IFO );
-      plot ( tsOW{X}.ti - uvar.tCenter, tsOW{X}.xi * Stot_MPE, sleg, "linewidth", 2, "color", colors{X} );
+      sleg = sprintf (";%s;", ts{X}.IFO );
+      plot ( ts{X}.ti - uvar.tCenter, ts{X}.xi, sleg, "linewidth", 2, "color", colors{X} );
     endfor
-    plot ( tsOW{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
+    Dt = ts{1}.ti - t0;
+    indsRingdown = find ( Dt >= 0 );
+    Dt_pos = Dt ( indsRingdown );
+    tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
+    plot ( ts{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
     legend ( "location", "NorthWest");
     yrange = ylim();
     line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "-", "linewidth", 2 );

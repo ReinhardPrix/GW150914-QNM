@@ -1,13 +1,13 @@
 %% estimate single-sided noise PSD 'psd(f)', and return whitened and over-whitened TS
 %% including an automated line-nuking algorithm: 'lines' are identified as > lineSigma deviations in power
-function [psd, ts, tsW, tsOW] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=0.1, RngMedWindow = 300 )
+function [ psd, tsOut ] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=0.1, RngMedWindow = 300 )
   ti = tsIn.ti;
   tStart = min ( ti );
   dt = mean ( diff ( ti ) );
   T = max(ti) - tStart + dt;
 
   ft = FourierTransform ( tsIn.ti, tsIn.xi );
-  fNyquist = max ( ft.fk )
+  fNyquist = max ( ft.fk );
   sideband = RngMedWindow / (2*T); 		%% extra frequency side-band for median PSD estimates
   indsWide = find ( (ft.fk >=  fMin - sideband) & (ft.fk <=  fMax + sideband) );
   indsUse  = find ( (ft.fk(indsWide) >= fMin) & (ft.fk(indsWide) <=  fMax ) );
@@ -22,7 +22,7 @@ function [psd, ts, tsW, tsOW] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, line
   Sn_wide = 2/T * rngmed ( periodo, RngMedWindow ) / rngmedbias;	%% single-sided PSD
   psd.fk = ft.fk ( indsWide ( indsUse ) );
   psd.Sn = Sn_wide ( indsUse );
-  printf ("fMin = %.16g\n", min ( psd.fk ) );
+
   %% ---------- automatically identify and nuke 'lines' ----------
   fk_wide   = ft.fk ( indsWide );
   xk_wide   = ft.xk ( indsWide );
@@ -47,5 +47,15 @@ function [psd, ts, tsW, tsOW] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, line
   tsOW = freqBand2TS ( fk_wide, xkOW_wide, fMin, fMax, fNyquist ); tsOW.ti += tStart;
 
   assert ( (ts.ti == tsW.ti) && (ts.ti == tsOW.ti) );
+
+  tsOut.ti   = ts.ti;
+  tsOut.xi   = ts.xi;
+  tsOut.xiW  = tsW.xi;
+  tsOut.xiOW = tsOW.xi;
+  if ( isfield ( tsIn, "IFO" ) )
+    tsOut.IFO = tsIn.IFO;
+    psd.IFO   = tsIn.IFO;
+  endif
+
   return;
 endfunction

@@ -1,6 +1,6 @@
 #!/usr/bin/octave -q
 
-function [ts, tsW, tsOW, psd] = extractTS ( varargin )
+function [ts, psd] = extractTS ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
@@ -13,7 +13,7 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
                         {"plotResults", "bool", false },
                         {"simulate", "bool", false },
                         {"RngMedWindow", "real,positive,scalar", 300 },  %% window size to use for rngmed-based PSD estimation
-                        {"fSampling", "real,positive,scalar", 1370*2 }	%% sampling rate of output timeseries
+                        {"fSampling", "real,positive,scalar", 1000*2 }	%% sampling rate of output timeseries
                       );
   assert ( uvar.fMax > uvar.fMin );
 
@@ -33,6 +33,8 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
   bname = sprintf ( "freq%.0fHz-%.0fHz-fSamp%.0fHz-GPS%.0fs+-%.0fs-ls%.1f-lw%.1f-rng%.0f%s",
                     uvar.fMin, uvar.fMax, uvar.fSampling, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow, extraLabel);
 
+  sideband = uvar.RngMedWindow * ( 1 / (2*uvar.Twindow)); 		%% extra frequency side-band for median PSD estimates later
+
   for X = 1:length(fnames)
     bnameX = sprintf ( "%s-%s", IFO{X}, bname );
     psd_fname = sprintf ( "%s/PSD-%s.dat", resDir, bnameX );
@@ -43,11 +45,13 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
       dat = load ( psd_fname );
       psd{X}.fk = (dat(:,1))';
       psd{X}.Sn = (dat(:,2))';
+      psd{X}.IFO = IFO{X};
       dat = load ( ts_fname );
-      ts{X}.ti   = tsW{X}.ti = tsOW{X}.ti = (dat(:,1))';
+      ts{X}.ti   = (dat(:,1))';
       ts{X}.xi   = (dat(:,2))';
-      tsW{X}.xi  = (dat(:,3))';
-      tsOW{X}.xi = (dat(:,4))';
+      ts{X}.xiW  = (dat(:,3))';
+      ts{X}.xiOW = (dat(:,4))';
+      ts{X}.IFO  = IFO{X};
     else
       %% ---------- otherwise: Read SFT frequency-domain data ----------
       DebugPrintf (2, "%s: Extracting TS from SFTs\n", funcName() );
@@ -69,18 +73,17 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
       assert ( length(fk0) == length(xk0) );
 
       %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
-      sideband = uvar.RngMedWindow / (2*uvar.Twindow); 		%% extra frequency side-band for median PSD estimates later
       tsBand0 = freqBand2TS ( fk0{X}, xk0{X}, uvar.fMin - sideband, uvar.fMax + sideband, uvar.fSampling / 2 );
-      dt0 = mean ( diff ( tsBand0.ti ) );
-      tsBand0.ti += t0;		%% label times by correct epoch
 
       %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
-      indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter + uvar.Twindow )) );
+      indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - t0 - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - t0 + uvar.Twindow )) );
       tsBand.ti = tsBand0.ti ( indsTrunc );
       tsBand.xi = tsBand0.xi ( indsTrunc );
+      tsBand.IFO = IFO{X};
 
       %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
-      [psd{X}, ts{X}, tsW{X}, tsOW{X}] = whitenTS ( tsBand, uvar.fMin, uvar.fMax, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow );
+      [psd{X}, ts{X}] = whitenTS ( tsBand, uvar.fMin, uvar.fMax, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow );
+      ts{X}.ti += t0;		%% label times by correct epoch
 
       fid = fopen ( psd_fname, "wb" );
       fprintf ( fid, "%%%% %18s %16s\n", "freq [Hz]", "SX [1/Hz]" );
@@ -89,12 +92,9 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
 
       fid = fopen ( ts_fname, "wb" );
       fprintf ( fid, "%%%% %18s %16s %16s %16s\n", "ti [GPS s]", "xi", "xi/sqrtSX", "xi/SX" );
-      fprintf ( fid, "%18.9f %16.9g %16.9g %16.9g\n", [ts{X}.ti', ts{X}.xi', tsW{X}.xi', tsOW{X}.xi']' );
+      fprintf ( fid, "%18.9f %16.9g %16.9g %16.9g\n", [ts{X}.ti', ts{X}.xi', ts{X}.xiW', ts{X}.xiOW']' );
       fclose(fid);
     endif %% if no previous results re-used
-
-
-    ts{X}.IFO = tsW{X}.IFO = tsOW{X}.IFO = psd{X}.IFO = IFO{X};
 
     if ( uvar.plotResults )
       ft = FourierTransform ( ts{X}.ti, ts{X}.xi );

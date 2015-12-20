@@ -7,25 +7,35 @@ global debugLevel = 1;
 %% --------------------------------------------------
 
 %% ========== driver parameters ==========
-onSource = false;
+searchType = "verify";
 
+savePlots = false;
 %% ========== Prior ranges ==========
 
 %% ---------- "ON-SOURCE RANGE" ----------
-if ( onSource )
-  tCenter = 1126259462;
-  tOffsStart = 0.422;		%% this is about when the signal enters f0>~200Hz
-  dtOffs     = 0.0005;	%% 0.5ms stepsize
-  tOffsEnd   = 0.438; %% 0.438;
-  extraLabel = "";	%% provide extra info about what's specific in this run
-else
-  %% ---------- "OFF-SOURCE RANGE" for background estimation ----------
-  tCenter = 1126259472;
-  tOffsStart = -1;		%% this is about when the signal enters f0>~200Hz
-  dtOffs     = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
-  tOffsEnd   = 1;
-  extraLabel = "-OffSource";
-endif
+switch ( searchType )
+  case "verify"
+    tCenter = 1126259462;
+    tOffsStart = 0.43;
+    dtOffs     = 0.0005;
+    tOffsEnd   = 0.430;
+    extraLabel = "verify";
+
+  case "onSource"
+    tCenter = 1126259462;
+    tOffsStart = 0.422;		%% this is about when the signal enters f0>~200Hz
+    dtOffs     = 0.0005;	%% 0.5ms stepsize
+    tOffsEnd   = 0.438; %% 0.438;
+    extraLabel = "";	%% provide extra info about what's specific in this run
+
+  case "offSource"
+    %% ---------- "OFF-SOURCE RANGE" for background estimation ----------
+    tCenter = 1126259472;
+    tOffsStart = -1;		%% this is about when the signal enters f0>~200Hz
+    dtOffs     = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
+    tOffsEnd   = 1;
+    extraLabel = "-OffSource";
+endswitch
 
 data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
 prior_FreqRange = [ 210, 270 ];
@@ -34,7 +44,7 @@ prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" i
 
 %% ----- data preparation -----
 DebugPrintf ( 1, "Extracting timeseries ... ");
-[ts, tsW, tsOW, psd] = extractTS ( "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotResults", false );
+[ts, psd] = extractTS ( "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotResults", false );
 DebugPrintf ( 1, "done.\n");
 
 %% create unique time-tagged 'ResultsDir' for each run:
@@ -51,7 +61,7 @@ Nsteps = length(tOffs);
 
 for i = 1:Nsteps
   DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffs(i) );
-  ret{i} = searchRingdown ( "tsOW", tsOW, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_FreqRange", prior_FreqRange, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", true );
+  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_FreqRange", prior_FreqRange, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", true );
 
   %% ----- save posterior in matrix format ----------
   if ( i == 1 )
@@ -87,8 +97,10 @@ for i = 1:Nsteps
   %% ---------- plot results summary page
   %%fname = sprintf ( "%s.png", ret{i}.bname );
   %%ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
-  fname = sprintf ( "%s.pdf", ret{i}.bname );
-  ezprint ( fname, "width", 512 );
+  if ( savePlots )
+    fname = sprintf ( "%s.pdf", ret{i}.bname );
+    ezprint ( fname, "width", 512 );
+  endif
 
 endfor
 
@@ -119,8 +131,12 @@ ezprint ( fname, "width", 512 );
 
 cd ("..");
 
-catch err
-  err
-  lasterror ( err );
+catch
+  err = lasterror();
+  warning(err.identifier, err.message);
+  err.stack.file
+  err.stack.name
+  err.stack.line
+
   cd ("..");	%% make sure we end up in main dir in case of failure
 end_try_catch
