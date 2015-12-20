@@ -13,7 +13,8 @@ function [ts, psd] = extractTS ( varargin )
                         {"plotResults", "bool", false },
                         {"simulate", "bool", false },
                         {"RngMedWindow", "real,positive,scalar", 300 },  %% window size to use for rngmed-based PSD estimation
-                        {"fSamp", "real,positive,scalar", 2000*2 }	%% sampling rate of output timeseries
+                        {"fSamp", "real,positive,scalar", 2000*2 },	%% sampling rate of output timeseries
+                        {"useBuffer", "bool", true}			%% re-use timeseries-data files if found
                       );
   assert ( uvar.fMax > uvar.fMin );
 
@@ -40,7 +41,7 @@ function [ts, psd] = extractTS ( varargin )
     psd_fname = sprintf ( "%s/PSD-%s.dat", resDir, bnameX );
     ts_fname = sprintf ( "%s/TS-%s.dat", resDir, bnameX );
     %% ---------- check if TS results for this parameters already exist: re-use if yes ----------
-    if ( length ( glob ( { psd_fname; ts_fname } ) ) == 2 )
+    if ( uvar.useBuffer && (length ( glob ( { psd_fname; ts_fname } ) ) == 2) )
       DebugPrintf (2, "%s: Re-using previous TS results '%s'\n", funcName(), bnameX );
       dat = load ( psd_fname );
       psd{X}.fk = (dat(:,1))';
