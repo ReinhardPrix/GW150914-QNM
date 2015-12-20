@@ -205,7 +205,7 @@ function ret = searchRingdown ( varargin )
     colors = { "red", "blue" };
     for X = 1:Ndet
       sleg = sprintf (";%s;", ts{X}.IFO );
-      plot ( ts{X}.ti - uvar.tCenter, ts{X}.xi, sleg, "linewidth", 2, "color", colors{X} );
+      plot ( ts{X}.ti - uvar.tCenter, ts{X}.xiOW * Stot_MPE, sleg, "linewidth", 2, "color", colors{X} );
     endfor
     Dt = ts{1}.ti - t0;
     indsRingdown = find ( Dt >= 0 );
