@@ -1,15 +1,31 @@
 #!/usr/bin/octave -q
 
 global debugLevel = 1;
+
 %% --------------------------------------------------
-%% 1) run a ringdown search as function of start-time 't0' on GW150914
+%% run a ringdown search as function of start-time 't0' on GW150914
 %% --------------------------------------------------
 
-%% ---------- Prior ranges --------------------
-tCenter = 1126259462;
-tOffsStart = 0.422;		%% this is about when the signal enters f0>~200Hz
-dtOffs     = 0.0005;	%% 0.5ms stepsize
-tOffsEnd   = 0.438; %% 0.438;
+%% ========== driver parameters ==========
+onSource = false;
+
+%% ========== Prior ranges ==========
+
+%% ---------- "ON-SOURCE RANGE" ----------
+if ( onSource )
+  tCenter = 1126259462;
+  tOffsStart = 0.422;		%% this is about when the signal enters f0>~200Hz
+  dtOffs     = 0.0005;	%% 0.5ms stepsize
+  tOffsEnd   = 0.438; %% 0.438;
+  extraLabel = "";	%% provide extra info about what's specific in this run
+else
+  %% ---------- "OFF-SOURCE RANGE" for background estimation ----------
+  tCenter = 1126259472;
+  tOffsStart = -1;		%% this is about when the signal enters f0>~200Hz
+  dtOffs     = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
+  tOffsEnd   = 1;
+  extraLabel = "-OffSource";
+endif
 
 data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
 prior_FreqRange = [ 210, 270 ];
@@ -22,7 +38,6 @@ DebugPrintf ( 1, "Extracting timeseries ... ");
 DebugPrintf ( 1, "done.\n");
 
 %% create unique time-tagged 'ResultsDir' for each run:
-extraLabel = "";	%% provide extra info about what's specific in this run
 gm = gmtime ( time () );
 resDir = sprintf ( "Results-%02d%02d%02d-%02dh%02d%s", gm.year - 100, gm.mon, gm.mday, gm.hour, gm.min, extraLabel );
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
