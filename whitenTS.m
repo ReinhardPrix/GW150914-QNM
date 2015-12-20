@@ -4,10 +4,10 @@ function [ psd, tsOut ] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=
   ti = tsIn.ti;
   tStart = min ( ti );
   dt = mean ( diff ( ti ) );
+  fSamp = 1/dt;
   T = max(ti) - tStart + dt;
-
   ft = FourierTransform ( tsIn.ti, tsIn.xi );
-  fNyquist = max ( ft.fk );
+
   sideband = RngMedWindow / (2*T); 		%% extra frequency side-band for median PSD estimates
   indsWide = find ( (ft.fk >=  fMin - sideband) & (ft.fk <=  fMax + sideband) );
   indsUse  = find ( (ft.fk(indsWide) >= fMin) & (ft.fk(indsWide) <=  fMax ) );
@@ -20,6 +20,7 @@ function [ psd, tsOut ] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=
 
   periodo = abs ( ft.xk(indsWide) ).^2;
   Sn_wide = 2/T * rngmed ( periodo, RngMedWindow ) / rngmedbias;	%% single-sided PSD
+
   psd.fk = ft.fk ( indsWide ( indsUse ) );
   psd.Sn = Sn_wide ( indsUse );
 
@@ -33,7 +34,9 @@ function [ psd, tsOut ] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=
   inds_lines = find ( (Pk_re > lineSigma) | (Pk_im > lineSigma) );
   inukeWidth = round ( lineWidth * T );
   for i = 1: length(inds_lines)
-    inds_nuke = [ inds_lines(i) - inukeWidth : inds_lines(i) + inukeWidth ];
+    iMin = max ( 0, inds_lines(i) - inukeWidth );
+    iMax = min ( length(indsWide), inds_lines(i) + inukeWidth );
+    inds_nuke = [ iMin : iMax ];
     xk_wide ( inds_nuke ) = 0;
   endfor
 
@@ -42,9 +45,9 @@ function [ psd, tsOut ] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=
   xkOW_wide = xk_wide ./ Sn_wide;
 
   %% ----- turn SFTs back into timeseries ----------
-  ts   = freqBand2TS ( fk_wide, xk_wide,   fMin, fMax, fNyquist ); ts.ti   += tStart;
-  tsW  = freqBand2TS ( fk_wide, xkW_wide,  fMin, fMax, fNyquist ); tsW.ti  += tStart;
-  tsOW = freqBand2TS ( fk_wide, xkOW_wide, fMin, fMax, fNyquist ); tsOW.ti += tStart;
+  ts   = freqBand2TS ( fk_wide, xk_wide,   fMin, fMax, fSamp ); ts.ti   += tStart;
+  tsW  = freqBand2TS ( fk_wide, xkW_wide,  fMin, fMax, fSamp ); tsW.ti  += tStart;
+  tsOW = freqBand2TS ( fk_wide, xkOW_wide, fMin, fMax, fSamp ); tsOW.ti += tStart;
 
   assert ( (ts.ti == tsW.ti) && (ts.ti == tsOW.ti) );
 

@@ -13,7 +13,7 @@ function [ts, psd] = extractTS ( varargin )
                         {"plotResults", "bool", false },
                         {"simulate", "bool", false },
                         {"RngMedWindow", "real,positive,scalar", 300 },  %% window size to use for rngmed-based PSD estimation
-                        {"fSampling", "real,positive,scalar", 1000*2 }	%% sampling rate of output timeseries
+                        {"fSamp", "real,positive,scalar", 2000*2 }	%% sampling rate of output timeseries
                       );
   assert ( uvar.fMax > uvar.fMin );
 
@@ -31,7 +31,7 @@ function [ts, psd] = extractTS ( varargin )
     extraLabel = "";
   endif
   bname = sprintf ( "freq%.0fHz-%.0fHz-fSamp%.0fHz-GPS%.0fs+-%.0fs-ls%.1f-lw%.1f-rng%.0f%s",
-                    uvar.fMin, uvar.fMax, uvar.fSampling, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow, extraLabel);
+                    uvar.fMin, uvar.fMax, uvar.fSamp, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow, extraLabel);
 
   sideband = uvar.RngMedWindow * ( 1 / (2*uvar.Twindow)); 		%% extra frequency side-band for median PSD estimates later
 
@@ -73,7 +73,7 @@ function [ts, psd] = extractTS ( varargin )
       assert ( length(fk0) == length(xk0) );
 
       %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
-      tsBand0 = freqBand2TS ( fk0{X}, xk0{X}, uvar.fMin - sideband, uvar.fMax + sideband, uvar.fSampling / 2 );
+      tsBand0 = freqBand2TS ( fk0{X}, xk0{X}, uvar.fMin - sideband, uvar.fMax + sideband, uvar.fSamp );
 
       %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
       indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - t0 - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - t0 + uvar.Twindow )) );

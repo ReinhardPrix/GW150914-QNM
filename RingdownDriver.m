@@ -10,6 +10,7 @@ global debugLevel = 1;
 searchType = "verify";
 
 savePlots = false;
+plotSummary = false;
 %% ========== Prior ranges ==========
 
 %% ---------- "ON-SOURCE RANGE" ----------
@@ -109,25 +110,27 @@ fname = sprintf ( "RingdownDriver-%s.hd5", ret{1}.bname );
 save ("-hdf5", fname )
 
 %% ----- plot quantities vs tOffs ----------
-figure(); clf;
+if ( plotSummary )
+  figure(); clf;
 
-subplot ( 3, 1, 1, "align" );
-semilogy ( tOffs, BSG_mean, "-o" ); grid on;
-yrange = ylim(); ylim ( [ 1e-1, max(yrange) ] );
-ylabel ("<BSG>");
+  subplot ( 3, 1, 1, "align" );
+  semilogy ( tOffs, BSG_mean, "-o" ); grid on;
+  yrange = ylim();
+  ylabel ("<BSG>");
 
-subplot ( 3, 1, 2, "align" );
-errorbar ( tOffs, f0_MPE, f0_lerr, f0_uerr, ";90%;" ); grid on;
-ylim ( prior_FreqRange );
-ylabel ("f0 [Hz]");
+  subplot ( 3, 1, 2, "align" );
+  errorbar ( tOffs, f0_MPE, f0_lerr, f0_uerr, ";90%;" ); grid on;
+  ylim ( prior_FreqRange );
+  ylabel ("f0 [Hz]");
 
-subplot ( 3, 1, 3, "align" );
-errorbar ( tOffs, 1e3*tau_MPE, 1e3*tau_lerr, 1e3*tau_uerr, ";90%;" ); grid on;
-ylabel ("tau [ms]");
-xlabel ("tOffs [s]");
+  subplot ( 3, 1, 3, "align" );
+  errorbar ( tOffs, 1e3*tau_MPE, 1e3*tau_lerr, 1e3*tau_uerr, ";90%;" ); grid on;
+  ylabel ("tau [ms]");
+  xlabel ("tOffs [s]");
 
-fname = sprintf ( "%s-summary.pdf", ret{1}.bname );
-ezprint ( fname, "width", 512 );
+  fname = sprintf ( "%s-summary.pdf", ret{1}.bname );
+  ezprint ( fname, "width", 512 );
+endif
 
 cd ("..");
 
