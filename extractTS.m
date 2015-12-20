@@ -12,8 +12,8 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
                         {"lineWidth", "real,positive,scalar", 0.1},	%% +- width in Hz to zero around 'lines'
                         {"plotResults", "bool", false },
                         {"simulate", "bool", false },
-                        {"shiftL", "real,positive,scalar", 7.1e-3},	%% time-shift to apply to L1 data wrt to H1
-                        {"RngMedWindow", "real,positive,scalar", 300 }  %% window size to use for rngmed-based PSD estimation
+                        {"RngMedWindow", "real,positive,scalar", 300 },  %% window size to use for rngmed-based PSD estimation
+                        {"fSampling", "real,positive,scalar", 1370*2 }	%% sampling rate of output timeseries
                       );
   assert ( uvar.fMax > uvar.fMin );
 
@@ -22,19 +22,16 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
   assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 
   %% load frequency-domain data from SFTs:
-  fNy = 1370;	%% 2x1370Hz sampling, enough to allow for resolved ~7.3ms time-shift ~ 20bins
   fnames = {"./Data/H-1_H1_1800SFT_ER8-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-1126258841-1800.sft" };
   IFO = {"H1"; "L1"};
-  tOffs = { 0, uvar.shiftL };	%% delay {H1,L1} data by this amount, respectively
-  scaleFact = { 1, -1 };	%% invert L1 data to be in phase with H1
 
   if ( uvar.simulate )
     extraLabel = "-sim";
   else
     extraLabel = "";
   endif
-  bname = sprintf ( "freq%.0fHz-%.0fHz-GPS%.0fs+-%.0fs-ls%.1f-lw%.1f-rng%.0f-shiftL%.2fms%s",
-                    uvar.fMin, uvar.fMax, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow, uvar.shiftL * 1e3, extraLabel);
+  bname = sprintf ( "freq%.0fHz-%.0fHz-fSamp%.0fHz-GPS%.0fs+-%.0fs-ls%.1f-lw%.1f-rng%.0f%s",
+                    uvar.fMin, uvar.fMax, uvar.fSampling, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow, extraLabel);
 
   for X = 1:length(fnames)
     bnameX = sprintf ( "%s-%s", IFO{X}, bname );
@@ -72,9 +69,10 @@ function [ts, tsW, tsOW, psd] = extractTS ( varargin )
       assert ( length(fk0) == length(xk0) );
 
       %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
-      tsBand0 = freqBand2TS ( fk0{X}, xk0{X}, uvar.fMin - 1, uvar.fMax + 1, fNy );	%% 1Hz extra-band for median PSD estimates later
-      tsBand0.ti += t0 + tOffs{X};	%% label times by correct epoch, shift by detector-specific offset
-      tsBand0.xi *= scaleFact{X};		%% apply detector-specific scale factor to time-series
+      sideband = uvar.RngMedWindow / (2*uvar.Twindow); 		%% extra frequency side-band for median PSD estimates later
+      tsBand0 = freqBand2TS ( fk0{X}, xk0{X}, uvar.fMin - sideband, uvar.fMax + sideband, uvar.fSampling / 2 );
+      dt0 = mean ( diff ( tsBand0.ti ) );
+      tsBand0.ti += t0;		%% label times by correct epoch
 
       %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
       indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter + uvar.Twindow )) );

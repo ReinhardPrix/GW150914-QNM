@@ -4,7 +4,7 @@ function ret = searchRingdown ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
-                        {"tsOW", "cell" },	%% cell-array [over detectors]: over-whitened timeseries [time-shifted and antenna-corrected!]
+                        {"tsOW", "cell" },	%% cell-array [over detectors]: over-whitened timeseries
                         {"psd", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
                         {"tCenter", "real,strictpos,scalar", 1126259462 },
                         {"tOffs", "real,scalar", 0.43 },
@@ -15,6 +15,8 @@ function ret = searchRingdown ( varargin )
                       );
 
   NoiseBand = 20;	%% use +-20Hz noise band around signal frequency for (non-OW) PSD estimate
+  shiftL1 = 7.1e-3;	%% time-shift to apply to L1 data-stream
+
   assert ( min(uvar.psd{1}.fk) <= min(uvar.prior_FreqRange) - NoiseBand );
   assert ( max(uvar.psd{1}.fk) >= max(uvar.prior_FreqRange) + NoiseBand );
 
@@ -63,13 +65,19 @@ function ret = searchRingdown ( varargin )
 
   %% ----- prepare time-series stretch to analyze
   t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
-  inds = find ( (tsOW{1}.ti >= t0) & (tsOW{1}.ti <= t0 + Tmax) );
-  t_i  = tsOW{1}.ti(inds);
-  Dt_i = t_i - t0;
 
   for X = 1:Ndet
     log10BSG{X} = match{X} = Gam{X} = zeros ( size ( lap_s ) );
-    xOW_i{X} = tsOW{X}.xi(inds);
+
+    %% prepare per-detector timeseries for matching
+    if ( strcmp ( tsOW{X}.IFO, "L1" ) )
+      tsOW{X}.ti += shiftL1;
+      tsOW{X}.xi *= -1;
+    endif
+
+    inds_match = find ( (tsOW{X}.ti >= t0) & (tsOW{X}.ti <= t0 + Tmax) );
+    Dt_i{X}  = tsOW{X}.ti ( inds_match ) - t0;
+    xOW_i{X} = tsOW{X}.xi ( inds_match );
   endfor %% X
 
   %% ----- determine ~const noise-estimate in f0 +- 20Hz Band around each signal frequency f0
@@ -90,8 +98,8 @@ function ret = searchRingdown ( varargin )
   %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
   Ntempl = length ( lap_s(:) );
   for l = 1 : Ntempl	%% loop over all templates
-    template_l = exp ( - Dt_i  * lap_s(l) );
     for X = 1:Ndet
+      template_l = exp ( - Dt_i{X}  * lap_s(l) );
       match{X}(l) = 2 * dt * sum ( xOW_i{X} .* template_l );
     endfor %% X
   endfor %% l
@@ -125,8 +133,12 @@ function ret = searchRingdown ( varargin )
 
   %% find 90% credible intervals
   confidence = 0.90;
-  f0_est  = credibleInterval ( f0, posterior_f0, confidence );
-  tau_est = credibleInterval ( tau, posterior_tau, confidence );
+  try
+    f0_est  = credibleInterval ( f0, posterior_f0, confidence );
+    tau_est = credibleInterval ( tau, posterior_tau, confidence );
+  catch
+    f0_est = tau_est = NA;
+  end_try_catch
 
   %% ---------- estimate SNR for all templates ----------
   AVec_est = Gam_tot .* match_tot;
@@ -171,8 +183,8 @@ function ret = searchRingdown ( varargin )
     plot ( f0, posterior_f0, "linewidth", 2 );
     grid on;
     yrange = ylim();
-    line ( [f0_est.MPE, f0_est.MPE], yrange );
-    line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
+    %%line ( [f0_est.MPE, f0_est.MPE], yrange );
+    %%line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
     ylim ( yrange );
     xlabel ("Freq [Hz]");
     ylabel ("pdf(Freq)");
@@ -180,8 +192,8 @@ function ret = searchRingdown ( varargin )
     subplot ( 2, 2, 2 );
     plot ( tau * 1e3, posterior_tau, "linewidth", 2 );
     yrange = ylim();
-    line ( [tau_est.MPE, tau_est.MPE]*1e3, yrange );
-    line ( [tau_est.lower, tau_est.upper]* 1e3, [tau_est.pIso, tau_est.pIso] );
+%%    line ( [tau_est.MPE, tau_est.MPE]*1e3, yrange );
+%%    line ( [tau_est.lower, tau_est.upper]* 1e3, [tau_est.pIso, tau_est.pIso] );
     ylim ( yrange );
     grid on;
     xlabel ("tau [ms]");
