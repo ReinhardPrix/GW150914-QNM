@@ -1,6 +1,8 @@
 %% estimate single-sided noise PSD 'psd(f)', and return whitened and over-whitened TS
 %% including an automated line-nuking algorithm: 'lines' are identified as > lineSigma deviations in power
 function [ psd, tsOut ] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=0.1, RngMedWindow = 300 )
+  global debugLevel = 1;
+
   ti = tsIn.ti;
   tStart = min ( ti );
   dt = mean ( diff ( ti ) );
@@ -32,13 +34,36 @@ function [ psd, tsOut ] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=
   Pk_re = abs ( real ( yk ) );
   Pk_im = abs ( imag ( yk ) );
   inds_lines = find ( (Pk_re > lineSigma) | (Pk_im > lineSigma) );
-  inukeWidth = round ( lineWidth * T );
-  for i = 1: length(inds_lines)
-    iMin = max ( 0, inds_lines(i) - inukeWidth );
-    iMax = min ( length(indsWide), inds_lines(i) + inukeWidth );
-    inds_nuke = [ iMin : iMax ];
-    xk_wide ( inds_nuke ) = 0;
-  endfor
+  iNukeWidth = round ( lineWidth * T );
+  sides = -iNukeWidth : iNukeWidth;
+  [xx, yy] = meshgrid ( inds_lines, sides );
+  nuke_lines = xx + yy;
+  %%nuke_bands = find ( (fk_wide < 100) | (fk_wide >= 300 ) );
+  %%nuke = [ nuke_lines(:); nuke_bands(:) ];
+  nuke = [ nuke_lines(:) ];
+  indsNuke = unique ( nuke(:) );
+  indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= length(indsWide)) );
+
+  %% ----- replace all data <100Hz, and >300Hz with Gaussian noise ----------
+  DebugPrintf ( 1, "----- Identified lines in %s: -----\n", tsIn.IFO );
+  DebugPrintf ( 1, "Line-frequencies: %f Hz\n", fk_wide ( inds_lines ) );
+
+  figure(); clf; hold on;
+  plot ( fk_wide, abs ( xk_wide ) / sqrt(T), "+-", "color", "blue" ); legend ( tsIn.IFO );
+  plot ( fk_wide, sqrt(Sn_wide), "o;sqrt(SX);", "color", "green" );
+
+  NindsNuke = length ( indsNuke );
+  draws = normrnd ( 0, 1, 2, NindsNuke );
+  %%Sn0 = (8.2e-24)^2;
+  Sn0 = Sn_wide ( indsNuke );
+  noise = sqrt(T/4 * Sn0 ) .* ( draws(1,:) + I * draws(2,:) );
+  plot ( fk_wide ( indsNuke ), abs ( xk_wide ( indsNuke )) / sqrt(T), "o", "color", "red" );
+  xk_wide ( indsNuke ) = noise;
+  plot ( fk_wide ( indsNuke ), abs ( xk_wide ( indsNuke )) / sqrt(T), "x", "color", "red" );
+
+
+  %%draws = normrnd ( 0, 1, 2, NindsNuke );
+  hold off;
 
   %% ----- whitened and overwhitened sFTs (with nuked lines) ----------
   xkW_wide  = xk_wide ./ sqrt(Sn_wide);
