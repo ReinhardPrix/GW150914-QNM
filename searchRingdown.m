@@ -7,7 +7,7 @@ function ret = searchRingdown ( varargin )
                         {"tsOW", "cell" },	%% cell-array [over detectors]: over-whitened timeseries [time-shifted and antenna-corrected!]
                         {"psd", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
                         {"tCenter", "real,strictpos,scalar", 1126259462 },
-                        {"tOffs", "real,strictpos,scalar", 0.43 },
+                        {"tOffs", "real,scalar", 0.43 },
                         {"prior_FreqRange", "real,strictpos,vector", [220,  270] },
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
                         {"prior_H", "real,strictpos,scalar", 4e-22},
