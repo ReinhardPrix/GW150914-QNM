@@ -7,7 +7,9 @@ global debugLevel = 1;
 %% --------------------------------------------------
 
 %% ========== driver parameters ==========
-searchType = "verify";
+if ( !exist ("searchType" ) )
+  searchType = "verify";
+endif
 
 savePlots = false;
 plotSummary = false;
@@ -39,15 +41,16 @@ switch ( searchType )
 
   case "offSource"
     %% ---------- "OFF-SOURCE RANGE" for background estimation ----------
-    tCenter = 1126259472;
-    tOffsStart = -1;		%% this is about when the signal enters f0>~200Hz
-    dtOffs     = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
-    tOffsEnd   = 1;
-    extraLabel = "-OffSource";
-    savePlots = false;
+    tCenter     = 1126259472;
+    tOffsStart  = -5;
+    dtOffs      = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
+    tOffsEnd    = 5;
+    extraLabel  = "-OffSource";
+    savePlots   = true;
     plotSummary = true;
     plotSpectra = false;
     useTSBuffer = true;
+    plotBSGHist = true;
 endswitch
 
 %% ----- data preparation -----
@@ -136,11 +139,16 @@ if ( plotSummary )
   errorbar ( tOffs, 1e3*tau_MPE, 1e3*tau_lerr, 1e3*tau_uerr, ";90%;" ); grid on;
   xlim ( xrange );
   ylabel ("tau [ms]");
-  xlabel ("tOffs [s]");
-
-  title ( "t0 = %.0f GPS s\n", tCenter );
-
+  xlabel ( sprintf ( "%.0f + tOffs [s]", tCenter) );
   fname = sprintf ( "%s-summary.pdf", ret{1}.bname );
+  ezprint ( fname, "width", 512 );
+endif
+
+if ( plotBSGHist )
+  figure(); clf;
+  hist ( BSG_mean, 20 );
+  xlabel ( "<BSG>" );
+  fname = sprintf ( "%s-hist.pdf", ret{1}.bname );
   ezprint ( fname, "width", 512 );
 endif
 
