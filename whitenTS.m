@@ -45,7 +45,7 @@ function [ psd, tsOut ] = whitenTS ( tsIn, fMin, fMax, lineSigma = 5, lineWidth=
   indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= length(indsWide)) );
 
   %% ----- replace all data <100Hz, and >300Hz with Gaussian noise ----------
-  DebugPrintf ( 1, "----- Identified lines in %s: -----\n", tsIn.IFO );
+  DebugPrintf ( 1, "\n----- Identified lines in %s: -----\n", tsIn.IFO );
   DebugPrintf ( 1, "Line-frequencies: %f Hz\n", fk_wide ( inds_lines ) );
 
   figure(); clf; hold on;

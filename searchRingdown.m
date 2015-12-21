@@ -212,12 +212,12 @@ function ret = searchRingdown ( varargin )
     Dt_pos = Dt ( indsRingdown );
     tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
     plot ( ts{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
-    legend ( "location", "NorthWest");
+    legend ( "location", "NorthEast");
     yrange = ylim();
-    line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "-", "linewidth", 2 );
-    xlim ( [0.38, 0.46 ] );
+    line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "-", "linewidth", 3 );
+    xlim ( [uvar.tOffs - 0.3 * Tmax, uvar.tOffs + Tmax ] );
     ylim ( yrange );
-    xlabel ("tOffs [s]");
+    xlabel ( sprintf ( "%.0f + tOffs [s]", uvar.tCenter) );
     tOffs_text = sprintf ( "tOffs = %.4f s", uvar.tOffs );
     x0 = uvar.tOffs + 0.02 * abs(diff(xlim()));
     y0 = max(yrange) - 0.2*abs(diff(yrange));

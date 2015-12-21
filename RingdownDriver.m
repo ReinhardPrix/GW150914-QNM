@@ -11,7 +11,13 @@ searchType = "verify";
 
 savePlots = false;
 plotSummary = false;
+plotSpectra = false;
+useTSBuffer = true;
 %% ========== Prior ranges ==========
+data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
+prior_FreqRange = [ 210, 270 ];
+prior_tauRange  = [ 0.2e-3, 20e-3 ];
+prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
 
 %% ---------- "ON-SOURCE RANGE" ----------
 switch ( searchType )
@@ -21,7 +27,9 @@ switch ( searchType )
     dtOffs     = 0.0005;
     tOffsEnd   = 0.430;
     extraLabel = "verify";
-
+    data_FreqRange  = [ 100, 300 ];
+    plotSpectra = false;
+    useTSBuffer = false;
   case "onSource"
     tCenter = 1126259462;
     tOffsStart = 0.422;		%% this is about when the signal enters f0>~200Hz
@@ -36,16 +44,15 @@ switch ( searchType )
     dtOffs     = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
     tOffsEnd   = 1;
     extraLabel = "-OffSource";
+    savePlots = false;
+    plotSummary = true;
+    plotSpectra = false;
+    useTSBuffer = true;
 endswitch
-
-data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
-prior_FreqRange = [ 210, 270 ];
-prior_tauRange  = [ 0.2e-3, 20e-3 ];
-prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
 
 %% ----- data preparation -----
 DebugPrintf ( 1, "Extracting timeseries ... ");
-[ts, psd] = extractTS ( "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotResults", false );
+[ts, psd] = extractTS ( "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotResults", plotSpectra, "useBuffer", useTSBuffer );
 DebugPrintf ( 1, "done.\n");
 
 %% create unique time-tagged 'ResultsDir' for each run:
@@ -112,21 +119,26 @@ save ("-hdf5", fname )
 %% ----- plot quantities vs tOffs ----------
 if ( plotSummary )
   figure(); clf;
+  xrange = [ tOffsStart, tOffsEnd ];
 
   subplot ( 3, 1, 1, "align" );
   semilogy ( tOffs, BSG_mean, "-o" ); grid on;
-  yrange = ylim();
+  xlim ( xrange );
   ylabel ("<BSG>");
 
   subplot ( 3, 1, 2, "align" );
   errorbar ( tOffs, f0_MPE, f0_lerr, f0_uerr, ";90%;" ); grid on;
+  xlim ( xrange );
   ylim ( prior_FreqRange );
   ylabel ("f0 [Hz]");
 
   subplot ( 3, 1, 3, "align" );
   errorbar ( tOffs, 1e3*tau_MPE, 1e3*tau_lerr, 1e3*tau_uerr, ";90%;" ); grid on;
+  xlim ( xrange );
   ylabel ("tau [ms]");
   xlabel ("tOffs [s]");
+
+  title ( "t0 = %.0f GPS s\n", tCenter );
 
   fname = sprintf ( "%s-summary.pdf", ret{1}.bname );
   ezprint ( fname, "width", 512 );
