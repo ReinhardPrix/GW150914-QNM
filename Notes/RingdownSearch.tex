@@ -23,6 +23,9 @@
 
 \input{definitions.tex}
 \input{git_tag.tex}
+
+\newcommand{\dcc}{LIGO-T1500618-v1}
+
 \begin{document}
 
 \title{(Yet another) QNM search on GW150914}
@@ -31,9 +34,9 @@
 %% wave sources in binary systems}
 
 \author{Reinhard Prix}
-\altaffiliation{reinhard.prix@aei.mpg.de}
-%%\affiliation{Max-Planck-Institut f\"ur Gravitationsphysik, Albert-Einstein-Institut, D-30167 Hannover, Germany}
-\date{\commitDATE; \commitIDshort-\commitSTATUS}
+\altaffiliation{Reinhard.Prix@ligo.org}
+\affiliation{Max-Planck-Institut f\"ur Gravitationsphysik, Albert-Einstein-Institut, D-30167 Hannover, Germany}
+\date{\commitDATE; \commitIDshort-\commitSTATUS; \href{https://dcc.ligo.org/LIGO-T1500618}{\dcc}}
 %\parbox[c]{1em}{\textcolor{red}{DRAFT}}
 
 
@@ -42,7 +45,7 @@
   This is done by Bayesian hypothesis testing and parameter estimation using a QNM ringdown model
   $s(t\ge\tStart) = A\,e^{-\frac{t-\tStart}{\tau}}\cos\left(2\pi f (t-\tStart) + \phi_0\right)$ with unknown amplitude $A$, initial phase $\phi_0$,
   frequency $f$ and decay time $\tau$, as a function of the QNM start-time $\tStart$.
-  Using a Gaussian-isotropic prior on $\{\As=A\sin\phi_0,\,\Ac=A\cos\phi_0\}$ we can approximate the Bayes factor by analytically marginalizing over
+  Using a Gaussian-isotropic prior on $\{\As=-A\sin\phi_0,\,\Ac=A\cos\phi_0\}$ we can approximate the Bayes factor by analytically marginalizing over
   $\{A,\phi_0\}$, leaving an explicit template search over $\{f,\,\tau\}$. We search the range $f\in[210,\,270]\,\Hz$ and $\tau \in [0.2, 20]\,\ms$
   assuming a uniform prior.
 
@@ -298,7 +301,7 @@ From these we'll obtain $A' = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\lef
 \label{sec:data-preparation}
 
 Band-passed data in $[100,\,300]\,\Hz$ using a 1800s Fourier-transform, from this extracted $T=20\,$s timeseries $x^X(t)$ centered on GPS time $\tEvent =
-1125269462\,$s. Time-shifted L1 data by (delaying it by) $+7.1\,\ms$ and multiplied it by (-1) to account for the inverse detector response.
+1126259462\,$s. Time-shifted L1 data by (delaying it by) $+7.1\,\ms$ and multiplied it by (-1) to account for the inverse detector response.
 Fourier-transformed this again, zeroed-out all bins $\pm0.1\,\Hz$ around 'lines', identified as $\ge 5$ sigma deviation of unit-variance normalized
 FT.
 We estimate the (single-sided) PSD $S_X$ by 300-bin running-median on FT power, using Wiener-Khintchine theorem
