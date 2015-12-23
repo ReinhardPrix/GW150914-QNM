@@ -41,7 +41,7 @@ switch ( searchType )
 
   case "offSource"
     %% ---------- "OFF-SOURCE RANGE" for background estimation ----------
-    tCenter     = 1126259472;
+    tCenter     = 1126259472; %% 10s past GW150914
     tOffsStart  = -5;
     dtOffs      = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
     tOffsEnd    = 5;
@@ -60,7 +60,7 @@ DebugPrintf ( 1, "done.\n");
 
 %% create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
-resDir = sprintf ( "Results-%02d%02d%02d-%02dh%02d%s", gm.year - 100, gm.mon, gm.mday, gm.hour, gm.min, extraLabel );
+resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d%s", gm.year - 100, gm.mon, gm.mday, gm.hour, gm.min, extraLabel );
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 addpath ( pwd() );
 cd ( resDir );
