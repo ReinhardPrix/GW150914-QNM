@@ -8,7 +8,7 @@ function ret = searchRingdown ( varargin )
                         {"psd", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
                         {"tCenter", "real,strictpos,scalar", 1126259462 },
                         {"tOffs", "real,scalar", 0.43 },
-                        {"prior_FreqRange", "real,strictpos,vector", [220,  270] },
+                        {"prior_f0Range", "real,strictpos,vector", [220,  270] },
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
                         {"prior_H", "real,strictpos,scalar", 4e-22},
                         {"plotResults", "bool", false }
@@ -17,11 +17,11 @@ function ret = searchRingdown ( varargin )
   NoiseBand = 20;	%% use +-20Hz noise band around signal frequency for (non-OW) PSD estimate
   shiftL1 = 7.1e-3;	%% time-shift to apply to L1 data-stream
 
-  assert ( min(uvar.psd{1}.fk) <= min(uvar.prior_FreqRange) - NoiseBand );
-  assert ( max(uvar.psd{1}.fk) >= max(uvar.prior_FreqRange) + NoiseBand );
+  assert ( min(uvar.psd{1}.fk) <= min(uvar.prior_f0Range) - NoiseBand );
+  assert ( max(uvar.psd{1}.fk) >= max(uvar.prior_f0Range) + NoiseBand );
 
   bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%.2g-tOffs%.4fs",
-                    uvar.tCenter, min(uvar.prior_FreqRange), max(uvar.prior_FreqRange),
+                    uvar.tCenter, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
                     1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
                     uvar.prior_H,
                     uvar.tOffs
@@ -31,7 +31,7 @@ function ret = searchRingdown ( varargin )
   Ndet = length(ts);
 
   %% ---------- estimate ~constant noise-floor level in search-band of ringdown frequencies ----------
-  indsSearch = find ( (psd{1}.fk > min(uvar.prior_FreqRange)) & (psd{1}.fk < max(uvar.prior_FreqRange)) );
+  indsSearch = find ( (psd{1}.fk > min(uvar.prior_f0Range)) & (psd{1}.fk < max(uvar.prior_f0Range)) );
   SinvSum = zeros ( size ( psd{1}.Sn ) );
   for X = 1:Ndet
     SinvSum += 1 ./ psd{X}.Sn;
@@ -51,17 +51,17 @@ function ret = searchRingdown ( varargin )
 
   Tmax = 3 * max(uvar.prior_tauRange);	%% max time range considered = 5 * tauMax
 
-  %% ---------- templated search over {freq, tau} space ----------
+  %% ---------- templated search over {f0, tau} space ----------
   step_f0 = 0.1;
   step_tau = 0.0002;
-  f0 = [min(uvar.prior_FreqRange):step_f0:max(uvar.prior_FreqRange)];
+  f0 = [min(uvar.prior_f0Range):step_f0:max(uvar.prior_f0Range)];
   tau = [min(uvar.prior_tauRange):step_tau:max(uvar.prior_tauRange)]';
   Nf0 = length(f0);
   Ntau = length(tau);
-  [ff, ttau] = meshgrid ( f0, tau );
-  lap_s = 1./ ttau + I * 2*pi * ff;	%% laplace 'frequency'
+  [ff0, ttau] = meshgrid ( f0, tau );
+  lap_s = 1./ ttau + I * 2*pi * ff0;	%% laplace 'frequency'
   log10BSG_tot = match_tot = Gam_tot = zeros ( size ( lap_s ) );
-  DebugPrintf ( 1, "Searching ringdown %d templates ... ", length(ff(:)) );
+  DebugPrintf ( 1, "Searching ringdown %d templates ... ", length(ff0(:)) );
 
   %% ----- prepare time-series stretch to analyze
   t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
@@ -114,7 +114,7 @@ function ret = searchRingdown ( varargin )
   log10BSG_tot = compute_log10BSG ( Gam_tot, match_tot, uvar.prior_H );
   BSG_tot = 10.^log10BSG_tot;
 
-  posterior = struct ( "Freq", ff, "tau", ttau, "BSG", BSG_tot );
+  posterior = struct ( "f0", ff0, "tau", ttau, "BSG", BSG_tot );
   DebugPrintf ( 1, "done.\n");
 
   DebugPrintf (2,  "<Gam> = %g, <Gam{1}> = %g, <Gam{2}> = %g\n", mean(Gam_tot(:)), mean(Gam{1}(:)), mean(Gam{2}(:)) );
@@ -153,7 +153,7 @@ function ret = searchRingdown ( varargin )
   BSG_max = max ( BSG_tot(:) );
   l_MPE = ( find ( BSG_tot(:) == BSG_max ) )(1);
   Stot_MPE = Stot_mat ( l_MPE );
-  f0_MPE = ff ( l_MPE );
+  f0_MPE = ff0 ( l_MPE );
   tau_MPE = ttau ( l_MPE );
   Gam_MPE = Gam_tot ( l_MPE );
   F_MPE = match_tot ( l_MPE );
@@ -170,10 +170,10 @@ function ret = searchRingdown ( varargin )
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
-    surf ( ff, ttau * 1e3, BSG_tot ); colorbar("location", "NorthOutside"); view(2); shading("interp");
+    surf ( ff0, ttau * 1e3, BSG_tot ); colorbar("location", "NorthOutside"); view(2); shading("interp");
     plot3 ( f0_MPE, tau_MPE * 1e3, 1.1*BSG_max, "marker", "o", "markersize", 3, "color", "white" );
     yrange = ylim();
-    xlabel ("Freq [Hz]"); ylabel ("tau [ms]");
+    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
     hold off;
 
     subplot ( 2, 2, 3 );
@@ -185,8 +185,8 @@ function ret = searchRingdown ( varargin )
       line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
     endif
     ylim ( [0, max(yrange)] );
-    xlabel ("Freq [Hz]");
-    ylabel ("pdf(Freq)");
+    xlabel ("f0 [Hz]");
+    ylabel ("pdf(f0)");
 
     subplot ( 2, 2, 2 );
     plot ( tau * 1e3, posterior_tau, "linewidth", 2 );

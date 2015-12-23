@@ -22,7 +22,7 @@ endif
 
 %% ---------- Prior range defaults ----------
 data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
-prior_FreqRange = [ 210, 270 ];
+prior_f0Range = [ 210, 270 ];
 prior_tauRange  = [ 0.2e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
 
@@ -88,12 +88,12 @@ Nsteps = length(tOffs);
 
 for i = 1:Nsteps
   DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffs(i) );
-  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_FreqRange", prior_FreqRange, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", true );
+  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_f0Range", prior_f0Range, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", true );
 
   %% ----- save posterior in matrix format ----------
   if ( i == 1 )
-    fname = sprintf ( "Freqs.dat", ret{i}.bname );
-    tmp = ret{i}.posterior.Freq;
+    fname = sprintf ( "f0s.dat", ret{i}.bname );
+    tmp = ret{i}.posterior.f0;
     save ( "-ascii", fname, "tmp" );
     fname = sprintf ( "taus.dat", ret{i}.bname );
     tmp = ret{i}.posterior.tau;
@@ -148,7 +148,7 @@ if ( plotSummary )
   subplot ( 3, 1, 2, "align" );
   errorbar ( tOffs, f0_MPE, f0_lerr, f0_uerr, ";90%;" ); grid on;
   xlim ( xrange );
-  ylim ( prior_FreqRange );
+  ylim ( prior_f0Range );
   ylabel ("f0 [Hz]");
 
   subplot ( 3, 1, 3, "align" );
