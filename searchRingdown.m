@@ -184,7 +184,7 @@ function ret = searchRingdown ( varargin )
       line ( [f0_est.MPE, f0_est.MPE], yrange );
       line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
     endif
-    ylim ( yrange );
+    ylim ( [0, max(yrange)] );
     xlabel ("Freq [Hz]");
     ylabel ("pdf(Freq)");
 
@@ -195,7 +195,7 @@ function ret = searchRingdown ( varargin )
       line ( [tau_est.MPE, tau_est.MPE]*1e3, yrange );
       line ( [tau_est.lower, tau_est.upper]* 1e3, [tau_est.pIso, tau_est.pIso] );
     endif
-    ylim ( yrange );
+    ylim ( [0, max(yrange)] );
     grid on;
     xlabel ("tau [ms]");
     ylabel ("pdf(tau)");

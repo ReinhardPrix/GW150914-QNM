@@ -30,9 +30,12 @@ switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tCenter = 1126259462;
-    tOffsStart = 0.43;
+    if ( !exist ( "tOffs" ) )
+      tOffs = 0.43;
+    endif
+    tOffsStart = tOffs;
     dtOffs     = 0.0005;
-    tOffsEnd   = 0.430;
+    tOffsEnd   = tOffs;
     data_FreqRange  = [ 100, 300 ];
     plotSpectra = true;
     useTSBuffer = false;
@@ -45,6 +48,8 @@ switch ( searchType )
     dtOffs     = 0.0005;	%% 0.5ms stepsize
     tOffsEnd   = 0.438; %% 0.438;
     plotBSGHist = false;
+    plotSummary = true;
+    savePlots   = true;
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
