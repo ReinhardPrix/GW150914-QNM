@@ -56,8 +56,8 @@ function [ psd, tsOut ] = whitenTS ( varargin )
   indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= length(indsWide)) );
 
   %% ----- replace all data <100Hz, and >300Hz with Gaussian noise ----------
-  DebugPrintf ( 1, "\n----- Identified lines in %s: -----\n", uvar.tsIn.IFO );
-  DebugPrintf ( 1, "Line-frequencies: %f Hz\n", fk_wide ( inds_lines ) );
+  DebugPrintf ( 2, "\n----- Identified lines in %s: -----\n", uvar.tsIn.IFO );
+  DebugPrintf ( 2, "Line-frequencies: %f Hz\n", fk_wide ( inds_lines ) );
 
   if ( uvar.plotSpectrum )
     figure(); clf; hold on;
@@ -65,7 +65,8 @@ function [ psd, tsOut ] = whitenTS ( varargin )
     plot ( fk_wide, sqrt(Sn_wide), "o;sqrt(SX);", "color", "green" );
 
     NindsNuke = length ( indsNuke );
-    draws = normrnd ( 0, 1, 2, NindsNuke );
+    %%draws = normrnd ( 0, 1, 2, NindsNuke );
+    draws = zeros ( 2, NindsNuke );
     %%Sn0 = (8.2e-24)^2;
     Sn0 = Sn_wide ( indsNuke );
     noise = sqrt(T/4 * Sn0 ) .* ( draws(1,:) + I * draws(2,:) );
