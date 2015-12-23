@@ -24,7 +24,7 @@
 \input{definitions.tex}
 \input{git_tag.tex}
 
-\newcommand{\dcc}{LIGO-T1500618-v1}
+\newcommand{\dcc}{LIGO-T1500618-v1+}
 
 \begin{document}
 
@@ -43,15 +43,15 @@
 \begin{abstract}
   We quantify the evidence for and estimate the parameters of QNM 'ringdown' in the GW150914 event.
   This is done by Bayesian hypothesis testing and parameter estimation using a QNM ringdown model
-  $s(t\ge\tStart) = A\,e^{-\frac{t-\tStart}{\tau}}\cos\left(2\pi f (t-\tStart) + \phi_0\right)$ with unknown amplitude $A$, initial phase $\phi_0$,
-  frequency $f$ and decay time $\tau$, as a function of the QNM start-time $\tStart$.
+  $s(t\ge\tStart) = A\,e^{-\frac{t-\tStart}{\tau}}\cos\left(2\pi \freq (t-\tStart) + \phi_0\right)$ with unknown amplitude $A$, initial phase $\phi_0$,
+  frequency $\freq$ and decay time $\tau$, as a function of the QNM start-time $\tStart$.
   Using a Gaussian-isotropic prior on $\{\As=-A\sin\phi_0,\,\Ac=A\cos\phi_0\}$ we can approximate the Bayes factor by analytically marginalizing over
-  $\{A,\phi_0\}$, leaving an explicit template search over $\{f,\,\tau\}$. We search the range $f\in[210,\,270]\,\Hz$ and $\tau \in [0.2, 20]\,\ms$
+  $\{A,\phi_0\}$, leaving an explicit template search over $\{\freq,\,\tau\}$. We search the range $f\in[210,\,270]\,\Hz$ and $\tau \in [0.2, 20]\,\ms$
   assuming a uniform prior.
 
   \textbf{Main result:}
   There is very strong evidence (signal versus Gaussian noise Bayes factor $\BSG\sim10^{7}$, SNR in MPE point $\sim6.3$) for a 'final' detectable QNM
-  with $f\sim252\,\Hz,\,\tau\sim5\,\ms$ ($Q = \pi\,f\,\tau \sim 4$) 'starting' in H1 at $\tStart = \tEvent + 0.428s$, (and $\sim7\,\ms$ earlier in L1)
+  with $\freq\sim252\,\Hz,\,\tau\sim5\,\ms$ ($Q = \pi\,\freq\,\tau \sim 4$) 'starting' in H1 at $\tStart = \tEvent + 0.428s$, (and $\sim7\,\ms$ earlier in L1)
   where $\tEvent = 1126259462\,$s is the reference GPS time of the event.
   This QNM stops being detectable around $\tStart = \tEvent+0.434s$ (SNR$\sim1$), consistent with the exponential decay time.
 
@@ -63,8 +63,6 @@
     Ideally should treat unknown noise-floor by Bayesian marginalization as well [TODO].
   \item TODO: collect data on noise-only distribution of $\BSG$
   \item TODO: inject QNM signals and check PE accuracy
-  \item this pipeline searches for \emph{single} QNMs in Gaussian noise, while here it is likely that several QNMs are exited at the same time and
-    might/will interfere with each other. Ideally a multi-QNM search pipeline should be developed.
   \end{itemize}
 \end{abstract}
 
@@ -79,23 +77,31 @@
 Signal model: damped sinusoid starting at $\tStart$:
 \begin{align}
   \label{eq:1}
-  s(t;\,A, \phi_0\,, \tStart, \tau, f) &= A\,w(\Dt,\,\tau)\,\cos\left(2\pi f \Dt + \phi_0\right)\,,\\
-  \Dt & \equiv t - \tStart\,\\
-  w(\Dt, \tau) &=
+  s(t;\,A, \phi_0\,, \tStart, \tau, \freq) &= A\,w(t-\tStart,\,\tau)\,\cos\left(2\pi\,\freq\,(t-\tStart) + \phi_0\right)\,,\\
+  w(t, \tau) &=
   \begin{cases}
-    \exp\left( -\frac{\Dt}{\tau} \right) & \text{if } \Dt \ge 0\,\\
-    0  & \text{if } \Dt < 0
+    \exp\left( -\frac{t}{\tau} \right) & \text{if } t \ge 0\,\\
+    0  & \text{if } t < 0
   \end{cases}
 \end{align}
-Rewrite waveform in terms of two unknown amplitudes $\As = -A\,\sin\phi_0,\,\Ac = A\,\cos\phi_0$ \cite{bretthorst1988:_bayesian_spectrum}:
+Rewrite waveform in terms of two unknown amplitudes $\As = -A\,\sin\phi_0,\,\Ac = A\,\cos\phi_0$ in ``JKS'' factorization
+\cite{bretthorst1988:_bayesian_spectrum,jks98:_data}:
 \begin{equation}
   \label{eq:2}
-  s(t; \parmsAll) = w(\Dt,\tau)\, \left[ \As\,\sin\left(2\pi f \Dt\right) + \Ac\,\cos\left(2\pi f \Dt\right) \right]\,,
+  s(t; \parmsAll) = \As \, \hs(t;\parmsEvol) + \Ac\,\hc(t;\parmsEvol)\,,
 \end{equation}
-with the set of signal parameters
+with \emph{basis functions}
+\begin{align}
+  \label{eq:14}
+  \hs(t;\parmsEvol) &\equiv w(t-\tStart,\tau)\,\sin(2\pi \,\freq\,(t-\tStart))\,,\\
+  \hc(t;\parmsEvol) &\equiv w(t-\tStart,\tau)\,\cos(2\pi \,\freq\,(t-\tStart))\,,
+\end{align}
+and the set of signal parameters separating into ``amplitude parameters'' $\Avec$ and ``evolution parameters'' $\parmsEvol$:
 \begin{equation}
   \label{eq:11}
-  \parmsAll \equiv \{\As,\Ac, \parmsEvol\}\,,\quad \parmsEvol \equiv \{\tStart,\tau, f\}\,.
+  \parmsAll \equiv \{\Avec, \parmsEvol\}\,,
+  \quad \Avec \equiv \left(\As,\Ac\right)\,,
+  \quad \parmsEvol \equiv \{\tStart,\tau, \freq\}\,.
 \end{equation}
 The likelihoods for Gaussian (colored) noise $\HypG$ and the ringdown model $\HypS$ are
 \begin{align}
@@ -124,13 +130,322 @@ with the likelihood-ratio \emph{function}
   \label{eq:8}
   \Lr(x;\parmsAll) \equiv \frac{\prob{x}{\HypS,\parmsAll}}{\prob{x}{\HypG}} = \exp\left(\scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\right)\,.
 \end{equation}
+We can further introduce a partially-marginalized (over unknown amplitude parameters $\Avec$) Bayes factor $\BSG(x;\parmsEvol)$ as
+\begin{align}
+  \BSG(x) &= \int \Lr(x;\parmsAll)\,\prob{\parmsAll}{\HypS}\,d\parmsAll \notag\\
+          &= \int \Lr(x;\Avec,\parmsEvol)\,\prob{\Avec}{\parmsEvol,\HypS}\,\prob{\parmsEvol}{\HypS}\,d^2\A\,d\parmsEvol \notag\\
+          &= \int \BSG(x;\parmsEvol) \,\prob{\parmsEvol}{\HypS}\,d\parmsEvol\,,   \label{eq:23a}\\
+  \BSG(x;\parmsEvol) &\equiv \int \Lr(x;\A,\parmsEvol)\prob{\A}{\parmsEvol,\HypS}\,d^2\A\,.  \label{eq:23b}
+\end{align}
 
 \section{Computing the Bayes factor $\BSG$}
 \label{sec:comp-bayes-fact}
 
-
 \subsection{Expressing the SNR$^2$: $\scalar{s}{s}$}
 \label{sec:computing-scalarss}
+
+We assume the data $x^X(t)$ from the different detectors has been time-shifted and corrected for antenna-pattern effects, in such a way that the
+expected signal $s(t)$ would be identical in all data streams, so we can assume the templates to be independent of detector, and write
+\begin{align}
+  \label{eq:15}
+  \scalar{s}{s} &= \sum_X 2\int_{-\infty}^{\infty} \frac{\left| \FT{s}(f) \right|^2}{\SX(f)}\,df\\
+  &= 2\Ndet\,\int \frac{\left| \FT{s}(f) \right|^2}{\Sn(f)}\,df\,,
+\end{align}
+where the multi-detector noise floor $\Sn(f)$ is defined as the harmonic mean
+\begin{equation}
+  \label{eq:26}
+  \Sn^{-1}(f) \equiv \frac{1}{\Ndet}\sum_X S_X^{-1}(f)\,.
+\end{equation}
+Using the factorization of Eq.~\eqref{eq:2}, which in frequency domain yields
+\begin{equation}
+  \label{eq:34}
+  \FT{s}(f;\parmsAll) = \As\,\FT{\hs}(f;\parmsEvol) + \Ac\,\FT{\hc}(f;\parmsEvol)\,,
+\end{equation}
+we can further write this as
+\begin{equation}
+  \label{eq:36}
+  \scalar{s}{s} = \Avec \cdot \M(\parmsEvol) \cdot \Avec\,,
+\end{equation}
+with
+\begin{align}
+  \label{eq:35}
+  \M(\parmsEvol) &\equiv
+  \begin{pmatrix}
+    \Is  & \Isc \\
+    \Isc  & \Ic\\
+  \end{pmatrix}\,,\\
+  \Is(\parmsEvol) &= 4\Ndet \int_{0}^{\infty} \frac{|\FT{\hs}(f)|^2}{\Sn(f)}\,df \,,\\
+  \Ic(\parmsEvol) &= 4\Ndet \int_{0}^{\infty} \frac{|\FT{\hc}(f)|^2}{\Sn(f)}\,df \,,\\
+  \Isc(\parmsEvol)&= 4\Ndet \int_{0}^{\infty} \frac{\Re[\FT{\hs}(f)\,\FT{\hc}^{*}\!\!(f)]}{\Sn(f)}\,df \,.
+\end{align}
+The Fourier transforms $\FT{\hs},\FT{\hc}$ of the signal basis functions can be computed analytically
+\begin{align}
+  \label{eq:37}
+  \FT{\hs}(f;\parmsEvol) &= \tau\,\frac{2\pi\freq\,\tau}{1 + i\,4\pi\,f\,\tau -  4\pi^2(f^2 - \freq^2)\tau^2} \, e^{-i2\pi f\tStart} \,,\\
+  \FT{\hc}(f;\parmsEvol) &= \tau\,\frac{1 + i\,2\pi\,f\,\tau}{1 + i\,4\pi\,f\,\tau - 4\pi^2(f^2 - \freq^2)\tau^2} \, e^{-i2\pi f\tStart} \,.
+\end{align}
+
+
+\subsection{Expressing the ``matched filter'' $\scalar{x}{s(\parmsAll)}$}
+\label{sec:computing-scalarxs}
+
+Note that in the scalar product involving the data $x^X$ (assume time-shifted and antenna-pattern corrected) we can conveniently absorb the
+frequency-dependend noise-floors $S_X(f)$ by \emph{over-whitening} the data, i.e.\ we define
+\begin{equation}
+  \label{eq:12}
+  \FT{y}^X \equiv \frac{\FT{x}^X(f)}{S_X(f)}\,,
+\end{equation}
+which allows us to write the scalar product in time-domain form
+\begin{align}
+  \label{eq:13}
+  \scalar{x}{s(\parmsAll)} &= \sum_X 2\int_{-\infty}^{\infty} \FT{y}^X(f)\,\FT{s}^{*X}(f)\,df \\
+  &= \sum_X 2\int_{-\infty}^{\infty} y^X(t)\,s^X(t)\,dt \\
+  &= \sum_X 2\int_{\tStart}^{\tStart + T} y^X(t)\,s^X(t)\,dt\,,
+\end{align}
+where $T \gg \tau$ is some duration long enough so that $s(\tStart+T)\approx0$, e.g.\ $T=5\tau$. Here we define $t$ to the arrival time in one of
+the detectors, 'H1', say. We further assume that we applied the detector-specific time-delay ($+7.1\,\ms$ for L1 in the case of GW150914) and
+antenna-pattern corrections (a factor of $-1$ of L1 wrt H1) to the \emph{data} $y^X(t)$, such that we can assume the putative signal waveform in the
+data to be in phase and of (approximately) same amplitude and phase. This means that we can assume a detector-independent template $s^X(t) = s(t)$
+(here referring to H1 arrival time and phase).
+
+Using Eq.~\eqref{eq:2} we can further write
+\begin{equation}
+  \label{eq:9}
+  \scalar{x}{s(\parmsAll)} = \Avec\cdot\xvec(\parmsEvol) = \As\,\xs(\parmsEvol) + \Ac\,\xc(\parmsEvol)\,,
+\end{equation}
+with $\xs=\sum_X \xs^X$, $\xc=\sum_X \xc^X$, and
+\begin{align}
+  \label{eq:10}
+  \xs^X(\parmsEvol) &\equiv 2\int_{\tStart}^{\tStart+T} y^X(t)\,\hs(t;\parmsEvol)\,dt\,,\\
+  \xc^X(\parmsEvol) &\equiv 2\int_{\tStart}^{\tStart+T} y^X(t)\,\hc(t;\parmsEvol)\,dt\,.
+\end{align}
+Note that it will be convenient to write
+\begin{equation}
+  \label{eq:38}
+  \hc(t;\parmsEvol) - i\,\hs(t;\parmsEvol) = e^{-\Dt/\tau}\,e^{-i\,2\pi\,\freq\,\Dt}\,,
+\end{equation}
+with $\Dt \equiv t - \tStart$, and so we obtain the complex matched-filter as
+\begin{align}
+  \label{eq:16}
+  \Fab^X \equiv \xc^X - i\,\xs^X &= 2 \int_{0}^{T} y^X(\tStart+\Dt)\,e^{-\Dt \,\varpi}\,d\Dt\,,
+\end{align}
+which can be seen as the Laplace transform of the data, with complex frequency
+\begin{equation}
+  \label{eq:27}
+  \varpi \equiv \frac{1}{\tau} + i\,2\pi \freq\,.
+\end{equation}
+
+\subsection{Marginalizing over unknown amplitudes $\{\As,\Ac\}$}
+\label{sec:marg-over-unkn}
+
+Combining these expressions in the likelihood-ratio function of Eq.~\eqref{eq:8}, we can write this as
+\begin{align}
+  \label{eq:21}
+  \ln \Lr(x;\parmsAll) &= \scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\\
+  &= -\frac{1}{2}\,\Avec\cdot\M\cdot\Avec + \Avec\cdot\xvec\,,
+\end{align}
+i.e.\ a 2-dimensional Gaussian in $\{\As,\Ac\}$ with covariance matrix $\M^{-1}$.
+This can be marginalized analytically to yield $\BSG(x;\parmsEvol)$ in Eq.~\eqref{eq:23a} for a suitable choice of prior
+$\prob{\Avec}{\parmsEvol,\HypS}$.
+
+First we assume that the amplitude prior is \emph{logically} independent of the evolution parameters $\parmsEvol$, which simply expresses ignorance about a
+possible dependence, not a claim about \emph{physical} independence \cite{jaynes:_logic_of_science},
+i.e.\ $\prob{\Avec}{\parmsEvol,\HypS} = \prob{\Avec}{\HypS}$
+
+Further we use a simple isotropic Gaussian amplitude prior, which expresses ignorance about the initial phase $\phi_0$, and posits a characteristic
+scale $H$ for the amplitude $A$, namely
+\begin{equation}
+  \label{eq:22}
+  \prob{\Avec}{\HypS} = \frac{1}{2\pi\,H^2}\,e^{-\frac{1}{2}{\Avec\cdot\Avec}/H^2}\,\,,
+\end{equation}
+which implies a prior on the amplitude $A$ (marginalized over $\phi_0$):
+\begin{equation}
+  \label{eq:28}
+  \prob{A}{\HypS} = \frac{A}{H^2}\,e^{-\frac{A^2}{2H^2}}\,.
+\end{equation}
+Using the Gaussian amplitude prior we find
+\begin{align}
+  \label{eq:29}
+  \BSG(x;\parmsEvol) &= \frac{1}{2\pi H^2}\int e^{-\frac{1}{2}\,\Avec\cdot\Gam^{-1}\cdot\Avec + \Avec\cdot\xvec}\,d^2\A\\
+  &= \frac{\sqrt{\det\Gam}}{H^2}\, e^{\frac{1}{2}\,\xvec\cdot\Gam\cdot\xvec}\,,
+\end{align}
+with
+\begin{equation}
+  \label{eq:25}
+  \Gam^{-1}(\parmsEvol) \equiv \M + H^{-2}\,\eye =
+  \begin{pmatrix}
+    \Is + H^{-2} & \Isc \\
+    \Isc        & \Ic + H^{-2}\,.
+  \end{pmatrix}\,,
+\end{equation}
+for which we find
+\begin{align}
+  \label{eq:39}
+  \det\Gam^{-1} &= \left(\Is + H^{-2}\right)\left(\Ic+H^{-2}\right) - \Isc^2\\
+  &=\det\M + H^{-2}\,\trace{\M} + H^{-4}\,,
+\end{align}
+and
+\begin{equation}
+  \label{eq:40}
+  \frac{\sqrt{\det\Gam}}{H^2} = \left[H^4\,\det\M + H^2\,\trace{\M} + 1\right]^{-1/2}\,.
+\end{equation}
+
+It is interesting to note that in the limit $H\rightarrow0$ we have $\Gam^{-1}\rightarrow H^{-2}\eye$, so $\Gam\rightarrow0$, and
+$\sqrt{\det\Gam}/H^2\rightarrow 1$, therefore $\BSG\rightarrow 1$. The signal hypothesis becomes indistinguishable from the noise hypothesis if signal
+amplitudes are assumed to be vanishingly small.
+
+In the opposite limit of $H\gg 1$, we find $\Gam\rightarrow\M^{-1}$, and $\sqrt{\det\Gam}/H^2\rightarrow 1/(H^2\sqrt{\det\M})$, which is equivalent to
+the ``$\F$-statistic'' for finite $H$, but $\BSG\rightarrow 0$ for $H\rightarrow \infty$, as the prior volume gets increasingly thinly spread out,
+resulting in an ``Occam factor'' effect disfavoring the signal hypothesis.
+
+Alternatively, for relatively well-constrained amplitude $A^{\sig}$ and phase $\phi_0^\sig$ parameters, one could simply use $\prob{\A}{\HypS} = \delta(\As-\As^\sig)\delta(\Ac-\Ac^\sig)$ and obtain
+\begin{equation}
+  \label{eq:24}
+  \BSG(x;\parmsEvol) = \Lr(x;\A^\sig,\phi_0^\sig,\,\parmsEvol)\,.
+\end{equation}
+
+\section{Parameter estimation}
+\label{sec:parameter-estimation}
+
+The posterior is
+\begin{align}
+  \label{eq:30}
+  \prob{\parmsAll}{x,\HypS} &\propto \prob{x}{\HypS,\parmsAll}\,\prob{\parmsAll}{\HypS}\\
+    &\propto \Lr(x;\parmsAll)\,\prob{\A}{\HypS}\,\prob{\parmsEvol}{\HypS}\\
+    &\propto \exp\left[-\frac{1}{2}\, \Avec\cdot\Gam^{-1}\cdot\Avec + \Avec\cdot\xvec\right]\,\prob{\parmsEvol}{\HypS}\,.
+\end{align}
+where in the first line we have dropped the normalization $1/\prob{x}{\HypS}$, and in the second line we dropped $\prob{x}{\HypG}$, as both are
+independent of $\parmsAll$.
+After marginalization over $\{\As,\Ac\}$ we recover again the Bayes factor $\BSG(x;\parmsEvol)$ of \eqref{eq:29}, i.e.
+\begin{equation}
+  \label{eq:32}
+  \prob{\parmsEvol}{x,\HypS} \propto \BSG(x;\parmsEvol)\,.
+\end{equation}
+
+Finding the maximum-posterior estimates (MPE) for $\As,\Ac$ at fixed $\parmsEvol$ from \eqref{eq:30} yields
+\begin{equation}
+  \label{eq:31}
+  \Avec' = \Gam(\parmsEvol)\cdot\xvec\,.
+\end{equation}
+We will evaluate this at the MPE values found for $\parmsEvol$ in the Bayes-factor search using \eqref{eq:32}.
+From these we can obtain $A' = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\left(\frac{\As}{\Ac}\right)$.
+
+\section{QNM search applied to GW150914}
+\label{sec:qnm-search-applied}
+
+\subsection{Data preparation}
+\label{sec:data-preparation}
+
+Band-passed data in $[100,\,300]\,\Hz$ using a 1800s Fourier-transform, from this extracted $T=20\,$s timeseries $x^X(t)$ centered on GPS time $\tEvent =
+1126259462\,$s. Time-shifted L1 data by (delaying it by) $+7.1\,\ms$ and multiplied it by (-1) to account for the inverse detector response.
+Fourier-transformed this again, zeroed-out all bins $\pm0.1\,\Hz$ around 'lines', identified as $\ge 5$ sigma deviation of unit-variance normalized
+FT.
+We estimate the (single-sided) PSD $S_X$ by 300-bin running-median on FT power, using Wiener-Khintchine theorem
+$S(f) = \frac{2}{T} E\left[|\FT{x}(f)|^2\right]$ (as is standard practice in CW search pipelines).
+
+\subsection{Prior choices}
+\label{sec:prior-choices}
+
+Isotropic 2D Gaussian amplitude prior \eqref{eq:22} on $\{\As,\Ac\}$ with characteristic amplitude $H = 4\times10^{-22}$, which corresponds to
+isotropic prior in $\phi_0$ and an $A$-prior of \eqref{eq:28}, as shown here:\\
+\parbox{\textwidth}{
+  \centering
+  \includegraphics[width=0.5\textwidth]{prior_A-H4e-22.pdf}
+}
+%%\caption{Amplitude $A$ prior with characteristic scale $H=4\times10^{-22}$}
+
+We search the $\{f,\tau\}$ range with uniform priors in
+\begin{equation}
+  \label{eq:33}
+  f\in[210,\,270]\,\Hz,\quad
+  \tau\in[0.2,\,20]\,\ms\,.
+\end{equation}
+at fixed QNM start-time $\tStart$, which we vary in steps of $0.5\,\ms$ in the range $\tStart\in [0.422,\,0.438]\,s + \tEvent$ (referring to H1
+arrival times).
+
+\newpage
+\subsection{Numerical results}
+\label{sec:numerical-results}
+
+A few snapshots:
+
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4220s}.png}
+  \caption{$\tStart = \tEvent + 0.422\,$s: $\BSG = 1.2\times10^{30}$}
+  \label{fig:Result-0.422}
+\end{figure}
+
+\newpage
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4240s}.png}
+  \caption{$\tStart = \tEvent + 0.424\,$s: $\BSG = 4.9\times10^{19}$}
+  \label{fig:Result-0.424}
+\end{figure}
+
+\newpage
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4255s}.png}
+  \caption{$\tStart = \tEvent + 0.4255\,$s: $\BSG = 9.3\times10^{23}$}
+  \label{fig:Result-0.4255}
+\end{figure}
+
+\newpage
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4280s}.png}
+  \caption{$\tStart = \tEvent + 0.428\,$s: $\BSG = 3.2\times10^{7}$}
+  \label{fig:Result-0.428}
+\end{figure}
+
+\newpage
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4300s}.png}
+  \caption{$\tStart = \tEvent + 0.430\,$s: $\BSG = 1.1\times10^{3}$}
+  \label{fig:Result-0.430}
+\end{figure}
+
+\newpage
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4340s}.png}
+  \caption{$\tStart = \tEvent + 0.434\,$s: $\BSG = 1.3$}
+  \label{fig:Result-0.434}
+\end{figure}
+
+\newpage
+\begin{figure}[htbp]
+  \centering
+  \hspace*{-2cm}
+  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4350s}.png}
+  \caption{$\tStart = \tEvent + 0.435\,$s: $\BSG = 0.21$}
+  \label{fig:Result-0.435}
+\end{figure}
+
+\newpage
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4220s-summary}.pdf}
+  \caption{Summary plot}
+  \label{fig:summary}
+\end{figure}
+
+
+\newpage
+\appendix
+
+\section{Deprecated old way to compute $\scalar{s}{s}$: const noise floor + time-domain integration}
+\label{sec:depr-first-way}
+
 Given that aLIGO noise-curve is relatively ``white'' over a broad-band in the ``bucket'', and the signal $s(t)$ of Eq.~\eqref{eq:1} can still be
 considered relatively ``narrow band'' ($\sim \pm 100\Hz$) with respect to this noise curve, we can approximate the signal-normalization integral as
 \begin{align}
@@ -175,229 +490,6 @@ So we finally obtain the (perfect-match) SNR$^2$ as
 with the harmonic mean $\Sn^{-1} \equiv \frac{1}{\Ndet}\sum_X S_X^{-1}$.
 Note: in the QNM search below we'll approximate $\Sn(f')$ in this expression by the arithmetic mean $\langle\Sn(f)\rangle_{f\pm20\Hz}$ around each
 template frequency $f$.
-
-
-\subsection{Expressing the ``matched filter'' $\scalar{x}{s(\parmsAll)}$}
-\label{sec:computing-scalarxs}
-
-Note that in the scalar product involving the data $x^X$ we can absorb the frequency-dependend noise-floors $S_X(f)$ by \emph{over-whitening} the
-data, ie define
-\begin{equation}
-  \label{eq:12}
-  \FT{y}^X \equiv \frac{\FT{x}^X(f)}{S_X(f)}\,,
-\end{equation}
-which allows us to write the scalar product in time-domain form
-\begin{align}
-  \label{eq:13}
-  \scalar{x}{s(\parmsAll)} &= \sum_X 2\int_{-\infty}^{\infty} \FT{y}^X(f)\,\FT{s}^{*X}(f)\,df \\
-  &= \sum_X 2\int_{-\infty}^{\infty} y^X(t)\,s^X(t)\,dt \\
-  &= \sum_X 2\int_{\tStart}^{\tStart + T} y^X(t)\,s^X(t)\,dt\,,
-\end{align}
-where $T \gg \tau$ is some duration long enough so that $s(\tStart+T)\approx0$, e.g.\ $T=5\tau$. Here we define $t$ to the arrival time in one of
-the detectors, 'H1', say. We further assume that we applied the detector-specific time-delay ($+7.3\ms$ for L1 in the case of GW150914) and
-antenna-pattern corrections (a factor of $-1$ of L1 wrt H1) to the \emph{data} $y^X(t)$, such that we can assume the putative signal waveform in the
-data to be in phase and of (approximately) same amplitude. This means that we can assume a detector-independent template $s^X(t) = s(t)$ (here
-referring to H1 arrival time and phase).
-
-Using Eq.~\eqref{eq:2} we can further write
-\begin{equation}
-  \label{eq:9}
-  \scalar{x}{s(\parmsAll)} = \As\,\xs(\parmsEvol) + \Ac\,\xc(\parmsEvol)\,,
-\end{equation}
-with $\xs=\sum_X \xs^X$, $\xc=\sum_X \xc^X$, and
-\begin{align}
-  \label{eq:10}
-  \xs^X(\parmsEvol) &\equiv 2\int_{0}^{T} y^X(\tStart+\Dt)\,e^{-\frac{\Dt}{\tau}}\sin(2\pi f\Dt)\,d\Dt,\\
-  \xc^X(\parmsEvol) &\equiv 2\int_{0}^{T} y^X(\tStart+\Dt)\,e^{-\frac{\Dt}{\tau}}\cos(2\pi f\Dt)\,d\Dt.\\
-\end{align}
-Note that
-\begin{align}
-  \label{eq:16}
-  \Fab^X \equiv (\xc - i\xs)^X &= 2 \int_{0}^{T} y^X(\tStart+\Dt)\,e^{-\Dt \,\varpi}\,d\Dt\,,
-\end{align}
-is the Laplace transform with complex frequency
-\begin{equation}
-  \label{eq:27}
-  \varpi \equiv \frac{1}{\tau} + i2\pi f\,.
-\end{equation}
-
-\subsection{Marginalizing over unknown amplitudes $\{\As,\Ac\}$}
-\label{sec:marg-over-unkn}
-
-Combining these expressions in the likelihood-ratio function of Eq.~\eqref{eq:8}, and using $\Ndet=2$, we obtain
-\begin{align}
-  \label{eq:21}
-  \ln \Lr(x;\parmsAll) &= \scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\\
-  &= -\frac{1}{2}\,\frac{\tau}{\Sn}\left(\As^2+\Ac^2\right) + \As\,\xs + \Ac\,\xc\,,
-\end{align}
-i.e.\ a 2-dimensional Gaussian in $\{\As,\Ac\}$, which can be integrated analytically for a suitable choice of prior.
-For unknown amplitude and initial phase, we can consider a simple isotropic (ie uniform in phase $\phi_0$) Gaussian prior, with
-characteristic amplitude scale $H$, i.e.\
-\begin{equation}
-  \label{eq:22}
-  \prob{\A}{\HypS} = \frac{1}{2\pi\,H^2}\,e^{-\frac{1}{2H^2}\left(\As^2 + \Ac^2\right)}\,,
-\end{equation}
-which implies a (marginalized over $\phi_0$) prior on the amplitude $A$:
-\begin{equation}
-  \label{eq:28}
-  \prob{A}{\HypS} = \frac{A}{H^2}\,e^{-\frac{A^2}{2H^2}}\,.
-\end{equation}
-We introduce the partially-marginalized (over unknown amplitude $A$ and phase $\phi_0$, i.e.\ $\As,\Ac$) Bayes factor $\BSG(x;\parmsEvol)$ as
-\begin{align}
-  \label{eq:23}
-  \BSG(x) &= \int \BSG(x;\parmsEvol) \,\prob{\parmsEvol}{\HypS}\,d\parmsEvol\,,\\
-  \BSG(x;\parmsEvol) &\equiv \int \Lr(x;\A,\parmsEvol)\prob{\A}{\HypS}\,d^2\A\,.
-\end{align}
-
-Using the above Gaussian prior we find
-\begin{align}
-  \label{eq:29}
-  \BSG(x;\parmsEvol) &= \frac{1}{2\pi H^2}\int \exp\left[-\frac{1}{2}\,\Gam(\parmsEvol)\,\left(\As^2+\Ac^2\right) + \As\,\xs(\parmsEvol) + \Ac\,\xc(\parmsEvol)\right]\,d^2\A\\
-  &=\frac{\Gam(\parmsEvol)}{H^2} \, \exp\left[\frac{\Gam(\parmsEvol)}{2}\left(\xs^2(\parmsEvol) + \xc^2(\parmsEvol)\right)\right]\,,
-\end{align}
-with
-\begin{equation}
-  \label{eq:25}
-  \Gam^{-1}(\parmsEvol) \equiv \frac{\tau}{\Sn(f)} + \frac{1}{H^2} = \frac{H^2}{1 + \frac{H^2\tau}{\Sn(f)}}\,,
-\end{equation}
-
-Alternatively, for relatively well-constrained amplitude $A^{\sig}$ and phase $\phi_0^\sig$ parameters, one could simply use $\prob{\A}{\HypS} = \delta(\As-\As^\sig)\delta(\Ac-\Ac^\sig)$ and obtain
-\begin{equation}
-  \label{eq:24}
-  \BSG(x;\parmsEvol) = \Lr(x;\A^\sig,\phi_0^\sig,\,\parmsEvol)\,.
-\end{equation}
-
-\section{Parameter estimation}
-\label{sec:parameter-estimation}
-
-The posterior is
-\begin{align}
-  \label{eq:30}
-  \prob{\parmsAll}{x,\HypS} &\propto \prob{x}{\HypS,\parmsAll}\,\prob{\parmsAll}{\HypS}\\
-    &\propto \Lr(x;\parmsAll)\,\prob{\A}{\HypS}\,\prob{\parmsEvol}{\HypS}\\
-    &\propto \exp\left[-\frac{1}{2}\,\Gam(\parmsEvol)\,\left(\As^2+\Ac^2\right) + \As\,\xs(\parmsEvol) + \Ac\,\xc(\parmsEvol)\right]\,\prob{\parmsEvol}{\HypS}\,.
-\end{align}
-where in the first line we have dropped the $\parmsAll$-independent normalization $1/\prob{x}{\HypS}$, and in the second line $\prob{x}{\HypG}$.
-After marginalization over $\{\As,\Ac\}$ we recover again the Bayes factor $\BSG(x;\parmsEvol)$ of \eqref{eq:29}, i.e.
-\begin{equation}
-  \label{eq:32}
-  \prob{\parmsEvol}{x,\HypS} \propto \BSG(x;\parmsEvol)\,.
-\end{equation}
-
-Finding the maximum-posterior estimates (MPE) for $\As,\Ac$ at fixed $\parmsEvol$ from \eqref{eq:30} yields
-\begin{equation}
-  \label{eq:31}
-  \As' = \Gam(\parmsEvol)\,\xs\,,\quad
-  \Ac' = \Gam(\parmsEvol)\,\xc\,.
-\end{equation}
-We will evaluate this at the MPE values found for $\parmsEvol$ in the Bayes-factor search using \eqref{eq:32}.
-From these we'll obtain $A' = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\left(\frac{\As}{\Ac}\right)$.
-
-
-\section{QNM search applied to GW150914}
-\label{sec:qnm-search-applied}
-
-\subsection{Data preparation}
-\label{sec:data-preparation}
-
-Band-passed data in $[100,\,300]\,\Hz$ using a 1800s Fourier-transform, from this extracted $T=20\,$s timeseries $x^X(t)$ centered on GPS time $\tEvent =
-1126259462\,$s. Time-shifted L1 data by (delaying it by) $+7.1\,\ms$ and multiplied it by (-1) to account for the inverse detector response.
-Fourier-transformed this again, zeroed-out all bins $\pm0.1\,\Hz$ around 'lines', identified as $\ge 5$ sigma deviation of unit-variance normalized
-FT.
-We estimate the (single-sided) PSD $S_X$ by 300-bin running-median on FT power, using Wiener-Khintchine theorem
-$S(f) = \frac{2}{T} E\left[|\FT{x}(f)|^2\right]$ (as is standard practice in CW search pipelines).
-
-\subsection{Prior choices}
-\label{sec:prior-choices}
-
-Isotropic 2D Gaussian amplitude prior \eqref{eq:22} on $\{\As,\Ac\}$ with characteristic amplitude $H = 4\times10^{-22}$, which corresponds to
-isotropic prior in $\phi_0$ and an $A$-prior of \eqref{eq:28}, as shown in Fig.
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.5\textwidth]{prior_A-H4e-22.pdf}
-  \caption{Amplitude $A$ prior with characteristic scale $H=4\times10^{-22}$}
-  \label{fig:A-prior}
-\end{figure}
-
-We search the $\{f,\tau\}$ range with uniform priors in
-\begin{equation}
-  \label{eq:33}
-  f\in[210,\,270]\,\Hz,\quad
-  \tau\in[0.2,\,20]\,\ms\,.
-\end{equation}
-at fixed QNM start-time $\tStart$, which we vary in steps of $0.5\,\ms$ in the range $\tStart\in [0.422,\,0.438]\,s + \tEvent$ (referring to H1
-arrival times).
-
-\subsection{Numerical results}
-\label{sec:numerical-results}
-
-A few snapshots:
-
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4220s}.png}
-  \caption{$\tStart = \tEvent + 0.422\,$s: $\BSG = 1.2\times10^{30}$}
-  \label{fig:Result-0.422}
-\end{figure}
-
-
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4240s}.png}
-  \caption{$\tStart = \tEvent + 0.424\,$s: $\BSG = 4.9\times10^{19}$}
-  \label{fig:Result-0.424}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4255s}.png}
-  \caption{$\tStart = \tEvent + 0.4255\,$s: $\BSG = 9.3\times10^{23}$}
-  \label{fig:Result-0.4255}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4280s}.png}
-  \caption{$\tStart = \tEvent + 0.428\,$s: $\BSG = 3.2\times10^{7}$}
-  \label{fig:Result-0.428}
-\end{figure}
-
-
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4300s}.png}
-  \caption{$\tStart = \tEvent + 0.430\,$s: $\BSG = 1.1\times10^{3}$}
-  \label{fig:Result-0.430}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4340s}.png}
-  \caption{$\tStart = \tEvent + 0.434\,$s: $\BSG = 1.3$}
-  \label{fig:Result-0.434}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4350s}.png}
-  \caption{$\tStart = \tEvent + 0.435\,$s: $\BSG = 0.21$}
-  \label{fig:Result-0.435}
-\end{figure}
-
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\textwidth]{{../Results/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4220s-summary}.pdf}
-  \caption{Summary plot}
-  \label{fig:summary}
-\end{figure}
 
 
 \bibliography{RingdownSearch}
