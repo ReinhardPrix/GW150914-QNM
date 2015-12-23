@@ -7,60 +7,71 @@ global debugLevel = 1;
 %% --------------------------------------------------
 
 %% ========== driver parameters ==========
-if ( !exist ("searchType" ) )
-  searchType = "verify";
-endif
-
+SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C01-1126258841-1800.sft" };
 savePlots = false;
 plotSummary = false;
 plotSpectra = false;
 useTSBuffer = true;
-%% ========== Prior ranges ==========
+
+if ( !exist ("searchType" ) )
+  searchType = "verify";
+endif
+if ( !exist ( "extraLabel" ) )
+  extraLabel = "";
+endif
+
+%% ---------- Prior range defaults ----------
 data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
 prior_FreqRange = [ 210, 270 ];
 prior_tauRange  = [ 0.2e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
 
-%% ---------- "ON-SOURCE RANGE" ----------
 switch ( searchType )
   case "verify"
+    %% ---------- test-case to compare different code-versions on ----------
     tCenter = 1126259462;
     tOffsStart = 0.43;
     dtOffs     = 0.0005;
     tOffsEnd   = 0.430;
-    extraLabel = "verify";
     data_FreqRange  = [ 100, 300 ];
-    plotSpectra = false;
+    plotSpectra = true;
     useTSBuffer = false;
+    plotBSGHist = false;
+
   case "onSource"
+    %% ---------- "ON-SOURCE ----------
     tCenter = 1126259462;
     tOffsStart = 0.422;		%% this is about when the signal enters f0>~200Hz
     dtOffs     = 0.0005;	%% 0.5ms stepsize
     tOffsEnd   = 0.438; %% 0.438;
-    extraLabel = "";	%% provide extra info about what's specific in this run
+    plotBSGHist = false;
 
   case "offSource"
-    %% ---------- "OFF-SOURCE RANGE" for background estimation ----------
+    %% ---------- "OFF-SOURCE" for background estimation ----------
     tCenter     = 1126259472; %% 10s past GW150914
     tOffsStart  = -5;
     dtOffs      = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
     tOffsEnd    = 5;
-    extraLabel  = "-OffSource";
     savePlots   = true;
     plotSummary = true;
     plotSpectra = false;
     useTSBuffer = true;
     plotBSGHist = true;
+  otherwise
+    error ("Unknown searchType = '%s' specified\n", searchType );
+
 endswitch
 
 %% ----- data preparation -----
-DebugPrintf ( 1, "Extracting timeseries ... ");
-[ts, psd] = extractTS ( "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotResults", plotSpectra, "useBuffer", useTSBuffer );
-DebugPrintf ( 1, "done.\n");
+
+%% load frequency-domain data from SFTs:
+for X = 1:length(SFTs)
+  [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
+endfor
 
 %% create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
-resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d%s", gm.year - 100, gm.mon, gm.mday, gm.hour, gm.min, extraLabel );
+resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s%s", gm.year - 100, gm.mon, gm.mday, gm.hour, gm.min, searchType, extraLabel );
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 addpath ( pwd() );
 cd ( resDir );
@@ -152,7 +163,7 @@ if ( plotBSGHist )
   ezprint ( fname, "width", 512 );
 endif
 
-cd ("..");
+cd ("../..");
 
 catch
   err = lasterror();
@@ -161,5 +172,5 @@ catch
   err.stack.name
   err.stack.line
 
-  cd ("..");	%% make sure we end up in main dir in case of failure
+  cd ("../..");	%% make sure we end up in main dir in case of failure
 end_try_catch
