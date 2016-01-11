@@ -30,8 +30,9 @@ function ret = searchRingdown ( varargin )
   ts = uvar.ts; psd = uvar.psd;
   Ndet = length(ts);
 
+  fk = psd{1}.fk;
   %% ---------- estimate ~constant noise-floor level in search-band of ringdown frequencies ----------
-  indsSearch = find ( (psd{1}.fk > min(uvar.prior_f0Range)) & (psd{1}.fk < max(uvar.prior_f0Range)) );
+  indsSearch = find ( (fk > min(uvar.prior_f0Range)) & (fk < max(uvar.prior_f0Range)) );
   SinvSum = zeros ( size ( psd{1}.Sn ) );
   for X = 1:Ndet
     SinvSum += 1 ./ psd{X}.Sn;
@@ -60,7 +61,10 @@ function ret = searchRingdown ( varargin )
   Ntau = length(tau);
   [ff0, ttau] = meshgrid ( f0, tau );
   lap_s = 1./ ttau + I * 2*pi * ff0;	%% laplace 'frequency'
+  Ntempl = length ( lap_s(:) );
   log10BSG_tot = match_tot = Gam_tot = zeros ( size ( lap_s ) );
+  Is = Ic = Isc = det_gam = normBSG = zeros ( size ( lap_s ) );
+  gam_ss = gam_cc = gam_sc = zeros ( size ( lap_s ) );
   DebugPrintf ( 1, "Searching ringdown %d templates ... ", length(ff0(:)) );
 
   %% ----- prepare time-series stretch to analyze
@@ -69,16 +73,17 @@ function ret = searchRingdown ( varargin )
   for X = 1:Ndet
     log10BSG{X} = match{X} = Gam{X} = zeros ( size ( lap_s ) );
 
-    %% prepare per-detector timeseries for matching
+    %% prepare per-detector timeseries for matching: adapt L1 data to be phase-coherent with H1
     if ( strcmp ( ts{X}.IFO, "L1" ) )
-      ts{X}.ti += shiftL1;
+      shiftL1_eff = round ( shiftL1 / dt ) * dt;
+      ts{X}.ti += shiftL1_eff;	%% make sure we shift by integer number of time-samples
       ts{X}.xi   *= -1;
       ts{X}.xiW  *= -1;
       ts{X}.xiOW *= -1;
     endif
 
     inds_match = find ( (ts{X}.ti >= t0) & (ts{X}.ti <= t0 + Tmax) );
-    Dt_i{X}  = ts{X}.ti ( inds_match ) - t0;
+    Dt_i{X} = ts{X}.ti ( inds_match ) - t0;	%% we made sure time-steps should agree (to within 2e-7s)
     xOW_i{X} = ts{X}.xiOW ( inds_match );
   endfor %% X
 
@@ -98,21 +103,48 @@ function ret = searchRingdown ( varargin )
   endfor
 
   %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
-  Ntempl = length ( lap_s(:) );
   for l = 1 : Ntempl	%% loop over all templates
+    %% ----- (complex) time-domain template
+    hExp_i = exp ( - Dt_i{1}  * lap_s(l) );
     for X = 1:Ndet
-      template_l = exp ( - Dt_i{X}  * lap_s(l) );
-      match{X}(l) = 2 * dt * sum ( xOW_i{X} .* template_l );
+      match{X}(l) = 2 * dt * sum ( xOW_i{X} .* hExp_i );
     endfor %% X
-  endfor %% l
-
+  endfor
   for X = 1:Ndet
     match_tot   += match{X};
+    x_s = - imag ( match_tot );
+    x_c =   real ( match_tot );
+  endfor
+
+  for l = 1 : Ntempl
+    %% ----- whitened frequency-domain template basis functions ----------
+    denom_k = ( 1 + I * 4*pi * fk * ttau(l) - 4*pi^2 * ( fk.^2 - ff0(l)^2 ) * ttau(l)^2 ) .* sqrt ( Stot );
+    hsFT_k  = ttau(l) * ( 2*pi * ff0(l) * ttau(l) ) ./ denom_k;
+    hcFT_k  = ttau(l) * ( 1 + I * 2*pi*fk * ttau(l) ) ./ denom_k;
+    %% ----- compute M-matrix from template self-match integrals in frequency-domain ----------
+    Is(l)  = 4 * Ndet * df * sum ( abs(hsFT_k).^2 );
+    Ic(l)  = 4 * Ndet * df * sum ( abs(hcFT_k).^2 );
+    Isc(l) = 4 * Ndet * df * real ( sum ( hsFT_k .* conj(hcFT_k) ) );
+  endfor %% l
+  detM = Is .* Ic - Isc.^2;
+  trM  = Is + Ic;
+  Hm2 = uvar.prior_H^(-2);
+  det_gamInv = ( Is + Hm2 ) .* ( Ic + Hm2 ) - Isc.^2;
+  det_gam = 1./ det_gamInv;
+  normBSG = sqrt(det_gam) * Hm2;
+  gam_ss  = det_gam .* ( Ic + Hm2 );
+  gam_cc  = det_gam .* ( Is + Hm2 );
+  gam_sc  = det_gam .* ( -Isc );
+
+  x_gam_x = gam_ss .* x_s.^2 + 2 * gam_sc .* x_s .* x_c + gam_cc .* x_c.^2;
+  BSGalt = normBSG .* exp ( 0.5 .* x_gam_x );
+  for X = 1:Ndet
     log10BSG{X} = compute_log10BSG ( Gam{X}, match{X}, uvar.prior_H );
     BSG{X} = 10.^(log10BSG{X});
   endfor
   log10BSG_tot = compute_log10BSG ( Gam_tot, match_tot, uvar.prior_H );
   BSG_tot = 10.^log10BSG_tot;
+
 
   posterior = struct ( "f0", ff0, "tau", ttau, "BSG", BSG_tot );
   DebugPrintf ( 1, "done.\n");
@@ -166,7 +198,7 @@ function ret = searchRingdown ( varargin )
 
   %% ----- Fig 1: Bayes factor / posterior over {f0,tau} ----------
   if ( uvar.plotResults )
-    figure(); clf;
+    figure(1); clf;
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
@@ -226,13 +258,23 @@ function ret = searchRingdown ( varargin )
     grid on;
     hold off;
 
+    figure(); clf;
+    hold on;
+    colormap ("jet");
+    surf ( ff0, ttau * 1e3, BSGalt ); colorbar("location", "NorthOutside"); view(2); shading("interp");
+    yrange = ylim();
+    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
+    hold off;
+
   endif %% plotResults
 
   %% summarize numerical outcomes on stdout
   BSG_mean = mean ( BSG_tot(:) );
+  BSGalt_mean = mean ( BSGalt(:) );
 
   DebugPrintf (1, "tGPS    = %.0f + %f s\n", uvar.tCenter, uvar.tOffs );
   DebugPrintf (1, "<BSG>   = %.2g\n", BSG_mean );
+  DebugPrintf (1, "<BSGalt>= %.2g\n", BSGalt_mean );
   DebugPrintf (1, "f0_est  = { %.1f, %.1f, %1.f } Hz\n", f0_est.lower, f0_est.MPE, f0_est.upper );
   DebugPrintf (1, "tau_est = { %.1f, %.1f, %1.f } ms\n", 1e3 * tau_est.lower, 1e3 * tau_est.MPE, 1e3 * tau_est.upper );
   DebugPrintf (1, "A_MPE   = %.2g\n", A_MPE );
