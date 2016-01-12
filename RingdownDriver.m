@@ -8,10 +8,12 @@ global debugLevel = 1;
 
 %% ========== driver parameters ==========
 SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C01-1126258841-1800.sft" };
-savePlots = false;
+fSamp = 4084;	%% chosen such that 7.1ms timeshift can be represented by ~integer bin-shift: 7.1e-3 * 4084 =  28.9964000000000
+
 plotSummary = false;
 plotSpectra = false;
 useTSBuffer = true;
+plotPosteriors = true;
 
 if ( !exist ("searchType" ) )
   searchType = "verify";
@@ -38,7 +40,7 @@ switch ( searchType )
     tOffsEnd   = tOffs;
     data_FreqRange  = [ 100, 300 ];
     plotSpectra = true;
-    useTSBuffer = false;
+    useTSBuffer = true;
     plotBSGHist = false;
 
   case "onSource"
@@ -49,7 +51,7 @@ switch ( searchType )
     tOffsEnd   = 0.438; %% 0.438;
     plotBSGHist = false;
     plotSummary = true;
-    savePlots   = true;
+    plotPosteriors = true;
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
@@ -57,7 +59,7 @@ switch ( searchType )
     tOffsStart  = -5;
     dtOffs      = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
     tOffsEnd    = 5;
-    savePlots   = true;
+    plotPosteriors = true;
     plotSummary = true;
     plotSpectra = false;
     useTSBuffer = true;
@@ -71,12 +73,12 @@ endswitch
 
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
-  [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "tCenter", tCenter, "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
+  [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, "tCenter", tCenter, "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
 endfor
 
 %% create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
-resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s%s", gm.year - 100, gm.mon, gm.mday, gm.hour, gm.min, searchType, extraLabel );
+resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s%s", gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, extraLabel );
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 addpath ( pwd() );
 cd ( resDir );
@@ -88,7 +90,7 @@ Nsteps = length(tOffs);
 
 for i = 1:Nsteps
   DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffs(i) );
-  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_f0Range", prior_f0Range, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", true );
+  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_f0Range", prior_f0Range, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", plotPosteriors );
 
   %% ----- save posterior in matrix format ----------
   if ( i == 1 )
@@ -124,7 +126,7 @@ for i = 1:Nsteps
   %% ---------- plot results summary page
   %%fname = sprintf ( "%s.png", ret{i}.bname );
   %%ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
-  if ( savePlots )
+  if ( plotPosteriors )
     fname = sprintf ( "%s.pdf", ret{i}.bname );
     ezprint ( fname, "width", 512 );
   endif
