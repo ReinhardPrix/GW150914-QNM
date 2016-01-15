@@ -461,7 +461,20 @@ considered relatively ``narrow band'' ($\sim \pm 100\Hz$) with respect to this n
   \label{eq:17}
   \scalar{s}{s} &= \sum_X 2 \int_{-\infty}^{\infty} \frac{\FT{s}^X(f)\,\FT{s}^{*X}(f)}{S_X(f)}\,d f\\
   &\sim \sum_X \frac{2}{S_X(f')} \, \int_{0}^{\infty} s^2(t;\parmsAll)\,dt\\
-  &= 2\left( \As^2\,\Is + 2\As\Ac\,\Isc + \Ac^2\,\Ic \right)\, \sum_X \frac{1}{S_X(f')}\,,
+  & = \frac{2\,\Ndet}{\Sn(f')} \,\int \left( \As^2\,\hs^2(t) + 2\As\Ac\,\hs\hc + \Ac^2\,\hc^2\right)\,d t\\
+  & = \Avec \cdot \M \,\cdot\Avec\,,
+\end{align}
+with
+\begin{align}
+  \label{eq:23}
+  \M &\equiv
+  \begin{pmatrix}
+    \Is  & \Isc \\
+    \Isc  & \Ic\\
+  \end{pmatrix}\,,\\
+  \Is  &= \frac{2\Ndet}{\Sn(f')} \Is'\\
+  \Ic  &= \frac{2\Ndet}{\Sn(f')} \Ic'\\
+  \Isc &= \frac{2\Ndet}{\Sn(f')} \Isc'\\
 \end{align}
 where $f'$ is some (unknown) frequency within the effective frequency band around the central signal frequency $f$ (using mean-value theorem), and we
 have used the assumption of identical signal model in both detectors (after time-shifting the data and correcting for antenna-pattern differences).
@@ -469,9 +482,9 @@ have used the assumption of identical signal model in both detectors (after time
 The respective integrals to compute are
 \begin{align}
   \label{eq:18}
-  \Is &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \sin^2\!\varphi\,d\varphi\\
-  \Ic &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\cos^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \cos^2\!\varphi\,d\varphi\\
-  \Isc &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin(2\pi f t)\cos(2\pi f t)\,dt = \frac{1}{4\pi f}\int e^{-\frac{\varphi}{Q}} \sin2\varphi\,d\varphi\,,
+  \Is' &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \sin^2\!\varphi\,d\varphi\\
+  \Ic' &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\cos^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \cos^2\!\varphi\,d\varphi\\
+  \Isc' &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin(2\pi f t)\cos(2\pi f t)\,dt = \frac{1}{4\pi f}\int e^{-\frac{\varphi}{Q}} \sin2\varphi\,d\varphi\,,
 \end{align}
 using the definitions
 \begin{align}
@@ -479,27 +492,28 @@ using the definitions
   \varphi &\equiv 2\pi f \Dt\,,\\
   Q       &\equiv \pi f \tau\,.
 \end{align}
-Assuming only non-critically damped signals, i.e. $Q\gtrsim \Ord{\pi}$, these integrals can be approximated computed analytically as [move to
-appendix?]
+Assuming only non-critically damped signals, i.e. $Q\gtrsim \Ord{\pi}$, these integrals can be approximated computed analytically as
 \begin{align}
   \label{eq:19}
-  \Is &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ \sin2\varphi + 2Q + \frac{\sin^2\varphi}{Q}\right]\right|_0^\infty\\
+  \Is' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ \sin2\varphi + 2Q + \frac{\sin^2\varphi}{Q}\right]\right|_0^\infty\\
   &= \frac{2Q}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{Q}{4\pi f} = \frac{\tau}{4}\,,\\
-  \Ic &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ -\sin2\varphi + 2Q + \frac{\cos^2\varphi}{Q}\right]\right|_0^\infty\\
+  \Ic' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ -\sin2\varphi + 2Q + \frac{\cos^2\varphi}{Q}\right]\right|_0^\infty\\
   &= \frac{2Q + \frac{1}{Q}}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{Q}{4\pi f} = \frac{\tau}{4}\,,\\
-  \Isc &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ 2\cos^2\varphi - 1 + \frac{\sin2\varphi}{2Q}\right]\right|_0^\infty\\
+  \Isc' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ 2\cos^2\varphi - 1 + \frac{\sin2\varphi}{2Q}\right]\right|_0^\infty\\
   &= \frac{1}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{1}{8\pi f} \sim \frac{1}{2Q}\,\Is \ll \Is \approx 0\,.
 \end{align}
-So we finally obtain the (perfect-match) SNR$^2$ as
-\begin{align}
+So $\Is \approx \Ic \approx \frac{\Ndet\tau}{2\Sn(f')}$ and $\Isc\approx 0$, and we obtain the approximate $\M$-matrix as
+\begin{equation}
+  \label{eq:42}
+  \M \approx \frac{\Ndet\,\tau}{2\Sn(f')}\,\eye = \begin{pmatrix} I_0 & 0 \\ 0 & I_0 \end{pmatrix}\,.
+\end{equation}
+So we obtain the approximated (perfect-match) SNR$^2$ as
+\begin{equation}
   \label{eq:20}
-  \rho_0^2 \equiv \scalar{s}{s} &= \left(\As^2 + \Ac^2\right)\frac{\tau}{2}\sum_X \frac{1}{S_X(f)}\\
-  &=\left(\As^2 + \Ac^2\right)\,\frac{\Ndet\tau}{2\Sn(f)}\,,
-\end{align}
-with the harmonic mean $\Sn^{-1} \equiv \frac{1}{\Ndet}\sum_X S_X^{-1}$.
-Note: in the QNM search below we'll approximate $\Sn(f')$ in this expression by the arithmetic mean $\langle\Sn(f)\rangle_{f\pm20\Hz}$ around each
+  \rho_0^2 \equiv \scalar{s}{s} = \Avec\M\Avec = \left(\As^2 + \Ac^2\right)\,I_0\,.
+\end{equation}
+Note: in the QNM search we'll approximate $\Sn(f')$ in this expression by the arithmetic mean $\langle\Sn(f)\rangle_{f\pm\Delta f}$ around each
 template frequency $f$.
-
 
 \bibliography{RingdownSearch}
 
