@@ -93,6 +93,43 @@ function ret = searchRingdown ( varargin )
 
   [M_ss{1}, M_cc{1}, M_sc{1}] = compute_Mxy_approx ( fk, ttau, ff0, Stot, Ndet );
   [M_ss{2}, M_cc{2}, M_sc{2}] = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
+  if ( debugLevel >= 3 )
+    figure(3); clf;
+    subplot ( 2, 2, 1 );
+    colormap ("jet");
+    surf ( ff0, ttau * 1e3, ( M_ss{2} - M_ss{1} ) ./ (0.5 * (M_ss{1} + M_ss{2})) );
+    caxis ( [ -2, 2 ] );
+    view(2); shading("interp"); colorbar("location", "NorthOutside");
+    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
+    title ( "relerr(Mss, M0ss)" );
+
+    subplot ( 2, 2, 4 );
+    colormap ("jet");
+    surf ( ff0, ttau * 1e3, ( M_cc{2} - M_cc{1} ) ./ (0.5 * (M_cc{1} + M_cc{2})) );
+    caxis ( [ -2, 2 ] );
+    view(2); shading("interp"); colorbar("location", "NorthOutside");
+    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
+    title ( "relerr(Mcc, M0cc)" );
+
+    subplot ( 2, 2, 2 );
+    colormap ("jet");
+    surf ( ff0, ttau * 1e3, ( M_sc{2} ) ./ sqrt ( M_ss{2} .* M_cc{2} ) );
+    caxis ( [ -1, 1 ] );
+    view(2); shading("interp"); colorbar("location", "NorthOutside");
+    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
+    title ( "ND[Msc]" );
+
+    subplot ( 2, 2, 3 );
+    colormap ("jet");
+    det_M{1} = M_ss{1} .* M_cc{1} - M_sc{1}.^2;
+    det_M{2} = M_ss{2} .* M_cc{2} - M_sc{2}.^2;
+    surf ( ff0, ttau * 1e3, ( det_M{2} - det_M{1} ) ./ (0.5 * (det_M{1} + det_M{2}) ) );
+    caxis ( [ -2, 2 ] );
+    view(2); shading("interp"); colorbar("location", "NorthOutside");
+    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
+    title ( "relerr(detM, detM0)" );
+
+  endif ## debugLevel>=3
 
   for i = 1 : 2
   [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( uvar.prior_H, match, M_ss{i}, M_cc{i}, M_sc{i} );
