@@ -495,12 +495,16 @@ using the definitions
 Assuming only non-critically damped signals, i.e. $Q\gtrsim \Ord{\pi}$, these integrals can be approximated computed analytically as
 \begin{align}
   \label{eq:19}
-  \Is' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ \sin2\varphi + 2Q + \frac{\sin^2\varphi}{Q}\right]\right|_0^\infty\\
-  &= \frac{2Q}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{Q}{4\pi f} = \frac{\tau}{4}\,,\\
-  \Ic' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ -\sin2\varphi + 2Q + \frac{\cos^2\varphi}{Q}\right]\right|_0^\infty\\
-  &= \frac{2Q + \frac{1}{Q}}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{Q}{4\pi f} = \frac{\tau}{4}\,,\\
-  \Isc' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ 2\cos^2\varphi - 1 + \frac{\sin2\varphi}{2Q}\right]\right|_0^\infty\\
-  &= \frac{1}{2\pi f}\,\frac{Q^2}{1+4Q^2} \stackrel{Q\gtrsim\pi}{\approx} \frac{1}{8\pi f} \sim \frac{1}{2Q}\,\Is \ll \Is \approx 0\,.
+  \Is' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ \sin2\varphi + 2Q + \frac{\sin^2\varphi}{Q}\right]\right|_0^\infty
+  = \frac{2Q}{2\pi f}\,\frac{Q^2}{1+4Q^2}
+  = \frac{\tau}{4 + Q^{-2}}\notag \\
+  & \stackrel{Q\gg1}{\approx} \frac{\tau}{4}\,,\\
+  \Ic' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ -\sin2\varphi + 2Q + \frac{\cos^2\varphi}{Q}\right]\right|_0^\infty
+  = \frac{2Q + \frac{1}{Q}}{2\pi f}\,\frac{Q^2}{1+4Q^2} = \frac{\tau}{4}\,\left(\frac{2 + Q^{-2}}{2 + Q^{-2}/2}\right) \notag\\
+  & \stackrel{Q\gg1}{\approx} \frac{\tau}{4}\,,\\
+  \Isc' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ 2\cos^2\varphi - 1 + \frac{\sin2\varphi}{2Q}\right]\right|_0^\infty
+  = \frac{1}{2\pi f}\,\frac{Q^2}{1+4Q^2} = \frac{\tau}{8Q\,(1 + Q^{-2}/4)}\notag\\
+  &\stackrel{Q\gg1}{\approx} \frac{1}{2Q}\,\Is \ll \Is \approx 0\,.
 \end{align}
 So $\Is \approx \Ic \approx \frac{\Ndet\tau}{2\Sn(f')}$ and $\Isc\approx 0$, and we obtain the approximate $\M$-matrix as
 \begin{equation}

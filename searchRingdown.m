@@ -91,10 +91,11 @@ function ret = searchRingdown ( varargin )
     match     +=   matchX{X};
   endfor
 
-  [M_ss{1}, M_cc{1}, M_sc{1}] = compute_Mxy_approx ( fk, ttau, ff0, Stot, Ndet );
-  [M_ss{2}, M_cc{2}, M_sc{2}] = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
+  [M_ss{1}, M_cc{1}, M_sc{1}] = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
+  [M_ss{2}, M_cc{2}, M_sc{2}] = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet );
+  [M_ss{3}, M_cc{3}, M_sc{3}] = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet );
   if ( debugLevel >= 3 )
-    figure(3); clf;
+    figure(4); clf;
     subplot ( 2, 2, 1 );
     colormap ("jet");
     surf ( ff0, ttau * 1e3, ( M_ss{2} - M_ss{1} ) ./ (0.5 * (M_ss{1} + M_ss{2})) );
@@ -131,7 +132,7 @@ function ret = searchRingdown ( varargin )
 
   endif ## debugLevel>=3
 
-  for i = 1 : 2
+  for i = 1 : 3
   [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( uvar.prior_H, match, M_ss{i}, M_cc{i}, M_sc{i} );
   BSG_mean = mean ( BSG(:) );
   posterior = struct ( "f0", ff0, "tau", ttau, "BSG", BSG );
@@ -323,7 +324,7 @@ function [M_ss, M_cc, M_sc] = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
 endfunction %% compute_Mxy()
 
 
-function [M_ss, M_cc, M_sc] = compute_Mxy_approx ( fk, ttau, ff0, Stot, Ndet )
+function [M_ss, M_cc, M_sc] = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet )
 
   f0 = unique ( ff0 );
   tau = unique ( ttau );
@@ -351,7 +352,40 @@ function [M_ss, M_cc, M_sc] = compute_Mxy_approx ( fk, ttau, ff0, Stot, Ndet )
 
   return;
 
-endfunction %% compute_Mxy_approx()
+endfunction %% compute_Mxy_approx0()
+
+function [M_ss, M_cc, M_sc] = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet )
+
+  f0 = unique ( ff0 );
+  tau = unique ( ttau );
+  Ntau = length(tau);
+
+  fMin = min ( fk );
+  df = mean ( diff ( fk ) );
+
+  %% ----- determine ~const noise-estimate in f0 +- NoiseBand around each signal frequency f0
+  NoiseBand = 20;
+  assert ( min(fk) <= min(f0) - NoiseBand );
+  assert ( max(fk) >= max(f0) + NoiseBand );
+
+  inds_f0   = round ( (f0 - fMin)/df );
+  inds_Band = round( NoiseBand / df);
+  offs = [-inds_Band : inds_Band ];
+  [xx, yy] = meshgrid ( inds_f0, offs );
+  inds_mat = xx + yy;
+  Stot_k  = mean ( Stot ( inds_mat ), 1 );
+  Stot_mat = meshgrid ( Stot_k, ones(1,Ntau) );
+
+
+  QQ = pi * ff0 .* ttau;
+  prefact = (2*Ndet ./ Stot_mat);
+  M_ss = prefact .* ttau ./ ( 4 + QQ.^(-2) );
+  M_cc = prefact .* (ttau/4) .* ( 2 + QQ.^(-2) ) ./ ( 2 + 0.5 * QQ.^(-2) );
+  M_sc = M_ss ./ (2 * QQ );
+
+  return;
+
+endfunction %% compute_Mxy_approx1()
 
 
 function [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( H, match, M_ss, M_cc, M_sc )
