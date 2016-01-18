@@ -25,7 +25,7 @@ endif
 %% ---------- Prior range defaults ----------
 data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
 prior_f0Range = [ 210, 270 ];
-prior_tauRange  = [ 0.2e-3, 20e-3 ];
+prior_tauRange  = [ 1e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
 
 switch ( searchType )
@@ -38,7 +38,8 @@ switch ( searchType )
     tOffsStart = tOffs;
     dtOffs     = 0.0005;
     tOffsEnd   = tOffs;
-    data_FreqRange  = [ 100, 300 ];
+    sideband = 15;
+    data_FreqRange  = [ 15 + sideband, 2000 - sideband - 1 ];
     plotSpectra = true;
     useTSBuffer = true;
     plotBSGHist = false;
