@@ -23,18 +23,19 @@ if ( !exist ( "extraLabel" ) )
 endif
 
 %% ---------- Prior range defaults ----------
-data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
-prior_f0Range = [ 210, 270 ];
+%%%data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
+sideband = 15;	%% from running-median window 300bins * 1/(2*T)
+data_FreqRange  = [ 15 + sideband, 2000 - sideband - 1 ];
+%%data_FreqRange  = [ 100, 300 ];
+prior_f0Range   = [ 210, 270 ];
 prior_tauRange  = [ 1e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
-step_f0 = 0.1;
-step_tau = 0.2e-3;
+step_f0         = 0.5;
+step_tau        = 0.5e-3;
 
 switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
-    step_f0 = 0.5;
-    step_tau = 0.5e-3;
     tCenter = 1126259462;
     if ( !exist ( "tOffs" ) )
       tOffs = 0.43;
@@ -42,10 +43,8 @@ switch ( searchType )
     tOffsStart = tOffs;
     dtOffs     = 0.0005;
     tOffsEnd   = tOffs;
-    sideband = 15;
-    data_FreqRange  = [ 15 + sideband, 2000 - sideband - 1 ];
     plotSpectra = true;
-    useTSBuffer = true;
+    useTSBuffer = false;
     plotBSGHist = false;
 
   case "onSource"
