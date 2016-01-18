@@ -170,13 +170,13 @@ with
 \begin{align}
   \label{eq:35}
   \M(\parmsEvol) &\equiv
-  \begin{pmatrix}
+  2\Ndet \begin{pmatrix}
     \Is  & \Isc \\
     \Isc  & \Ic\\
   \end{pmatrix}\,,\\
-  \Is(\parmsEvol) &= 4\Ndet \int_{0}^{\infty} \frac{|\FT{\hs}(f)|^2}{\Sn(f)}\,df \,,\\
-  \Ic(\parmsEvol) &= 4\Ndet \int_{0}^{\infty} \frac{|\FT{\hc}(f)|^2}{\Sn(f)}\,df \,,\\
-  \Isc(\parmsEvol)&= 4\Ndet \int_{0}^{\infty} \frac{\Re[\FT{\hs}(f)\,\FT{\hc}^{*}\!\!(f)]}{\Sn(f)}\,df \,.
+  \Is(\parmsEvol) &= 2 \int_{0}^{\infty} \frac{|\FT{\hs}(f)|^2}{\Sn(f)}\,df \,,\\
+  \Ic(\parmsEvol) &= 2 \int_{0}^{\infty} \frac{|\FT{\hc}(f)|^2}{\Sn(f)}\,df \,,\\
+  \Isc(\parmsEvol)&= 2 \int_{0}^{\infty} \frac{\Re[\FT{\hs}(f)\,\FT{\hc}^{*}\!\!(f)]}{\Sn(f)}\,df \,.
 \end{align}
 The Fourier transforms $\FT{\hs},\FT{\hc}$ of the signal basis functions can be computed analytically
 \begin{align}
@@ -465,16 +465,20 @@ considered relatively ``narrow band'' ($\sim \pm 100\Hz$) with respect to this n
   & = \Avec \cdot \M \,\cdot\Avec\,,
 \end{align}
 with
-\begin{align}
+\begin{equation}
   \label{eq:23}
-  \M &\equiv
-  \begin{pmatrix}
+  \M \equiv
+  2\Ndet \begin{pmatrix}
     \Is  & \Isc \\
     \Isc  & \Ic\\
-  \end{pmatrix}\,,\\
-  \Is  &= \frac{2\Ndet}{\Sn(f')} \Is'\\
-  \Ic  &= \frac{2\Ndet}{\Sn(f')} \Ic'\\
-  \Isc &= \frac{2\Ndet}{\Sn(f')} \Isc'\\
+  \end{pmatrix}
+\end{equation}
+with
+\begin{align}
+  \label{eq:43}
+  \Is  &\equiv \frac{1}{\Sn(f')}\int_0^\infty e^{-\frac{2t}{\tau}}\,\sin^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \sin^2\!\varphi\,d\varphi\\
+  \Ic  &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\cos^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \cos^2\!\varphi\,d\varphi\\
+  \Isc &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin(2\pi f t)\cos(2\pi f t)\,dt = \frac{1}{4\pi f}\int e^{-\frac{\varphi}{Q}} \sin2\varphi\,d\varphi\,,
 \end{align}
 where $f'$ is some (unknown) frequency within the effective frequency band around the central signal frequency $f$ (using mean-value theorem), and we
 have used the assumption of identical signal model in both detectors (after time-shifting the data and correcting for antenna-pattern differences).
@@ -482,9 +486,6 @@ have used the assumption of identical signal model in both detectors (after time
 The respective integrals to compute are
 \begin{align}
   \label{eq:18}
-  \Is' &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \sin^2\!\varphi\,d\varphi\\
-  \Ic' &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\cos^2(2\pi f t)\,dt = \frac{1}{2\pi f}\int e^{-\frac{\varphi}{Q}} \cos^2\!\varphi\,d\varphi\\
-  \Isc' &\equiv \int_0^\infty e^{-\frac{2t}{\tau}}\,\sin(2\pi f t)\cos(2\pi f t)\,dt = \frac{1}{4\pi f}\int e^{-\frac{\varphi}{Q}} \sin2\varphi\,d\varphi\,,
 \end{align}
 using the definitions
 \begin{align}
@@ -497,13 +498,13 @@ Assuming only non-critically damped signals, i.e. $Q\gtrsim \Ord{\pi}$, these in
   \label{eq:19}
   \Is' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ \sin2\varphi + 2Q + \frac{\sin^2\varphi}{Q}\right]\right|_0^\infty
   = \frac{2Q}{2\pi f}\,\frac{Q^2}{1+4Q^2}
-  = \frac{\tau}{4 + Q^{-2}}\notag \\
+  = \frac{\tau}{4 + Q^{-2}} \\
   & \stackrel{Q\gg1}{\approx} \frac{\tau}{4}\,,\\
   \Ic' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ -\sin2\varphi + 2Q + \frac{\cos^2\varphi}{Q}\right]\right|_0^\infty
-  = \frac{2Q + \frac{1}{Q}}{2\pi f}\,\frac{Q^2}{1+4Q^2} = \frac{\tau}{4}\,\left(\frac{2 + Q^{-2}}{2 + Q^{-2}/2}\right) \notag\\
+  = \frac{2Q + \frac{1}{Q}}{2\pi f}\,\frac{Q^2}{1+4Q^2} = \frac{\tau}{4}\,\left(\frac{2 + Q^{-2}}{2 + Q^{-2}/2}\right) \\
   & \stackrel{Q\gg1}{\approx} \frac{\tau}{4}\,,\\
   \Isc' &= \left. \frac{-1}{2\pi f}\frac{Q^2}{1 + 4Q^2}e^{-\frac{\varphi}{Q}}\left[ 2\cos^2\varphi - 1 + \frac{\sin2\varphi}{2Q}\right]\right|_0^\infty
-  = \frac{1}{2\pi f}\,\frac{Q^2}{1+4Q^2} = \frac{\tau}{8Q\,(1 + Q^{-2}/4)}\notag\\
+  = \frac{1}{2\pi f}\,\frac{Q^2}{1+4Q^2} = \frac{\tau}{8Q\,(1 + Q^{-2}/4)}\\
   &\stackrel{Q\gg1}{\approx} \frac{1}{2Q}\,\Is \ll \Is \approx 0\,.
 \end{align}
 So $\Is \approx \Ic \approx \frac{\Ndet\tau}{2\Sn(f')}$ and $\Isc\approx 0$, and we obtain the approximate $\M$-matrix as
