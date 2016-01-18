@@ -55,51 +55,18 @@ function ret = searchRingdown ( varargin )
   [ff0, ttau] = meshgrid ( f0, tau );
   lap_s = 1./ ttau + I * 2*pi * ff0;	%% laplace 'frequency'
   Ntempl = length ( lap_s(:) );
-  DebugPrintf ("Total number of (f0, tau) templates: %d\n", Ntempl );
+  DebugPrintf (1, "Total number of (f0, tau) templates: %d\n", Ntempl );
 
   %% ---------- compute 'M_xy = <h_x|h_y>' matrix for SNR term <s|s> ----------
-  Mxy = cell ( 1, 2 );
   DebugPrintf ( 1, "Computing M_xy matrix using frequency-domain integral ... ");
-  Mxy{1} = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
-  DebugPrintf ( 1, "done.\nComputing M_xy matrix using time-domain domain integral, const Sn ... ");
-  Mxy{2} = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet );
-  %%DebugPrintf ( 1, "done.\nComputing M_xy matrix using time-domain domain integral, const Sn, Q>>1 ... ");
+  Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
+  DebugPrintf (1, "done.\n");
+  %%DebugPrintf ( 1, "Computing M_xy matrix using time-domain domain integral, const Sn ... ");
+  ## Mxy{2} = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet );
+  ## DebugPrintf (1, "done.\n");
+  %%DebugPrintf ( 1, "Computing M_xy matrix using time-domain domain integral, const Sn, Q>>1 ... ");
   %%Mxy{3} = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet );
   %%DebugPrintf ( 1, "done.\n");
-  if ( debugLevel >= 3 )
-    for i = 2
-    figure(4+(i-2)); clf;
-    subplot ( 2, 2, 1 );
-    colormap ("jet");
-    surf ( ff0, ttau * 1e3, ( Mxy{i}.ss - Mxy{1}.ss ) ./ (0.5 * (Mxy{i}.ss + Mxy{1}.ss)) );
-    view(2); shading("interp"); colorbar("location", "NorthOutside");
-    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
-    title ( "relerr(Mss, M0ss)" );
-
-    subplot ( 2, 2, 4 );
-    colormap ("jet");
-    surf ( ff0, ttau * 1e3, ( Mxy{i}.cc - Mxy{1}.cc ) ./ (0.5 * (Mxy{i}.cc + Mxy{1}.cc)) );
-    view(2); shading("interp"); colorbar("location", "NorthOutside");
-    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
-    title ( "relerr(Mcc, M0cc)" );
-
-    subplot ( 2, 2, 2 );
-    colormap ("jet");
-    surf ( ff0, ttau * 1e3, ( Mxy{i}.sc - Mxy{1}.sc ) ./ (0.5 * (Mxy{i}.sc + Mxy{1}.sc)) );
-    view(2); shading("interp"); colorbar("location", "NorthOutside");
-    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
-    title ( "ND[Msc]" );
-
-    subplot ( 2, 2, 3 );
-    colormap ("jet");
-    det_M1 = Mxy{1}.ss .* Mxy{1}.cc - (Mxy{1}.sc).^2;
-    det_Mi = Mxy{i}.ss .* Mxy{i}.cc - (Mxy{i}.sc).^2;
-    surf ( ff0, ttau * 1e3, ( det_Mi - det_M1 ) ./ (0.5 * (det_Mi + det_M1)) );
-    view(2); shading("interp"); colorbar("location", "NorthOutside");
-    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
-    title ( "relerr(detM, detM0)" );
-    endfor %% i=2:3
-  endif ## debugLevel>=3
 
   %% ----- prepare time-series stretch to analyze
   t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
@@ -122,7 +89,7 @@ function ret = searchRingdown ( varargin )
   endfor %% X
 
   %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
-  DebugPrintf ( 1, "Mathing %d ringdown templates ... ", length(ff0(:)) );
+  DebugPrintf ( 1, "Computing match with ringdown templates ... " );
   for l = 1 : Ntempl	%% loop over all templates
     %% ----- (complex) time-domain template
     hExp_i = exp ( - Dt_i{1}  * lap_s(l) );
@@ -135,46 +102,45 @@ function ret = searchRingdown ( varargin )
   endfor
   DebugPrintf ( 1, "done.\n");
 
-  for i = 1 : 2
-    DebugPrintf ( 1, "Computing BSG for approx %d ...\n", i);
-    [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( uvar.prior_H, match, Mxy{i} );
-    DebugPrintf ( 1, "done.\n");
-    BSG_mean = mean ( BSG(:) );
+  DebugPrintf ( 1, "Computing BSG ..." );
+  [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( uvar.prior_H, match, Mxy );
+  DebugPrintf ( 1, "done.\n");
+  BSG_mean = mean ( BSG(:) );
 
-    %% ---------- determine maximum-posterior estimates (MPE) ----------
-    BSG_max = max ( BSG(:) );
-    l_MPE = ( find ( BSG(:) == BSG_max ) )(1);
-    f0_MPE = ff0 ( l_MPE );
-    tau_MPE = ttau ( l_MPE );
+  %% ---------- determine maximum-posterior estimates (MPE) ----------
+  BSG_max = max ( BSG(:) );
+  l_MPE = ( find ( BSG(:) == BSG_max ) )(1);
+  f0_MPE = ff0 ( l_MPE );
+  tau_MPE = ttau ( l_MPE );
 
-    A_MPE    = A_est( l_MPE );
-    phi0_MPE = phi0_est ( l_MPE );
-    SNR_MPE  = SNR_est ( l_MPE );
+  A_MPE    = A_est( l_MPE );
+  phi0_MPE = phi0_est ( l_MPE );
+  SNR_MPE  = SNR_est ( l_MPE );
 
-    %% ---------- compute marginalized posteriors on {f,tau} ----------
-    BSG_renorm = BSG / max ( BSG(:) );
-    posterior_f0   = sum ( BSG_renorm, 1 );
-    norm_f0 = uvar.step_f0 * sum ( posterior_f0 );
-    posterior_f0 /= norm_f0;
+  %% ---------- compute marginalized posteriors on {f,tau} ----------
+  BSG_renorm = BSG / max ( BSG(:) );
+  posterior_f0   = sum ( BSG_renorm, 1 );
+  norm_f0 = uvar.step_f0 * sum ( posterior_f0 );
+  posterior_f0 /= norm_f0;
 
-    posterior_tau = sum ( BSG_renorm, 2 );
-    norm_tau = uvar.step_tau * sum ( posterior_tau);
-    posterior_tau /= norm_tau;
+  posterior_tau = sum ( BSG_renorm, 2 );
+  norm_tau = uvar.step_tau * sum ( posterior_tau);
+  posterior_tau /= norm_tau;
 
-    %% find 90% credible intervals
-    confidence = 0.90;
-    try
-      f0_est  = credibleInterval ( f0, posterior_f0, confidence );
-      tau_est = credibleInterval ( tau, posterior_tau, confidence );
-      failed_intervals = false;
-    catch
-      failed_intervals = true;
-      error ("credibleInterval() failed\n");
-    end_try_catch
+  %% find 90% credible intervals
+  confidence = 0.90;
+  try
+    f0_est  = credibleInterval ( f0, posterior_f0, confidence );
+    tau_est = credibleInterval ( tau, posterior_tau, confidence );
+    failed_intervals = false;
+  catch
+    failed_intervals = true;
+    error ("credibleInterval() failed\n");
+  end_try_catch
 
-    %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
-    if ( uvar.plotResults )
-    figure(i); clf;
+  %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
+  if ( uvar.plotResults )
+    figure(1); clf;
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
@@ -238,18 +204,16 @@ function ret = searchRingdown ( varargin )
     grid on;
     hold off;
 
-    endif %% plotResults
+  endif %% plotResults
 
-    %% summarize numerical outcomes on stdout
-    DebugPrintf (1, "tGPS = %.0f + %f s\n", uvar.tCenter, uvar.tOffs );
-    DebugPrintf (1, "log10<BSG>    = %.2g\n", log10(BSG_mean) );
-    DebugPrintf (1, "f0_est  = { %.1f, %.1f, %1.f } Hz\n", f0_est.lower, f0_est.MPE, f0_est.upper );
-    DebugPrintf (1, "tau_est = { %.1f, %.1f, %1.f } ms\n", 1e3 * tau_est.lower, 1e3 * tau_est.MPE, 1e3 * tau_est.upper );
-    DebugPrintf (1, "A_MPE   = %.2g\n", A_MPE );
-    DebugPrintf (1, "phi0_MPE= %.2g\n", phi0_MPE );
-    DebugPrintf (1, "SNR_MPE = %.2g\n", SNR_MPE );
-
-  endfor %% i = 1:2
+  %% summarize numerical outcomes on stdout
+  DebugPrintf (1, "tGPS = %.0f + %f s\n", uvar.tCenter, uvar.tOffs );
+  DebugPrintf (1, "log10<BSG>    = %.2g\n", log10(BSG_mean) );
+  DebugPrintf (1, "f0_est  = { %.1f, %.1f, %1.f } Hz\n", f0_est.lower, f0_est.MPE, f0_est.upper );
+  DebugPrintf (1, "tau_est = { %.1f, %.1f, %1.f } ms\n", 1e3 * tau_est.lower, 1e3 * tau_est.MPE, 1e3 * tau_est.upper );
+  DebugPrintf (1, "A_MPE   = %.2g\n", A_MPE );
+  DebugPrintf (1, "phi0_MPE= %.2g\n", phi0_MPE );
+  DebugPrintf (1, "SNR_MPE = %.2g\n", SNR_MPE );
 
   ret = struct ( "bname", bname, ...
                  "tGPS", uvar.tCenter + uvar.tOffs, ...
