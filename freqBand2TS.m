@@ -1,6 +1,6 @@
 function TS = freqBand2TS ( fk, xk, fMin, fMax, fSamp )
 
-  inds0 = find ( (fk >= fMin) & (fk <= fMax) );
+  inds0 = binRange ( fMin, fMax, fk );
 
   %% place this band into a full spectrum including negative frequencies
   df = mean ( diff ( fk ) );
@@ -10,11 +10,11 @@ function TS = freqBand2TS ( fk, xk, fMin, fMax, fSamp )
   %% taken from 'fftshift()':
   fk1 = [ -(ceil((Nfreq-1)/2):-1:1)*df, 0, (1:floor((Nfreq-1)/2))*df ];
   xk1 = zeros ( size(fk1) );
-  inds1P = find ( (fk1 >= fMin) & (fk1 <= fMax) );
+  inds1P = binRange ( fMin, fMax, fk1 );
   assert ( length(inds0) == length(inds1P) );
   xk1(inds1P) = xk(inds0);
 
-  inds1N = find ( (fk1 >= -fMax) & (fk1 <= -fMin) );
+  inds1N = binRange ( -fMax, -fMin, fk1 );
   assert ( length(inds0) == length(inds1N) );
   xk1(inds1N) = conj ( xk( flipdim (inds0) ) );	%% mirror-image and complex-conjugate
 

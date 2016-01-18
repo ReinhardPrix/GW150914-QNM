@@ -21,14 +21,18 @@ function [ psd, tsOut ] = whitenTS ( varargin )
   ft = FourierTransform ( uvar.tsIn.ti, uvar.tsIn.xi );
 
   sideband = uvar.RngMedWindow / (2*T); 		%% extra frequency side-band for median PSD estimates
-  indsWide = find ( (ft.fk >=  uvar.fMin - sideband) & (ft.fk <=  uvar.fMax + sideband) );
-  indsUse  = find ( (ft.fk(indsWide) >= uvar.fMin) & (ft.fk(indsWide) <=  uvar.fMax ) );
+  indsWide = binRange ( uvar.fMin - sideband, uvar.fMax + sideband, ft.fk );
+  indsUse  = binRange ( uvar.fMin, uvar.fMax, ft.fk(indsWide) );
 
   %% ---------- estimate PSD using running-median over frequency ----------
   %% Wiener-Khintchine theorm
   %% Sn_double = 1/T * mean ( periodo );
-  lal;
-  rngmedbias = XLALRngMedBias ( uvar.RngMedWindow );
+  if (uvar.RngMedWindow == 300 )
+    rngmedbias = 0.694816624988959; %% XLALRngMedBias (300);	%% avoid needing swig-wrapped LAL for default
+  else
+    lal;
+    rngmedbias = XLALRngMedBias ( uvar.RngMedWindow );
+  endif
 
   periodo = abs ( ft.xk(indsWide) ).^2;
   Sn_wide = 2/T * rngmed ( periodo, uvar.RngMedWindow ) / rngmedbias;	%% single-sided PSD
