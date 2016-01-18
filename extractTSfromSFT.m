@@ -53,7 +53,7 @@ function [ts, psd] = extractTSfromSFT ( varargin )
     %% ---------- otherwise: Read SFT frequency-domain data ----------
     DebugPrintf (2, "%s: Extracting TS from SFT '%s'\n", funcName(), uvar.SFTpath );
     sft = readSFT ( uvar.SFTpath );
-    t0 = sft.header.epoch.gpsSeconds;
+    epoch = sft.header.epoch.gpsSeconds;
     f0 = sft.header.f0;
     assert ( strcmp ( IFO, sft.header.IFO ) );
     Tsft = sft.header.Tsft; df = 1/Tsft;
@@ -62,18 +62,28 @@ function [ts, psd] = extractTSfromSFT ( varargin )
     fk0 = f0 : df : f1;
     xk0 = sft.SFTdata(:,1) + I * sft.SFTdata(:,2);
     assert ( length(fk0) == length(xk0) );
+    ft0.fk = fk0;
+    ft0.xk = xk0;
+    ft0.IFO = IFO;
+    ft0.epoch = epoch;
 
     %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
     sideband = uvar.RngMedWindow * ( 1 / (2*uvar.Twindow)); 		%% extra frequency side-band for median PSD estimates later
-    tsBand0 = freqBand2TS ( fk0, xk0, uvar.fMin - sideband, uvar.fMax + sideband, uvar.fSamp );
+    tsBand0 = freqBand2TS ( ft0, uvar.fMin - sideband, uvar.fMax + sideband, uvar.fSamp );
 
     %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
-    indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - t0 - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - t0 + uvar.Twindow )) );
+    indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - epoch - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - epoch + uvar.Twindow )) );
     tsBand.ti = tsBand0.ti ( indsTrunc );
     tsBand.xi = tsBand0.xi ( indsTrunc );
     tsBand.IFO = IFO;
 
     %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
+    ## [psd_v2, ts_v2] = whitenTS_v2 ( "ftIn", ft0, ...
+    ##                                 "tCenter", uvar.tCenter, "Twindow", uvar.Twindow, ...
+    ##                                 "fMin", uvar.fMin, "fMax", uvar.fMax, ...
+    ##                                 "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth, ...
+    ##                                 "plotSpectrum", uvar.plotSpectrum );
+
     [psd, ts] = whitenTS ( "tsIn", tsBand,
                            "fMin", uvar.fMin, "fMax", uvar.fMax,
                            "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
@@ -85,8 +95,7 @@ function [ts, psd] = extractTSfromSFT ( varargin )
       ezprint ( fname, "width", 512 );
     endif
 
-    ts.ti += t0; %% label times by correct epoch
-
+    ts.ti += epoch; %% label times by correct epoch
     %% ---------- store results for potential future re-use ----------
     fid = fopen ( psd_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", psd_fname );
     fprintf ( fid, "%%%% %18s %16s\n", "freq [Hz]", "SX [1/Hz]" );

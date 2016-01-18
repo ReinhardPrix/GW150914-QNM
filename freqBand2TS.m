@@ -1,5 +1,7 @@
-function TS = freqBand2TS ( fk, xk, fMin, fMax, fSamp )
+function TS = freqBand2TS ( ft, fMin, fMax, fSamp )
 
+  fk = ft.fk;
+  xk = ft.xk;
   inds0 = binRange ( fMin, fMax, fk );
 
   %% place this band into a full spectrum including negative frequencies

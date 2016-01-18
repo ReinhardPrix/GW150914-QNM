@@ -25,7 +25,8 @@ function ret = searchRingdown ( varargin )
                     uvar.tOffs
                   );
 
-  ts = uvar.ts; psd = uvar.psd;
+  ts = uvar.ts;
+  psd = uvar.psd;
   Ndet = length(ts);
   fk = psd{1}.fk;
 

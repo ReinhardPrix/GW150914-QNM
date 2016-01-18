@@ -15,10 +15,12 @@ function [ psd, tsOut ] = whitenTS ( varargin )
 
   ti = uvar.tsIn.ti;
   tStart = min ( ti );
+  IFO = uvar.tsIn.IFO;
   dt = mean ( diff ( ti ) );
   fSamp = 1/dt;
   T = max(ti) - tStart + dt;
   ft = FourierTransform ( uvar.tsIn.ti, uvar.tsIn.xi );
+  ft.IFO = IFO;
 
   sideband = uvar.RngMedWindow / (2*T); 		%% extra frequency side-band for median PSD estimates
   indsWide = binRange ( uvar.fMin - sideband, uvar.fMax + sideband, ft.fk );
@@ -88,9 +90,21 @@ function [ psd, tsOut ] = whitenTS ( varargin )
   xkOW_wide = xk_wide ./ Sn_wide;
 
   %% ----- turn SFTs back into timeseries ----------
-  ts   = freqBand2TS ( fk_wide, xk_wide,   uvar.fMin, uvar.fMax, fSamp ); ts.ti   += tStart;
-  tsW  = freqBand2TS ( fk_wide, xkW_wide,  uvar.fMin, uvar.fMax, fSamp ); tsW.ti  += tStart;
-  tsOW = freqBand2TS ( fk_wide, xkOW_wide, uvar.fMin, uvar.fMax, fSamp ); tsOW.ti += tStart;
+  ft1.fk = fk_wide;
+  ft1.IFO = IFO;
+  ft1.epoch = tStart;
+
+  ft1.xk = xk_wide;
+  ts   = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
+  ts.ti   += tStart;
+
+  ft1.xk = xkW_wide;
+  tsW  = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
+  tsW.ti  += tStart;
+
+  ft1.xk = xkOW_wide;
+  tsOW = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
+  tsOW.ti += tStart;
 
   assert ( (ts.ti == tsW.ti) && (ts.ti == tsOW.ti) );
 
@@ -98,7 +112,7 @@ function [ psd, tsOut ] = whitenTS ( varargin )
   tsOut.xi   = ts.xi;
   tsOut.xiW  = tsW.xi;
   tsOut.xiOW = tsOW.xi;
-  tsOut.IFO = uvar.tsIn.IFO;
+  tsOut.IFO  = IFO;
 
   return;
 endfunction
