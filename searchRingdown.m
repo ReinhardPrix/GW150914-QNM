@@ -30,7 +30,6 @@ function ret = searchRingdown ( varargin )
   fk = psd{1}.fk;
 
   %% ---------- total noise-floor (=harm. mean) in search-band of ringdown frequencies ----------
-  indsSearch = find ( (fk > min(uvar.prior_f0Range)) & (fk < max(uvar.prior_f0Range)) );
   SinvSum = zeros ( size ( psd{1}.Sn ) );
   for X = 1:Ndet
     SinvSum += 1 ./ psd{X}.Sn;
@@ -53,7 +52,6 @@ function ret = searchRingdown ( varargin )
   %% ---------- templated search over {f0, tau} space ----------
   f0 = [min(uvar.prior_f0Range): uvar.step_f0 : max(uvar.prior_f0Range)];
   tau = [min(uvar.prior_tauRange): uvar.step_tau : max(uvar.prior_tauRange)]';
-  Nf0 = length(f0);
   [ff0, ttau] = meshgrid ( f0, tau );
   lap_s = 1./ ttau + I * 2*pi * ff0;	%% laplace 'frequency'
   Ntempl = length ( lap_s(:) );
@@ -91,14 +89,15 @@ function ret = searchRingdown ( varargin )
     match     +=   matchX{X};
   endfor
 
-  [M_ss{1}, M_cc{1}, M_sc{1}] = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
-  [M_ss{2}, M_cc{2}, M_sc{2}] = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet );
-  [M_ss{3}, M_cc{3}, M_sc{3}] = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet );
+  Mxy = cell ( 1, 3 );
+  Mxy{1} = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
+  Mxy{2} = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet );
+  Mxy{3} = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet );
   if ( debugLevel >= 3 )
     figure(4); clf;
     subplot ( 2, 2, 1 );
     colormap ("jet");
-    surf ( ff0, ttau * 1e3, ( M_ss{2} - M_ss{1} ) ./ (0.5 * (M_ss{1} + M_ss{2})) );
+    surf ( ff0, ttau * 1e3, ( Mxy{2}.ss - Mxy{1}.ss ) ./ (0.5 * (Mxy{1}.ss + Mxy{2}.ss)) );
     caxis ( [ -2, 2 ] );
     view(2); shading("interp"); colorbar("location", "NorthOutside");
     xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
@@ -106,7 +105,7 @@ function ret = searchRingdown ( varargin )
 
     subplot ( 2, 2, 4 );
     colormap ("jet");
-    surf ( ff0, ttau * 1e3, ( M_cc{2} - M_cc{1} ) ./ (0.5 * (M_cc{1} + M_cc{2})) );
+    surf ( ff0, ttau * 1e3, ( Mxy{2}.cc - Mxy{1}.cc ) ./ (0.5 * (Mxy{1}.cc + Mxy{2}.cc)) );
     caxis ( [ -2, 2 ] );
     view(2); shading("interp"); colorbar("location", "NorthOutside");
     xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
@@ -114,7 +113,7 @@ function ret = searchRingdown ( varargin )
 
     subplot ( 2, 2, 2 );
     colormap ("jet");
-    surf ( ff0, ttau * 1e3, ( M_sc{2} ) ./ sqrt ( M_ss{2} .* M_cc{2} ) );
+    surf ( ff0, ttau * 1e3, ( Mxy{2}.sc - Mxy{1}.sc ) ./ (0.5 * (Mxy{1}.sc + Mxy{2}.sc)) );
     caxis ( [ -1, 1 ] );
     view(2); shading("interp"); colorbar("location", "NorthOutside");
     xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
@@ -122,9 +121,9 @@ function ret = searchRingdown ( varargin )
 
     subplot ( 2, 2, 3 );
     colormap ("jet");
-    det_M{1} = M_ss{1} .* M_cc{1} - M_sc{1}.^2;
-    det_M{2} = M_ss{2} .* M_cc{2} - M_sc{2}.^2;
-    surf ( ff0, ttau * 1e3, ( det_M{2} - det_M{1} ) ./ (0.5 * (det_M{1} + det_M{2}) ) );
+    det_M1 = Mxy{1}.ss .* Mxy{1}.cc - (Mxy{1}.sc).^2;
+    det_M2 = Mxy{2}.ss .* Mxy{2}.cc - (Mxy{2}.sc).^2;
+    surf ( ff0, ttau * 1e3, ( det_M2 - det_M1 ) ./ (0.5 * (det_M1 + det_M2)) );
     caxis ( [ -2, 2 ] );
     view(2); shading("interp"); colorbar("location", "NorthOutside");
     xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
@@ -133,7 +132,7 @@ function ret = searchRingdown ( varargin )
   endif ## debugLevel>=3
 
   for i = 1 : 3
-  [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( uvar.prior_H, match, M_ss{i}, M_cc{i}, M_sc{i} );
+  [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( uvar.prior_H, match, Mxy{i} );
   BSG_mean = mean ( BSG(:) );
   posterior = struct ( "f0", ff0, "tau", ttau, "BSG", BSG );
   DebugPrintf ( 1, "done.\n");
@@ -217,7 +216,7 @@ function ret = searchRingdown ( varargin )
     tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
     plot ( ts{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
     legend ( "location", "NorthEast");
-    yrange = ylim();
+    yrange = [-1.3e-21, 1.3e-21 ];
     line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "--", "linewidth", 1 );
     xlim ( [uvar.tOffs - 0.3 * Tmax, uvar.tOffs + Tmax ] );
     ylim ( yrange );
@@ -227,9 +226,10 @@ function ret = searchRingdown ( varargin )
     y0 = max(yrange) - 0.2*abs(diff(yrange));
     text ( x0, y0, tOffs_text );
     text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
-    textB = sprintf ( "log10(BSG) = %.2g\n\nSNR0 = %.2g", log10 ( BSG_mean ), SNR_MPE );
+    textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g", log10 ( BSG_mean ), SNR_MPE );
     y1 = min(yrange) + 0.2*abs(diff(yrange));
     text ( x0, y1, textB );
+    ylim ( yrange );
     grid on;
     hold off;
 
@@ -257,6 +257,7 @@ function ret = searchRingdown ( varargin )
                  "posterior", posterior, ...
                  "SNR", SNR_est
                );
+  ret.Mxy = Mxy;
 
   return
 
@@ -300,7 +301,7 @@ function x_est = credibleInterval ( x, posterior_x, confidence = 0.9 )
 endfunction
 
 
-function [M_ss, M_cc, M_sc] = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
+function Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
 
   assert ( length ( fk ) == length ( Stot ) );
   assert ( size(ttau) == size ( ff0 ) );
@@ -310,21 +311,60 @@ function [M_ss, M_cc, M_sc] = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
   M_ss = M_cc = M_sc = zeros ( size ( ttau ) );
   for l = 1 : Ntempl
     %% ----- whitened frequency-domain template basis functions ----------
-    denom_k = ( 1 + I * 4*pi * fk * ttau(l) - 4*pi^2 * ( fk.^2 - ff0(l)^2 ) * ttau(l)^2 ) .* sqrt ( Stot );
+    denom_k = ( 1 + I * 4*pi * fk * ttau(l) - 4*pi^2 * ( fk.^2 - ff0(l)^2 ) * ttau(l)^2 );
     hsFT_k  = ttau(l) * ( 2*pi * ff0(l) * ttau(l) ) ./ denom_k;
     hcFT_k  = ttau(l) * ( 1 + I * 2*pi*fk * ttau(l) ) ./ denom_k;
     %% ----- compute M-matrix from template self-match integrals in frequency-domain ----------
-    M_ss(l)  = 4 * Ndet * df * sum ( abs(hsFT_k).^2 );
-    M_cc(l)  = 4 * Ndet * df * sum ( abs(hcFT_k).^2 );
-    M_sc(l) = 4 * Ndet * df * real ( sum ( hsFT_k .* conj(hcFT_k) ) );
+    M_ss(l) = 4 * Ndet * df * sum ( abs(hsFT_k).^2 ./ Stot );
+    M_cc(l) = 4 * Ndet * df * sum ( abs(hcFT_k).^2 ./ Stot );
+    M_sc(l) = 4 * Ndet * df * real ( sum ( hsFT_k .* conj(hcFT_k) ./ Stot ) );
   endfor %% l
 
+  Mxy.ss = M_ss;
+  Mxy.cc = M_cc;
+  Mxy.sc = M_sc;
   return;
 
 endfunction %% compute_Mxy()
 
+function Mxy = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet )
 
-function [M_ss, M_cc, M_sc] = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet )
+  f0 = unique ( ff0 );
+  tau = unique ( ttau );
+  Ntau = length(tau);
+
+  fMin = min ( fk );
+  df = mean ( diff ( fk ) );
+
+  %% ----- determine ~const noise-estimate in f0 +- NoiseBand around each signal frequency f0
+  NoiseBand = 20;
+  assert ( min(fk) <= min(f0) - NoiseBand );
+  assert ( max(fk) >= max(f0) + NoiseBand );
+
+  inds_f0   = round ( (f0 - fMin)/df );
+  inds_Band = round( NoiseBand / df);
+  offs = [-inds_Band : inds_Band ];
+  [xx, yy] = meshgrid ( inds_f0, offs );
+  inds_mat = xx + yy;
+  Stot_k  = mean ( Stot ( inds_mat ), 1 );
+  Stot_mat = meshgrid ( Stot_k, ones(1,Ntau) );
+
+  QQ = pi * ff0 .* ttau;
+  prefact = (2*Ndet ./ Stot_mat);
+  M_ss = prefact .* ttau ./ ( 4 + QQ.^(-2) );
+  M_cc = prefact .* (ttau/4) .* ( 2 + QQ.^(-2) ) ./ ( 2 + 0.5 * QQ.^(-2) );
+  M_sc = M_ss ./ (2 * QQ );
+
+  Mxy.ss = M_ss;
+  Mxy.cc = M_cc;
+  Mxy.sc = M_sc;
+
+  return;
+
+endfunction %% compute_Mxy_approx1()
+
+
+function Mxy = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet )
 
   f0 = unique ( ff0 );
   tau = unique ( ttau );
@@ -350,57 +390,27 @@ function [M_ss, M_cc, M_sc] = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet )
   M_cc = I0;
   M_sc = 0;
 
+  Mxy.ss = M_ss;
+  Mxy.cc = M_cc;
+  Mxy.sc = M_sc;
+
   return;
 
 endfunction %% compute_Mxy_approx0()
 
-function [M_ss, M_cc, M_sc] = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet )
-
-  f0 = unique ( ff0 );
-  tau = unique ( ttau );
-  Ntau = length(tau);
-
-  fMin = min ( fk );
-  df = mean ( diff ( fk ) );
-
-  %% ----- determine ~const noise-estimate in f0 +- NoiseBand around each signal frequency f0
-  NoiseBand = 20;
-  assert ( min(fk) <= min(f0) - NoiseBand );
-  assert ( max(fk) >= max(f0) + NoiseBand );
-
-  inds_f0   = round ( (f0 - fMin)/df );
-  inds_Band = round( NoiseBand / df);
-  offs = [-inds_Band : inds_Band ];
-  [xx, yy] = meshgrid ( inds_f0, offs );
-  inds_mat = xx + yy;
-  Stot_k  = mean ( Stot ( inds_mat ), 1 );
-  Stot_mat = meshgrid ( Stot_k, ones(1,Ntau) );
-
-
-  QQ = pi * ff0 .* ttau;
-  prefact = (2*Ndet ./ Stot_mat);
-  M_ss = prefact .* ttau ./ ( 4 + QQ.^(-2) );
-  M_cc = prefact .* (ttau/4) .* ( 2 + QQ.^(-2) ) ./ ( 2 + 0.5 * QQ.^(-2) );
-  M_sc = M_ss ./ (2 * QQ );
-
-  return;
-
-endfunction %% compute_Mxy_approx1()
-
-
-function [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( H, match, M_ss, M_cc, M_sc )
+function [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( H, match, Mxy )
 
   Hm2 = H^(-2);
   x_s = - imag ( match );
   x_c =   real ( match );
 
-  det_gamInv = ( M_ss + Hm2 ) .* ( M_cc + Hm2 ) - M_sc.^2;
+  det_gamInv = ( Mxy.ss + Hm2 ) .* ( Mxy.cc + Hm2 ) - Mxy.sc.^2;
   det_gam = 1./ det_gamInv;
   normBSG = sqrt(det_gam) * Hm2;
 
-  gam_ss  = det_gam .* ( M_cc + Hm2 );
-  gam_cc  = det_gam .* ( M_ss + Hm2 );
-  gam_sc  = det_gam .* ( -M_sc );
+  gam_ss  = det_gam .* ( Mxy.cc + Hm2 );
+  gam_cc  = det_gam .* ( Mxy.ss + Hm2 );
+  gam_sc  = det_gam .* ( -Mxy.sc );
   x_gam_x = gam_ss .* x_s.^2 + 2 * gam_sc .* x_s .* x_c + gam_cc .* x_c.^2;
 
   BSG = normBSG .* exp ( 0.5 .* x_gam_x );
@@ -412,7 +422,7 @@ function [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( H, match, M_ss, M
   A_est = sqrt ( A_s_est.^2 + A_c_est.^2 );
   phi0_est = - atan2 ( A_s_est, A_c_est );
 
-  SNR2_est = A_s_est.^2 .* M_ss + 2 * A_s_est .* M_sc .* A_c_est + A_c_est.^2 .* M_cc;
+  SNR2_est = A_s_est.^2 .* Mxy.ss + 2 * A_s_est .* Mxy.sc .* A_c_est + A_c_est.^2 .* Mxy.cc;
   SNR_est = sqrt ( SNR2_est );
 
   return;
