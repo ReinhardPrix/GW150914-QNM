@@ -27,10 +27,14 @@ data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
 prior_f0Range = [ 210, 270 ];
 prior_tauRange  = [ 1e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
+step_f0 = 0.1;
+step_tau = 0.2e-3;
 
 switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
+    step_f0 = 0.5;
+    step_tau = 0.5e-3;
     tCenter = 1126259462;
     if ( !exist ( "tOffs" ) )
       tOffs = 0.43;
@@ -89,21 +93,27 @@ try
 tOffs = tOffsStart : dtOffs : tOffsEnd;
 Nsteps = length(tOffs);
 
+ret = cell ( 1, Nsteps );
 for i = 1:Nsteps
   DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffs(i) );
-  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, "prior_f0Range", prior_f0Range, "prior_tauRange", prior_tauRange, "prior_H", prior_H, "plotResults", plotPosteriors );
+  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, ...
+                            "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
+                            "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
+                            "prior_H", prior_H, ...
+                            "plotResults", plotPosteriors
+                          );
 
   %% ----- save posterior in matrix format ----------
   if ( i == 1 )
     fname = sprintf ( "f0s.dat", ret{i}.bname );
-    tmp = ret{i}.posterior.f0;
+    tmp = ret{i}.ff0;
     save ( "-ascii", fname, "tmp" );
     fname = sprintf ( "taus.dat", ret{i}.bname );
-    tmp = ret{i}.posterior.tau;
+    tmp = ret{i}.ttau;
     save ( "-ascii", fname, "tmp" );
   endif
   fname = sprintf ( "%s-BSG.dat", ret{i}.bname );
-  tmp = ret{i}.posterior.BSG;
+  tmp = ret{i}.BSG;
   save ( "-ascii", fname, "tmp" );
 
   fname = sprintf ( "%s-SNR.dat", ret{i}.bname );
