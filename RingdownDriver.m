@@ -8,7 +8,8 @@ global debugLevel = 1;
 
 %% ========== driver parameters ==========
 SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C01-1126258841-1800.sft" };
-fSamp = 4084;	%% chosen such that 7.1ms timeshift can be represented by ~integer bin-shift: 7.1e-3 * 4084 =  28.9964000000000
+fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such that 7.0ms timeshift between IFOs
+                %% can be represented by exactly by an integer bin-shift: 7e-3 s * 4e3 Hz =  28.0 bins
 
 plotSummary = false;
 plotSpectra = false;

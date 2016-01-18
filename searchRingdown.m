@@ -16,7 +16,7 @@ function ret = searchRingdown ( varargin )
                         {"plotResults", "bool", false }
                       );
 
-  shiftL1 = 7.1e-3;	%% time-shift to apply to L1 data-stream
+  shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
 
   bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%.2g-tOffs%.4fs",
                     uvar.tCenter, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
