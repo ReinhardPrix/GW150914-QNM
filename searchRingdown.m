@@ -72,34 +72,36 @@ function ret = searchRingdown ( varargin )
   %% ----- prepare time-series stretch to analyze
   t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
 
+  inds_match = find ( (ts{1}.ti >= t0) & (ts{1}.ti <= t0 + Tmax) );
+  Dt_i = ts{1}.ti ( inds_match ) - t0;
+  assert ( min(Dt_i) >= 0 );
+
+  xiOW = zeros ( size ( inds_match ) );
   match = zeros ( size ( lap_s ) );
   for X = 1:Ndet
-    matchX{X} = zeros ( size ( lap_s ) );
     %% prepare per-detector timeseries for matching: adapt L1 data to be phase-coherent with H1
+    shiftBins = 0;
     if ( strcmp ( ts{X}.IFO, "L1" ) )
-      shiftL1_eff = round ( shiftL1 / dt ) * dt;
-      ts{X}.ti += shiftL1_eff;	%% make sure we shift by integer number of time-samples
+      shiftBins = round ( shiftL1 / dt );
+      shiftL1_eff = shiftBins * dt;
+      assert ( abs(shiftL1_eff - shiftL1) < 1e-6 );
+
+      %% just for later plotting purposes
+      ts{X}.ti += shiftL1_eff;
       ts{X}.xi   *= -1;
       ts{X}.xiW  *= -1;
       ts{X}.xiOW *= -1;
     endif
 
-    inds_match = find ( (ts{X}.ti >= t0) & (ts{X}.ti <= t0 + Tmax) );
-    Dt_i{X} = ts{X}.ti ( inds_match ) - t0;	%% we made sure time-steps should agree (to within 2e-7s)
-    xOW_i{X} = ts{X}.xiOW ( inds_match );
+    xiOW += ts{X}.xiOW ( inds_match - shiftBins );
   endfor %% X
 
   %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
   DebugPrintf ( 1, "Computing match with ringdown templates ... " );
   for l = 1 : Ntempl	%% loop over all templates
     %% ----- (complex) time-domain template
-    hExp_i = exp ( - Dt_i{1}  * lap_s(l) );
-    for X = 1:Ndet
-      matchX{X}(l) = 2 * dt * sum ( xOW_i{X} .* hExp_i );
-    endfor %% X
-  endfor
-  for X = 1:Ndet
-    match     +=   matchX{X};
+    hExp_i = exp ( - Dt_i  * lap_s(l) );
+    match(l) = 2 * dt * sum ( xiOW .* hExp_i );
   endfor
   DebugPrintf ( 1, "done.\n");
 
@@ -141,7 +143,7 @@ function ret = searchRingdown ( varargin )
 
   %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
   if ( uvar.plotResults )
-    figure(1); clf;
+    figure(2); clf;
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
