@@ -26,7 +26,7 @@ endif
 %% ---------- Prior range defaults ----------
 %%%data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
 sideband = 15;	%% from running-median window 300bins * 1/(2*T)
-data_FreqRange  = [ 15 + sideband, 2000 - sideband - 1 ];
+%%data_FreqRange  = [ 15 + sideband, 2000 - sideband - 1 ];
 data_FreqRange  = [ 100, 300 ];
 prior_f0Range   = [ 210, 270 ];
 prior_tauRange  = [ 1e-3, 20e-3 ];
@@ -44,8 +44,9 @@ switch ( searchType )
     tOffsStart = tOffs;
     dtOffs     = 0.0005;
     tOffsEnd   = tOffs;
+
     plotSpectra = true;
-    useTSBuffer = true;
+    useTSBuffer = false;
     plotBSGHist = false;
 
   case "onSource"
@@ -53,10 +54,12 @@ switch ( searchType )
     tCenter = 1126259462;
     tOffsStart = 0.422;		%% this is about when the signal enters f0>~200Hz
     dtOffs     = 0.0005;	%% 0.5ms stepsize
-    tOffsEnd   = 0.438; %% 0.438;
+    tOffsEnd   = 0.435; %% 0.438;
+
     plotBSGHist = false;
     plotSummary = true;
     plotPosteriors = true;
+    useTSBuffer = true;
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
@@ -83,20 +86,21 @@ endfor
 
 %% create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
-resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s%s", gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, extraLabel );
+resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz%s", gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, data_FreqRange, extraLabel );
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 addpath ( pwd() );
 cd ( resDir );
 
 try
 %% ----- run search
-tOffs = tOffsStart : dtOffs : tOffsEnd;
+tOffsV = [ tOffsStart : dtOffs : tOffsEnd ];
 Nsteps = length(tOffs);
 
 ret = cell ( 1, Nsteps );
+plot = [];
 for i = 1:Nsteps
-  DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffs(i) );
-  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffs(i), "tCenter", tCenter, ...
+  DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffsV(i) );
+  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffsV(i), "tCenter", tCenter, ...
                             "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
                             "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
                             "prior_H", prior_H, ...
@@ -121,18 +125,18 @@ for i = 1:Nsteps
   save ( "-ascii", fname, "tmp" );
 
   %% ---------- collect results for plotting
-  BSG_mean(i) = ret{i}.BSG_mean;
-  A_MPE(i)    = ret{i}.A_MPE;
-  phi0_MPE(i) = ret{i}.phi0_MPE;
-  SNR_MPE(i)  = ret{i}.SNR_MPE;
+  dat.BSG_mean(i) = ret{i}.BSG_mean;
+  dat.A_MPE(i)    = ret{i}.A_MPE;
+  dat.phi0_MPE(i) = ret{i}.phi0_MPE;
+  dat.SNR_MPE(i)  = ret{i}.SNR_MPE;
 
-  f0_MPE(i)   = ret{i}.f0_est.MPE;
-  f0_lerr(i)  = f0_MPE(i) - ret{i}.f0_est.lower;
-  f0_uerr(i)  = ret{i}.f0_est.upper - f0_MPE(i);
+  dat.f0_MPE(i)   = ret{i}.f0_est.MPE;
+  dat.f0_lerr(i)  = dat.f0_MPE(i) - ret{i}.f0_est.lower;
+  dat.f0_uerr(i)  = ret{i}.f0_est.upper - dat.f0_MPE(i);
 
-  tau_MPE(i)   = ret{i}.tau_est.MPE;
-  tau_lerr(i)  = tau_MPE(i) - ret{i}.tau_est.lower;
-  tau_uerr(i)  = ret{i}.tau_est.upper - tau_MPE(i);
+  dat.tau_MPE(i)   = ret{i}.tau_est.MPE;
+  dat.tau_lerr(i)  = dat.tau_MPE(i) - ret{i}.tau_est.lower;
+  dat.tau_uerr(i)  = ret{i}.tau_est.upper - dat.tau_MPE(i);
 
   %% ---------- plot results summary page
   %%fname = sprintf ( "%s.png", ret{i}.bname );
@@ -144,7 +148,7 @@ for i = 1:Nsteps
 
 endfor
 
-%% ----- store results dump ----------
+%% ----- store complete results dump ----------
 fname = sprintf ( "RingdownDriver-%s.hd5", ret{1}.bname );
 save ("-hdf5", fname )
 
@@ -153,20 +157,30 @@ if ( plotSummary )
   figure(); clf;
   xrange = [ tOffsStart, tOffsEnd ];
 
-  subplot ( 3, 1, 1, "align" );
-  semilogy ( tOffs, BSG_mean, "-o" ); grid on;
+  subplot ( 2, 2, 1, "align" );
+  plot ( tOffsV, log10(dat.BSG_mean), "-o" ); grid on;
   xlim ( xrange );
-  ylabel ("<BSG>");
+  ylim ( [ -2, 5 ] );
+  line ( xrange, 0, "linestyle", "-", "linewidth", 3 );
+  line ( xrange, 1, "linestyle", ":", "linewidth", 3 );
+  xlim ( xrange );
+  ylabel ("log10<BSG>");
 
-  subplot ( 3, 1, 2, "align" );
-  errorbar ( tOffs, f0_MPE, f0_lerr, f0_uerr, ";90%;" ); grid on;
+  subplot ( 2, 2, 3, "align" );
+  plot ( tOffsV, dat.SNR_MPE, "-o" ); grid on;
+  xlim ( xrange );
+  ylabel ("SNR(MPE)");
+
+  subplot ( 2, 2, 2, "align" );
+  errorbar ( tOffsV, dat.f0_MPE, dat.f0_lerr, dat.f0_uerr, ";90%;" ); grid on;
   xlim ( xrange );
   ylim ( prior_f0Range );
   ylabel ("f0 [Hz]");
 
-  subplot ( 3, 1, 3, "align" );
-  errorbar ( tOffs, 1e3*tau_MPE, 1e3*tau_lerr, 1e3*tau_uerr, ";90%;" ); grid on;
+  subplot ( 2, 2, 4, "align" );
+  errorbar ( tOffsV, 1e3*dat.tau_MPE, 1e3*dat.tau_lerr, 1e3*dat.tau_uerr, ";90%;" ); grid on;
   xlim ( xrange );
+  ylim ( 1e3 * prior_tauRange );
   ylabel ("tau [ms]");
   xlabel ( sprintf ( "%.0f + tOffs [s]", tCenter) );
   fname = sprintf ( "%s-summary.pdf", ret{1}.bname );
@@ -175,7 +189,7 @@ endif
 
 if ( plotBSGHist )
   figure(); clf;
-  hist ( BSG_mean, 20 );
+  hist ( dat.BSG_mean, 20 );
   xlabel ( "<BSG>" );
   fname = sprintf ( "%s-hist.pdf", ret{1}.bname );
   ezprint ( fname, "width", 512 );

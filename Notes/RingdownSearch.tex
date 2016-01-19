@@ -46,22 +46,19 @@
   $s(t\ge\tStart) = A\,e^{-\frac{t-\tStart}{\tau}}\cos\left(2\pi \freq (t-\tStart) + \phi_0\right)$ with unknown amplitude $A$, initial phase $\phi_0$,
   frequency $\freq$ and decay time $\tau$, as a function of the QNM start-time $\tStart$.
   Using a Gaussian-isotropic prior on $\{\As=-A\sin\phi_0,\,\Ac=A\cos\phi_0\}$ we can approximate the Bayes factor by analytically marginalizing over
-  $\{A,\phi_0\}$, leaving an explicit template search over $\{\freq,\,\tau\}$. We search the range $f\in[210,\,270]\,\Hz$ and $\tau \in [0.2, 20]\,\ms$
+  $\{A,\phi_0\}$, leaving an explicit template search over $\{\freq,\,\tau\}$. We search the range $f\in[210,\,270]\,\Hz$ and $\tau \in [1, 20]\,\ms$
   assuming a uniform prior.
 
   \textbf{Main result:}
   There is very strong evidence (signal versus Gaussian noise Bayes factor $\BSG\sim10^{7}$, SNR in MPE point $\sim6.3$) for a 'final' detectable QNM
-  with $\freq\sim252\,\Hz,\,\tau\sim5\,\ms$ ($Q = \pi\,\freq\,\tau \sim 4$) 'starting' in H1 at $\tStart = \tEvent + 0.428s$, (and $\sim7\,\ms$ earlier in L1)
+  with $\freq\sim254^{+15}_{-15}\,\Hz,\,\tau\sim4.5^{+5.5}_{-2}\,\ms$ ($Q = \pi\,\freq\,\tau \sim 3.6$) 'starting' in H1 at $\tStart = \tEvent + 0.428s$, (and $\sim7\,\ms$ earlier in L1)
   where $\tEvent = 1126259462\,$s is the reference GPS time of the event.
-  This QNM stops being detectable around $\tStart = \tEvent+0.434s$ (SNR$\sim1$), consistent with the exponential decay time.
+  This QNM stops being detectable around $\tStart = \tEvent+0.434s$ (SNR$\sim2$), consistent with the exponential decay time.
 
   \textbf{Caveats:}
   \begin{itemize}
-  \item recently written from-scratch search pipeline, could still be bugs ...
-  \item although noise is fairly ``white'' in the band of interest, there is some frequency-dependence. The current handling of this
-    frequency-dependent noise-floor is not yet optimal, and results can change somewhat when changing noise-floor handling.
-    Ideally should treat unknown noise-floor by Bayesian marginalization as well [TODO].
-  \item TODO: collect data on noise-only distribution of $\BSG$
+  \item results not quite ``stable'' when comparing using data from $\in[100,300]\,\Hz$ versus $\in[30,1984]\,\Hz$, which might point to some problem
+    with the noise treatment [work in progress to try and make this more robust]
   \item TODO: inject QNM signals and check PE accuracy
   \end{itemize}
 \end{abstract}
@@ -193,47 +190,50 @@ Note that in the scalar product involving the data $x^X$ (assume time-shifted an
 frequency-dependend noise-floors $S_X(f)$ by \emph{over-whitening} the data, i.e.\ we define
 \begin{equation}
   \label{eq:12}
-  \FT{y}^X \equiv \frac{\FT{x}^X(f)}{S_X(f)}\,,
+  \FT{y}^X \equiv \frac{\FT{x}^X(f)}{S_X(f)}\,,\quad
+  \FT{y} \equiv \sum_X \FT{y}^X\,.
 \end{equation}
+Here we define $t$ to the arrival time in the 'H1' detector.
+We apply a detector-specific time-delay of adding $7\,\ms$ to L1 arrival time in the case of GW150914) and
+antenna-pattern corrections (a factor of $-1$ of L1 wrt H1) to the \emph{data} $y^X(t)$, such that we can assume the putative signal waveform in the
+data to be in phase and of (approximately) same amplitude and phase. This means that we can assume a detector-independent template $s^X(t) = s(t)$,
 which allows us to write the scalar product in time-domain form
 \begin{align}
   \label{eq:13}
   \scalar{x}{s(\parmsAll)} &= \sum_X 2\int_{-\infty}^{\infty} \FT{y}^X(f)\,\FT{s}^{*X}(f)\,df \\
-  &= \sum_X 2\int_{-\infty}^{\infty} y^X(t)\,s^X(t)\,dt \\
-  &= \sum_X 2\int_{\tStart}^{\tStart + T} y^X(t)\,s^X(t)\,dt\,,
+  &= 2\int_{-\infty}^{\infty} \FT{y}(f)\,\FT{s}^{*}(f)\,df \\
+  &=  2\int_{\tStart}^{\tStart + T} y(t)\,s(t)\,dt\,,
 \end{align}
-where $T \gg \tau$ is some duration long enough so that $s(\tStart+T)\approx0$, e.g.\ $T=5\tau$. Here we define $t$ to the arrival time in one of
-the detectors, 'H1', say. We further assume that we applied the detector-specific time-delay ($+7.1\,\ms$ for L1 in the case of GW150914) and
-antenna-pattern corrections (a factor of $-1$ of L1 wrt H1) to the \emph{data} $y^X(t)$, such that we can assume the putative signal waveform in the
-data to be in phase and of (approximately) same amplitude and phase. This means that we can assume a detector-independent template $s^X(t) = s(t)$
-(here referring to H1 arrival time and phase).
+where $y(t)$ is the overwhitened summed-IFO timeseries, i.e.\ the inverse Fourier-transform of $\FT{y}(f)$, and
+where $T \gg \tau$ is some duration long enough so that $s(\tStart+T)\approx0$, e.g.\ $T=5\tau$.
 
 Using Eq.~\eqref{eq:2} we can further write
 \begin{equation}
   \label{eq:9}
   \scalar{x}{s(\parmsAll)} = \Avec\cdot\xvec(\parmsEvol) = \As\,\xs(\parmsEvol) + \Ac\,\xc(\parmsEvol)\,,
 \end{equation}
-with $\xs=\sum_X \xs^X$, $\xc=\sum_X \xc^X$, and
+with
 \begin{align}
   \label{eq:10}
-  \xs^X(\parmsEvol) &\equiv 2\int_{\tStart}^{\tStart+T} y^X(t)\,\hs(t;\parmsEvol)\,dt\,,\\
-  \xc^X(\parmsEvol) &\equiv 2\int_{\tStart}^{\tStart+T} y^X(t)\,\hc(t;\parmsEvol)\,dt\,.
+  \xs(\parmsEvol) &\equiv 2\int_{\tStart}^{\tStart+T} y(t)\,\hs(t;\parmsEvol)\,dt\,,\\
+  \xc(\parmsEvol) &\equiv 2\int_{\tStart}^{\tStart+T} y(t)\,\hc(t;\parmsEvol)\,dt\,.
 \end{align}
 Note that it will be convenient to write
 \begin{equation}
   \label{eq:38}
-  \hc(t;\parmsEvol) - i\,\hs(t;\parmsEvol) = e^{-\Dt/\tau}\,e^{-i\,2\pi\,\freq\,\Dt}\,,
+  \hexp \equiv \hc(t;\parmsEvol) - i\,\hs(t;\parmsEvol) = e^{-\Dt/\tau}\,e^{-i\,2\pi\,\freq\,\Dt} = e^{-\Dt \,\varpi}\,,
 \end{equation}
-with $\Dt \equiv t - \tStart$, and so we obtain the complex matched-filter as
-\begin{align}
-  \label{eq:16}
-  \Fab^X \equiv \xc^X - i\,\xs^X &= 2 \int_{0}^{T} y^X(\tStart+\Dt)\,e^{-\Dt \,\varpi}\,d\Dt\,,
-\end{align}
-which can be seen as the Laplace transform of the data, with complex frequency
+with $\Dt \equiv t - \tStart$ and complex frequency $\varpi$ defined as
 \begin{equation}
   \label{eq:27}
-  \varpi \equiv \frac{1}{\tau} + i\,2\pi \freq\,.
+  \varpi \equiv \frac{1}{\tau} + i\,2\pi \freq\,,
 \end{equation}
+and so we obtain the complex matched-filter as
+\begin{equation}
+  \label{eq:16}
+  \Fab \equiv \xc - i\,\xs = 2 \int_{0}^{T} y(\tStart+\Dt)\,e^{-\Dt \,\varpi}\,d\Dt\,,
+\end{equation}
+which is the Laplace transform of the over-whitened data $y(t)$.
 
 \subsection{Marginalizing over unknown amplitudes $\{\As,\Ac\}$}
 \label{sec:marg-over-unkn}
@@ -307,21 +307,14 @@ In the opposite limit of $H\gg 1$, we find $\Gam\rightarrow\M^{-1}$, and $\sqrt{
 the ``$\F$-statistic'' for finite $H$, but $\BSG\rightarrow 0$ for $H\rightarrow \infty$, as the prior volume gets increasingly thinly spread out,
 resulting in an ``Occam factor'' effect disfavoring the signal hypothesis.
 
-Alternatively, for relatively well-constrained amplitude $A^{\sig}$ and phase $\phi_0^\sig$ parameters, one could simply use $\prob{\A}{\HypS} = \delta(\As-\As^\sig)\delta(\Ac-\Ac^\sig)$ and obtain
-\begin{equation}
-  \label{eq:24}
-  \BSG(x;\parmsEvol) = \Lr(x;\A^\sig,\phi_0^\sig,\,\parmsEvol)\,.
-\end{equation}
-
 \section{Parameter estimation}
 \label{sec:parameter-estimation}
 
 The posterior is
 \begin{align}
-  \label{eq:30}
-  \prob{\parmsAll}{x,\HypS} &\propto \prob{x}{\HypS,\parmsAll}\,\prob{\parmsAll}{\HypS}\\
-    &\propto \Lr(x;\parmsAll)\,\prob{\A}{\HypS}\,\prob{\parmsEvol}{\HypS}\\
-    &\propto \exp\left[-\frac{1}{2}\, \Avec\cdot\Gam^{-1}\cdot\Avec + \Avec\cdot\xvec\right]\,\prob{\parmsEvol}{\HypS}\,.
+  \prob{\parmsAll}{x,\HypS} &\propto \prob{x}{\HypS,\parmsAll}\,\prob{\parmsAll}{\HypS} \notag\\
+    &\propto \Lr(x;\parmsAll)\,\prob{\A}{\HypS}\,\prob{\parmsEvol}{\HypS} \notag\\
+    &\propto \exp\left[-\frac{1}{2}\, \Avec\cdot\Gam^{-1}\cdot\Avec + \Avec\cdot\xvec\right]\,\prob{\parmsEvol}{\HypS}\,.  \label{eq:30}
 \end{align}
 where in the first line we have dropped the normalization $1/\prob{x}{\HypS}$, and in the second line we dropped $\prob{x}{\HypG}$, as both are
 independent of $\parmsAll$.
@@ -339,17 +332,26 @@ Finding the maximum-posterior estimates (MPE) for $\As,\Ac$ at fixed $\parmsEvol
 We will evaluate this at the MPE values found for $\parmsEvol$ in the Bayes-factor search using \eqref{eq:32}.
 From these we can obtain $A' = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\left(\frac{\As}{\Ac}\right)$.
 
+From this can can also estimate an ``SNR'' in the MPE template, by substituting the MPE amplitude parameters into the SNR expression
+Eq.~\eqref{eq:36}, i.e.\
+\begin{equation}
+  \label{eq:20}
+  \rho_0^2 = \Avec'\M\Avec'\,.
+\end{equation}
+
 \section{QNM search applied to GW150914}
 \label{sec:qnm-search-applied}
 
 \subsection{Data preparation}
 \label{sec:data-preparation}
 
-Band-passed data in $[100,\,300]\,\Hz$ using a 1800s Fourier-transform, from this extracted $T=20\,$s timeseries $x^X(t)$ centered on GPS time $\tEvent =
-1126259462\,$s. Time-shifted L1 data by (delaying it by) $+7.1\,\ms$ and multiplied it by (-1) to account for the inverse detector response.
+Band-passed data in (i) $[100,\,300]\,\Hz$ and (ii) $[30,1984]\,\Hz$, using a rectangular window on a 1800s Fourier-transform containing the GPS time
+$\tEvent = 1126259462\,$s.
+From this we extracted a $T=20\,$s timeseries $x^X(t)$ centered on the event GPS time $\tEvent$.
+Time-shifted L1 data by (delaying it by $+7\,\ms$) and multiplied it by (-1) to account for the inverse detector response.
 Fourier-transformed this again, zeroed-out all bins $\pm0.1\,\Hz$ around 'lines', identified as $\ge 5$ sigma deviation of unit-variance normalized
-FT.
-We estimate the (single-sided) PSD $S_X$ by 300-bin running-median on FT power, using Wiener-Khintchine theorem
+frequency-domain data.
+We estimate the (single-sided) PSD $S_X$ by a 300-bin running-median on FT power, using Wiener-Khintchine theorem
 $S(f) = \frac{2}{T} E\left[|\FT{x}(f)|^2\right]$ (as is standard practice in CW search pipelines).
 
 \subsection{Prior choices}
@@ -363,91 +365,103 @@ isotropic prior in $\phi_0$ and an $A$-prior of \eqref{eq:28}, as shown here:\\
 }
 %%\caption{Amplitude $A$ prior with characteristic scale $H=4\times10^{-22}$}
 
+\subsection{Numerical results}
+\label{sec:numerical-results}
+
 We search the $\{f,\tau\}$ range with uniform priors in
 \begin{equation}
   \label{eq:33}
   f\in[210,\,270]\,\Hz,\quad
-  \tau\in[0.2,\,20]\,\ms\,.
+  \tau\in[1,\,20]\,\ms\,.
 \end{equation}
-at fixed QNM start-time $\tStart$, which we vary in steps of $0.5\,\ms$ in the range $\tStart\in [0.422,\,0.438]\,s + \tEvent$ (referring to H1
-arrival times).
+at fixed QNM start-time $\tStart$, which we vary in steps of $0.5\,\ms$ in the range $\tStart\in [0.422,\,0.435]\,s + \tEvent$
+(referring to H1 arrival times).
+
+The following pages show snapshots of evidence and parameter-estimation at various fixed start-times $\tStart$.
+Each page shows one $\tStart$, the upper plot for the $[100,300]\,\Hz$ data frequency range, the lower plot for the $[30,1984]\,\Hz$ data frequency range.
 
 \newpage
-\subsection{Numerical results}
-\label{sec:numerical-results}
-
-A few snapshots:
-
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4220s}.png}
-  \caption{$\tStart = \tEvent + 0.422\,$s: $\BSG = 1.2\times10^{30}$}
-  \label{fig:Result-0.422}
-\end{figure}
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4240s}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4240s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4255s}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4255s}.pdf}
+}
 
 \newpage
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4240s}.png}
-  \caption{$\tStart = \tEvent + 0.424\,$s: $\BSG = 4.9\times10^{19}$}
-  \label{fig:Result-0.424}
-\end{figure}
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4270s}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4270s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4280s}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4280s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4290s}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4290s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4300s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4300s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4310s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4310s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4320s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4320s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4330s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4330s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4340s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4340s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4345s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4345s}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4350s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4350s}.pdf}
+}
+
 
 \newpage
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4255s}.png}
-  \caption{$\tStart = \tEvent + 0.4255\,$s: $\BSG = 9.3\times10^{23}$}
-  \label{fig:Result-0.4255}
-\end{figure}
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s-summary}.pdf}\\
+\includegraphics[width=\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s-summary}.pdf}
+}
 
 \newpage
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4280s}.png}
-  \caption{$\tStart = \tEvent + 0.428\,$s: $\BSG = 3.2\times10^{7}$}
-  \label{fig:Result-0.428}
-\end{figure}
+\section{"Off Source"}
+\subsection{Data $\in[100, 300]\,\Hz$}
 
-\newpage
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4300s}.png}
-  \caption{$\tStart = \tEvent + 0.430\,$s: $\BSG = 1.1\times10^{3}$}
-  \label{fig:Result-0.430}
-\end{figure}
-
-\newpage
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4340s}.png}
-  \caption{$\tStart = \tEvent + 0.434\,$s: $\BSG = 1.3$}
-  \label{fig:Result-0.434}
-\end{figure}
-
-\newpage
-\begin{figure}[htbp]
-  \centering
-  \hspace*{-2cm}
-  \includegraphics[width=1.2\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4350s}.png}
-  \caption{$\tStart = \tEvent + 0.435\,$s: $\BSG = 0.21$}
-  \label{fig:Result-0.435}
-\end{figure}
-
-\newpage
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\textwidth]{{../Results/old/Ringdown-GPS1126259462s-f210Hz-270Hz-tau0ms-20ms-H4e-22-OW-shiftL7.10ms-tOffs0.4220s-summary}.pdf}
-  \caption{Summary plot}
-  \label{fig:summary}
-\end{figure}
-
+\parbox{\textwidth}{
+\includegraphics[height=0.5\textheight]{{../Results/Results-160119-13h27-offSource/Ringdown-GPS1126259472s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs-5.0000s-summary}.pdf}
+\includegraphics[height=0.5\textheight]{{../Results/Results-160119-13h27-offSource/Ringdown-GPS1126259472s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs-5.0000s-hist}.pdf}
+}
 
 \newpage
 \appendix
@@ -512,13 +526,9 @@ So $\Is \approx \Ic \approx \frac{\Ndet\tau}{2\Sn(f')}$ and $\Isc\approx 0$, and
   \label{eq:42}
   \M \approx \frac{\Ndet\,\tau}{2\Sn(f')}\,\eye = \begin{pmatrix} I_0 & 0 \\ 0 & I_0 \end{pmatrix}\,.
 \end{equation}
-So we obtain the approximated (perfect-match) SNR$^2$ as
-\begin{equation}
-  \label{eq:20}
-  \rho_0^2 \equiv \scalar{s}{s} = \Avec\M\Avec = \left(\As^2 + \Ac^2\right)\,I_0\,.
-\end{equation}
 Note: in the QNM search we'll approximate $\Sn(f')$ in this expression by the arithmetic mean $\langle\Sn(f)\rangle_{f\pm\Delta f}$ around each
-template frequency $f$.
+template frequency $f$. This fixed-SN high-Q limit was originally used in the \href{https://dcc.ligo.org/LIGO-G1600153-v1}{v1} of this search and
+document, which was originally circulated.
 
 \bibliography{RingdownSearch}
 

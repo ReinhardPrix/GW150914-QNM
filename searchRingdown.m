@@ -187,7 +187,7 @@ function ret = searchRingdown ( varargin )
     indsRingdown = find ( Dt_i >= 0 );
     Dt_pos = Dt_i ( indsRingdown );
     tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
-    plot ( ts{1}.ti(indsRingdown) - (uvar.tCenter - ts{X}.epoch), tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
+    plot ( uvar.tOffs + Dt_i, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
     legend ( "location", "NorthEast");
     yrange = [-1.3e-21, 1.3e-21 ];
     line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "--", "linewidth", 1 );
