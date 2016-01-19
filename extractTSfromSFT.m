@@ -1,6 +1,6 @@
 #!/usr/bin/octave -q
 
-function [ts, psd] = extractTSfromSFT ( varargin )
+function [ts, ft, psd] = extractTSfromSFT ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
@@ -30,28 +30,39 @@ function [ts, psd] = extractTSfromSFT ( varargin )
 
   psd_fname = sprintf ( "%s/%s.psd", resDir, bname );
   ts_fname  = sprintf ( "%s/%s.ts",  resDir, bname );
-
+  ft_fname  = sprintf ( "%s/%s.ft",  resDir, bname );
   %% extract IFO name from SFT name: only works for SFT-name compliant SFTs
   pieces = strsplit ( sftfname, {"-", "_"} );
   IFO = pieces{3};
   assert ( (length ( IFO ) == 2) && isalpha(IFO(1)) && isdigit(IFO(2)) );
 
   %% ---------- check if TS results for this parameters already exist: re-use if yes ----------
-  if ( uvar.useBuffer && (length ( glob ( { psd_fname; ts_fname } ) ) == 2) )
+  if ( uvar.useBuffer && (length ( glob ( { psd_fname; ts_fname; ft_fname } ) ) == 3) )
     DebugPrintf (2, "%s: Re-using previous TS results '%s'\n", funcName(), bname );
+
     dat = load ( psd_fname );
     psd.fk = (dat(:,1))';
     psd.Sn = (dat(:,2))';
     psd.IFO = IFO;
+
+    dat = load ( ft_fname );
+    ft.fk   = (dat(:,1))';
+    ft.xk   = (dat(:,2) + I * dat(:,3))';
+    ft.xkW  = (dat(:,4) + I * dat(:,5))';
+    ft.xkOW = (dat(:,6) + I * dat(:,6))';
+    ft.IFO  = IFO;
+
     dat = load ( ts_fname );
     ts.ti   = (dat(:,1))';
     ts.xi   = (dat(:,2))';
     ts.xiW  = (dat(:,3))';
     ts.xiOW = (dat(:,4))';
     ts.IFO  = IFO;
+
     epoch = unique ( dat(:,5) );
     ts.epoch = epoch;
     psd.epoch = epoch;
+    ft.epoch = epoch;
   else
     %% ---------- otherwise: Read SFT frequency-domain data ----------
     DebugPrintf (2, "%s: Extracting TS from SFT '%s'\n", funcName(), uvar.SFTpath );
@@ -88,11 +99,11 @@ function [ts, psd] = extractTSfromSFT ( varargin )
     ##                                 "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth, ...
     ##                                 "plotSpectrum", uvar.plotSpectrum );
 
-    [psd, ts] = whitenTS ( "tsIn", tsBand,
-                           "fMin", uvar.fMin, "fMax", uvar.fMax,
-                           "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
-                           "RngMedWindow", uvar.RngMedWindow,
-                           "plotSpectrum", uvar.plotSpectrum );
+    [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
+                               "fMin", uvar.fMin, "fMax", uvar.fMax,
+                               "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
+                               "RngMedWindow", uvar.RngMedWindow,
+                               "plotSpectrum", uvar.plotSpectrum );
     if ( uvar.plotSpectrum )
       title ( bname );
       fname = sprintf ( "%s/%s-spectrum.pdf", resDir, bname);
@@ -101,15 +112,22 @@ function [ts, psd] = extractTSfromSFT ( varargin )
 
     %% ---------- store results for potential future re-use ----------
     fid = fopen ( psd_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", psd_fname );
-    fprintf ( fid, "%%%% %18s %16s\n", "freq [Hz]", "SX [1/Hz]" );
+    fprintf ( fid, "%%%%%14s %16s\n", "freq [Hz]", "SX [1/Hz]" );
     fprintf ( fid, "%16.9f  %16.9g\n", [psd.fk', psd.Sn']' );
     fclose(fid);
 
     fid = fopen ( ts_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", ts_fname );
-    fprintf ( fid, "%%%% %18s %16s %16s %16s %16s\n", "ti [offs s]", "xi", "xi/sqrtSX", "xi/SX", "epoch [GPS s]" );
+    fprintf ( fid, "%%%%%14s %16s %16s %16s %16s\n", "ti [offs s]", "xi", "xi/sqrtSX", "xi/SX", "epoch [GPS s]" );
     epochV = ts.epoch * ones ( size ( ts.ti ) );	%% stupid way, but ensure we keep epoch separate for 'offsets' ti to avoid roundoff problems
-    fprintf ( fid, "%18.9f %16.9g %16.9g %16.9g %16.9f\n", [ts.ti', ts.xi', ts.xiW', ts.xiOW', epochV']' );
+    fprintf ( fid, "%16.9f %16.9g %16.9g %16.9g %16.9f\n", [ts.ti', ts.xi', ts.xiW', ts.xiOW', epochV']' );
     fclose(fid);
+
+    fid = fopen ( ft_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", ft_fname );
+    fprintf ( fid, "%%%%%14s %16s %16s %16s %16s %16s %16s\n", "fk [Hz]", "Re(xk)", "Im(xk)", "Re(xk/sqrtSX)", "Im(xk/sqrtSX)", "Re(xk/SX)", "Im(xk/SX)" );
+    fprintf ( fid, "%16.9f %16.9g %16.9g %16.9g %16.9g %16.9g %16.9g\n",
+              [ ft.fk', real(ft.xk'), imag(ft.xk'), real(ft.xkW'), imag(ft.xkW'), real(ft.xkOW'), imag(ft.xkOW') ]' );
+    fclose(fid);
+
   endif %% if no previous results re-used
 
   return;

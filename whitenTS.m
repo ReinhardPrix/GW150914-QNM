@@ -1,6 +1,6 @@
 %% estimate single-sided noise PSD 'psd(f)', and return whitened and over-whitened TS
 %% including an automated line-nuking algorithm: 'lines' are identified as > lineSigma deviations in power
-function [ psd, tsOut ] = whitenTS ( varargin )
+function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
@@ -99,18 +99,19 @@ function [ psd, tsOut ] = whitenTS ( varargin )
   xkOW_wide = xk_wide ./ Sn_wide;
 
   %% ----- turn SFTs back into timeseries ----------
-  ft1.fk = fk_wide;
-  ft1.IFO = IFO;
-  ft1.epoch = epoch;
+  ftOut.fk = fk_wide;
+  ftOut.IFO = IFO;
+  ftOut.epoch = epoch;
+  ftOut.xk   = xk_wide;
+  ftOut.xkW  = xkW_wide;
+  ftOut.xkOW = xkOW_wide;
 
-  ft1.xk = xk_wide;
-  ts   = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
-
-  ft1.xk = xkW_wide;
-  tsW  = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
-
-  ft1.xk = xkOW_wide;
-  tsOW = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
+  ft0 = ftOut;
+  ts   = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, fSamp );
+  ft0.xk = ft0.xkW;
+  tsW  = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, fSamp );
+  ft0.xk = ft0.xkOW;
+  tsOW = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, fSamp );
 
   assert ( (ts.ti == tsW.ti) && (ts.ti == tsOW.ti) );
 

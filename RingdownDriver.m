@@ -27,7 +27,7 @@ endif
 %%%data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
 sideband = 15;	%% from running-median window 300bins * 1/(2*T)
 data_FreqRange  = [ 15 + sideband, 2000 - sideband - 1 ];
-%%data_FreqRange  = [ 100, 300 ];
+data_FreqRange  = [ 100, 300 ];
 prior_f0Range   = [ 210, 270 ];
 prior_tauRange  = [ 1e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
@@ -45,7 +45,7 @@ switch ( searchType )
     dtOffs     = 0.0005;
     tOffsEnd   = tOffs;
     plotSpectra = true;
-    useTSBuffer = false;
+    useTSBuffer = true;
     plotBSGHist = false;
 
   case "onSource"
@@ -78,7 +78,7 @@ endswitch
 
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
-  [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, "tCenter", tCenter, "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
+  [ts{X}, ft{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, "tCenter", tCenter, "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
 endfor
 
 %% create unique time-tagged 'ResultsDir' for each run:
