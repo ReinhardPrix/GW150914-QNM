@@ -49,6 +49,9 @@ function [ts, psd] = extractTSfromSFT ( varargin )
     ts.xiW  = (dat(:,3))';
     ts.xiOW = (dat(:,4))';
     ts.IFO  = IFO;
+    epoch = unique ( dat(:,5) );
+    ts.epoch = epoch;
+    psd.epoch = epoch;
   else
     %% ---------- otherwise: Read SFT frequency-domain data ----------
     DebugPrintf (2, "%s: Extracting TS from SFT '%s'\n", funcName(), uvar.SFTpath );
@@ -72,10 +75,11 @@ function [ts, psd] = extractTSfromSFT ( varargin )
     tsBand0 = freqBand2TS ( ft0, uvar.fMin - sideband, uvar.fMax + sideband, uvar.fSamp );
 
     %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
-    indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - epoch - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - epoch + uvar.Twindow )) );
+    indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - tsBand0.epoch - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - tsBand0.epoch + uvar.Twindow )) );
     tsBand.ti = tsBand0.ti ( indsTrunc );
     tsBand.xi = tsBand0.xi ( indsTrunc );
     tsBand.IFO = IFO;
+    tsBand.epoch = tsBand0.epoch;
 
     %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
     ## [psd_v2, ts_v2] = whitenTS_v2 ( "ftIn", ft0, ...
@@ -95,7 +99,6 @@ function [ts, psd] = extractTSfromSFT ( varargin )
       ezprint ( fname, "width", 512 );
     endif
 
-    ts.ti += epoch; %% label times by correct epoch
     %% ---------- store results for potential future re-use ----------
     fid = fopen ( psd_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", psd_fname );
     fprintf ( fid, "%%%% %18s %16s\n", "freq [Hz]", "SX [1/Hz]" );
@@ -103,8 +106,9 @@ function [ts, psd] = extractTSfromSFT ( varargin )
     fclose(fid);
 
     fid = fopen ( ts_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", ts_fname );
-    fprintf ( fid, "%%%% %18s %16s %16s %16s\n", "ti [GPS s]", "xi", "xi/sqrtSX", "xi/SX" );
-    fprintf ( fid, "%18.9f %16.9g %16.9g %16.9g\n", [ts.ti', ts.xi', ts.xiW', ts.xiOW']' );
+    fprintf ( fid, "%%%% %18s %16s %16s %16s %16s\n", "ti [offs s]", "xi", "xi/sqrtSX", "xi/SX", "epoch [GPS s]" );
+    epochV = ts.epoch * ones ( size ( ts.ti ) );	%% stupid way, but ensure we keep epoch separate for 'offsets' ti to avoid roundoff problems
+    fprintf ( fid, "%18.9f %16.9g %16.9g %16.9g %16.9f\n", [ts.ti', ts.xi', ts.xiW', ts.xiOW', epochV']' );
     fclose(fid);
   endif %% if no previous results re-used
 

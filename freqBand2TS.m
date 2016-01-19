@@ -26,6 +26,7 @@ function TS = freqBand2TS ( ft, fMin, fMax, fSamp )
   err = max ( abs(imag( TS.xi)) ./ abs(real(TS.xi) ) );
   assert ( err < 1e-6 );
   TS.xi = real ( TS.xi );
+  TS.epoch = ft.epoch;
 
   return;
 

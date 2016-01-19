@@ -13,14 +13,22 @@ function [ psd, tsOut ] = whitenTS ( varargin )
                         {"plotSpectrum", "bool", false }
                       );
 
+  %% handy shortcuts
+  epoch = uvar.tsIn.epoch;
   ti = uvar.tsIn.ti;
-  tStart = min ( ti );
+  xi = uvar.tsIn.xi;
   IFO = uvar.tsIn.IFO;
+
+  %% re-normalize TS: make sure start-time = 0, fully carried by 'epoch'
+  tStart = min ( ti );
+  ti -= tStart;
+  epoch += tStart;
   dt = mean ( diff ( ti ) );
-  fSamp = 1/dt;
-  T = max(ti) - tStart + dt;
-  ft = FourierTransform ( uvar.tsIn.ti, uvar.tsIn.xi );
+  fSamp = round ( 1/dt );
+  T = max(ti) + dt;
+  ft = FourierTransform ( ti, xi );
   ft.IFO = IFO;
+  ft.epoch = epoch;
 
   sideband = uvar.RngMedWindow / (2*T); 		%% extra frequency side-band for median PSD estimates
   indsWide = binRange ( uvar.fMin - sideband, uvar.fMax + sideband, ft.fk );
@@ -41,7 +49,8 @@ function [ psd, tsOut ] = whitenTS ( varargin )
 
   psd.fk = ft.fk ( indsWide ( indsUse ) );
   psd.Sn = Sn_wide ( indsUse );
-  psd.IFO   = uvar.tsIn.IFO;
+  psd.IFO   = IFO;
+  psd.epoch = epoch;
 
   %% ---------- automatically identify and nuke 'lines' ----------
   fk_wide   = ft.fk ( indsWide );
@@ -62,12 +71,12 @@ function [ psd, tsOut ] = whitenTS ( varargin )
   indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= length(indsWide)) );
 
   %% ----- replace all data <100Hz, and >300Hz with Gaussian noise ----------
-  DebugPrintf ( 2, "\n----- Identified lines in %s: -----\n", uvar.tsIn.IFO );
+  DebugPrintf ( 2, "\n----- Identified lines in %s: -----\n", IFO );
   DebugPrintf ( 2, "Line-frequencies: %f Hz\n", fk_wide ( inds_lines ) );
 
   if ( uvar.plotSpectrum )
     figure(); clf; hold on;
-    plot ( fk_wide, abs ( xk_wide ) / sqrt(T), "+-", "color", "blue" ); legend ( uvar.tsIn.IFO );
+    plot ( fk_wide, abs ( xk_wide ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
     plot ( fk_wide, sqrt(Sn_wide), "o;sqrt(SX);", "color", "green" );
 
     NindsNuke = length ( indsNuke );
@@ -92,19 +101,16 @@ function [ psd, tsOut ] = whitenTS ( varargin )
   %% ----- turn SFTs back into timeseries ----------
   ft1.fk = fk_wide;
   ft1.IFO = IFO;
-  ft1.epoch = tStart;
+  ft1.epoch = epoch;
 
   ft1.xk = xk_wide;
   ts   = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
-  ts.ti   += tStart;
 
   ft1.xk = xkW_wide;
   tsW  = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
-  tsW.ti  += tStart;
 
   ft1.xk = xkOW_wide;
   tsOW = freqBand2TS ( ft1, uvar.fMin, uvar.fMax, fSamp );
-  tsOW.ti += tStart;
 
   assert ( (ts.ti == tsW.ti) && (ts.ti == tsOW.ti) );
 
@@ -113,6 +119,8 @@ function [ psd, tsOut ] = whitenTS ( varargin )
   tsOut.xiW  = tsW.xi;
   tsOut.xiOW = tsOW.xi;
   tsOut.IFO  = IFO;
+  tsOut.epoch= epoch;
 
+  assert ( size(tsOut.ti) == size( ti ) );
   return;
 endfunction

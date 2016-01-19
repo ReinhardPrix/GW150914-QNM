@@ -72,8 +72,8 @@ function ret = searchRingdown ( varargin )
   %% ----- prepare time-series stretch to analyze
   t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
 
-  inds_match = find ( (ts{1}.ti >= t0) & (ts{1}.ti <= t0 + Tmax) );
-  Dt_i = ts{1}.ti ( inds_match ) - t0;
+  inds_match = find ( (ts{1}.ti >= (t0 - ts{1}.epoch) ) & (ts{1}.ti <= (t0 - ts{1}.epoch + Tmax)) );
+  Dt_i = ts{1}.ti ( inds_match ) - (t0 - ts{1}.epoch);
   assert ( min(Dt_i) >= 0 );
 
   xiOW = zeros ( size ( inds_match ) );
@@ -182,13 +182,12 @@ function ret = searchRingdown ( varargin )
     colors = { "red", "blue" };
     for X = 1:Ndet
       sleg = sprintf (";%s;", ts{X}.IFO );
-      plot ( ts{X}.ti - uvar.tCenter, ts{X}.xi, sleg, "linewidth", 2, "color", colors{X} );
+      plot ( ts{X}.ti - (uvar.tCenter - ts{X}.epoch), ts{X}.xi, sleg, "linewidth", 2, "color", colors{X} );
     endfor
-    Dt = ts{1}.ti - t0;
-    indsRingdown = find ( Dt >= 0 );
-    Dt_pos = Dt ( indsRingdown );
+    indsRingdown = find ( Dt_i >= 0 );
+    Dt_pos = Dt_i ( indsRingdown );
     tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
-    plot ( ts{1}.ti(indsRingdown) - uvar.tCenter, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
+    plot ( ts{1}.ti(indsRingdown) - (uvar.tCenter - ts{X}.epoch), tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
     legend ( "location", "NorthEast");
     yrange = [-1.3e-21, 1.3e-21 ];
     line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "--", "linewidth", 1 );
