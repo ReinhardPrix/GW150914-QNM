@@ -68,7 +68,7 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
   indsNuke = unique ( nuke(:) );
   indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= length(indsUse)) );
 
-  %% ----- replace all data <100Hz, and >300Hz with Gaussian noise ----------
+  %% ----- replace all lines with zeros ----------
   DebugPrintf ( 2, "\n----- Identified lines in %s: -----\n", IFO );
   DebugPrintf ( 2, "Line-frequencies: %f Hz\n", fk_wide ( inds_lines ) );
 
@@ -91,6 +91,8 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
     %%draws = normrnd ( 0, 1, 2, NindsNuke );
     grid on;
     hold off;
+    xlim ( [uvar.fMin, uvar.fMax] );
+    ylim ( [0, 5e-23] );
   endif
 
   %% ----- whitened and overwhitened sFTs (with nuked lines) ----------
@@ -107,9 +109,9 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
 
   ft0 = ftOut;
   ts   = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, fSamp );
-  ft0.xk = ft0.xkW;
+  ft0.xk = ftOut.xkW;
   tsW  = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, fSamp );
-  ft0.xk = ft0.xkOW;
+  ft0.xk = ftOut.xkOW;
   tsOW = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, fSamp );
 
   assert ( (ts.ti == tsW.ti) && (ts.ti == tsOW.ti) );
