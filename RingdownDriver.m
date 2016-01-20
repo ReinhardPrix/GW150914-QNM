@@ -16,17 +16,11 @@ plotSpectra = false;
 useTSBuffer = true;
 plotPosteriors = true;
 
-if ( !exist ("searchType" ) )
-  searchType = "verify";
-endif
-if ( !exist ( "extraLabel" ) )
-  extraLabel = "";
-endif
-
+if ( !exist("searchType") )     searchType = "verify"; endif
+if ( !exist("extraLabel") )     extraLabel = ""; endif
+if ( !exist("use_v2") )         global use_v2 = false; endif
+if ( !exist("data_FreqRange") ) data_FreqRange  = [ 100, 300 ]; endif
 %% ---------- Prior range defaults ----------
-%%%data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
-data_FreqRange  = [ 15, 2000 - 1 ];
-data_FreqRange  = [ 100, 300 ];
 prior_f0Range   = [ 210, 270 ];
 prior_tauRange  = [ 1e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
@@ -81,7 +75,7 @@ endswitch
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
   [ts{X}, ft{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
-                                              "tCenter", tCenter, "Twindow", 20, ...
+                                              "tCenter", tCenter, "Twindow", 10, ...
                                               "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
 endfor
 
