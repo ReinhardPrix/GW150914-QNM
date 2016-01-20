@@ -2,7 +2,7 @@
 
 function ret = searchRingdown ( varargin )
   global debugLevel = 1;
-  global use_v2 = false;
+  global psd_version = 1;
 
   uvar = parseOptions ( varargin,
                         {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
@@ -149,7 +149,7 @@ function ret = searchRingdown ( varargin )
 
   %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
   if ( uvar.plotResults )
-    figure(3 + use_v2); clf;
+    figure(3 * psd_version); clf;
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
@@ -198,7 +198,7 @@ function ret = searchRingdown ( varargin )
     legend ( "location", "NorthEast");
     yrange = [-1.3e-21, 1.3e-21 ];
     line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "--", "linewidth", 1 );
-    xlim ( [uvar.tOffs - 0.3 * Tmax, uvar.tOffs + Tmax ] );
+    xlim ( [uvar.tOffs - 0.005, uvar.tOffs + 4.5 * tau_MPE ] );
     ylim ( yrange );
     xlabel ( sprintf ( "%.0f + tOffs [s]", uvar.tCenter) );
     tOffs_text = sprintf ( "tOffs = %.4f s", uvar.tOffs );

@@ -52,7 +52,7 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
   assert ( fk_use(end), psd.fk(end), 1e-6 );
 
   if ( uvar.plotSpectrum )
-    iFig = 4 + ifelse ( strcmp ( IFO, "H1" ), 1, 2 );
+    iFig = 3 + ifelse ( strcmp ( IFO, "H1" ), 1, 2 );
     figure(iFig); clf; hold on;
     plot ( fk_use, abs ( xk_use ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
     plot ( psd.fk, sqrt(psd.Sn), "o;sqrt(SX);", "color", "green" );

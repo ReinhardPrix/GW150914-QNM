@@ -2,7 +2,7 @@
 
 function [ts, ft, psd] = extractTSfromSFT ( varargin )
   global debugLevel = 1;
-  global use_v2 = false;
+  global psd_version = 1;
 
   uvar = parseOptions ( varargin,
                         {"SFTpath", "char,vector" },
@@ -93,18 +93,22 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
     tsBand.epoch = tsBand0.epoch;
 
     %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
-    if ( use_v2 )
-      [ts, ft, psd] = whitenTS_v2 ( "tsIn", tsBand, ...
-                                    "fMin", uvar.fMin, "fMax", uvar.fMax, ...
-                                    "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth, ...
-                                    "plotSpectrum", uvar.plotSpectrum );
-    else
-      [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
-                                 "fMin", uvar.fMin, "fMax", uvar.fMax,
-                                 "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
-                                 "RngMedWindow", uvar.RngMedWindow,
-                                 "plotSpectrum", uvar.plotSpectrum );
-    endif
+    switch ( psd_version )
+      case 1
+        [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
+                                   "fMin", uvar.fMin, "fMax", uvar.fMax,
+                                   "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
+                                   "RngMedWindow", uvar.RngMedWindow,
+                                   "plotSpectrum", uvar.plotSpectrum );
+      case 2
+        [ts, ft, psd] = whitenTS_v2 ( "tsIn", tsBand, ...
+                                      "fMin", uvar.fMin, "fMax", uvar.fMax, ...
+                                      "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth, ...
+                                      "plotSpectrum", uvar.plotSpectrum );
+      otherwise
+        error ("psd_version = %d not supported\n", psd_version );
+    endswitch
+
     if ( uvar.plotSpectrum )
       title ( bname );
       fname = sprintf ( "%s/%s-spectrum.pdf", resDir, bname);

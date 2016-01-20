@@ -18,7 +18,7 @@ plotPosteriors = true;
 
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
-if ( !exist("use_v2") )         global use_v2 = false; endif
+if ( !exist("psd_version") )    global psd_version = 1; endif
 if ( !exist("data_FreqRange") ) data_FreqRange  = [ 100, 300 ]; endif
 %% ---------- Prior range defaults ----------
 prior_f0Range   = [ 210, 270 ];

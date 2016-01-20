@@ -27,6 +27,7 @@ function TS = freqBand2TS ( ft, fMin, fMax, fSamp )
   assert ( err < 1e-6 );
   TS.xi = real ( TS.xi );
   TS.epoch = ft.epoch;
+  TS.IFO = ft.IFO;
 
   return;
 
