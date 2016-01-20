@@ -82,8 +82,7 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
     ft0.epoch = epoch;
 
     %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
-    sideband = uvar.RngMedWindow * ( 1 / (2*uvar.Twindow)); 		%% extra frequency side-band for median PSD estimates later
-    tsBand0 = freqBand2TS ( ft0, uvar.fMin - sideband, uvar.fMax + sideband, uvar.fSamp );
+    tsBand0 = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, uvar.fSamp );
 
     %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
     indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - tsBand0.epoch - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - tsBand0.epoch + uvar.Twindow )) );

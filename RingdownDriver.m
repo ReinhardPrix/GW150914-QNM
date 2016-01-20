@@ -25,8 +25,7 @@ endif
 
 %% ---------- Prior range defaults ----------
 %%%data_FreqRange  = [ 100, 300 ]; %% avoid nasty noise stuff > 300Hz in L1
-sideband = 15;	%% from running-median window 300bins * 1/(2*T)
-%%data_FreqRange  = [ 15 + sideband, 2000 - sideband - 1 ];
+data_FreqRange  = [ 15, 2000 - 1 ];
 data_FreqRange  = [ 100, 300 ];
 prior_f0Range   = [ 210, 270 ];
 prior_tauRange  = [ 1e-3, 20e-3 ];
@@ -81,7 +80,9 @@ endswitch
 
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
-  [ts{X}, ft{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, "tCenter", tCenter, "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
+  [ts{X}, ft{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
+                                              "tCenter", tCenter, "Twindow", 20, ...
+                                              "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
 endfor
 
 %% create unique time-tagged 'ResultsDir' for each run:
@@ -94,10 +95,9 @@ cd ( resDir );
 try
 %% ----- run search
 tOffsV = [ tOffsStart : dtOffs : tOffsEnd ];
-Nsteps = length(tOffs);
+Nsteps = length(tOffsV);
 
 ret = cell ( 1, Nsteps );
-plot = [];
 for i = 1:Nsteps
   DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffsV(i) );
   ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffsV(i), "tCenter", tCenter, ...

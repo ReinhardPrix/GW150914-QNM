@@ -30,9 +30,7 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
   ft.IFO = IFO;
   ft.epoch = epoch;
 
-  sideband = uvar.RngMedWindow / (2*T); 		%% extra frequency side-band for median PSD estimates
-  indsWide = binRange ( uvar.fMin - sideband, uvar.fMax + sideband, ft.fk );
-  indsUse  = binRange ( uvar.fMin, uvar.fMax, ft.fk(indsWide) );
+  indsUse = binRange ( uvar.fMin, uvar.fMax, ft.fk );
 
   %% ---------- estimate PSD using running-median over frequency ----------
   %% Wiener-Khintchine theorm
@@ -44,17 +42,17 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
     rngmedbias = XLALRngMedBias ( uvar.RngMedWindow );
   endif
 
-  periodo = abs ( ft.xk(indsWide) ).^2;
+  periodo = abs ( ft.xk(indsUse) ).^2;
   Sn_wide = 2/T * rngmed ( periodo, uvar.RngMedWindow ) / rngmedbias;	%% single-sided PSD
 
-  psd.fk = ft.fk ( indsWide ( indsUse ) );
-  psd.Sn = Sn_wide ( indsUse );
+  psd.fk = ft.fk ( indsUse );
+  psd.Sn = Sn_wide;
   psd.IFO   = IFO;
   psd.epoch = epoch;
 
   %% ---------- automatically identify and nuke 'lines' ----------
-  fk_wide   = ft.fk ( indsWide );
-  xk_wide   = ft.xk ( indsWide );
+  fk_wide   = ft.fk ( indsUse );
+  xk_wide   = ft.xk ( indsUse );
 
   yk = xk_wide  ./ sqrt( T * Sn_wide / 2 );   %% normalized SFT:
   Pk_re = abs ( real ( yk ) );
@@ -68,14 +66,15 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
   %%nuke = [ nuke_lines(:); nuke_bands(:) ];
   nuke = [ nuke_lines(:) ];
   indsNuke = unique ( nuke(:) );
-  indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= length(indsWide)) );
+  indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= length(indsUse)) );
 
   %% ----- replace all data <100Hz, and >300Hz with Gaussian noise ----------
   DebugPrintf ( 2, "\n----- Identified lines in %s: -----\n", IFO );
   DebugPrintf ( 2, "Line-frequencies: %f Hz\n", fk_wide ( inds_lines ) );
 
   if ( uvar.plotSpectrum )
-    figure(); clf; hold on;
+    iFig = ifelse ( strcmp ( IFO, "H1" ), 1, 2 );
+    figure(iFig); clf; hold on;
     plot ( fk_wide, abs ( xk_wide ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
     plot ( fk_wide, sqrt(Sn_wide), "o;sqrt(SX);", "color", "green" );
 

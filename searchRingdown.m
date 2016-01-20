@@ -143,7 +143,7 @@ function ret = searchRingdown ( varargin )
 
   %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
   if ( uvar.plotResults )
-    figure(2); clf;
+    figure(3); clf;
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
