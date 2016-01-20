@@ -2,6 +2,7 @@
 
 function ret = searchRingdown ( varargin )
   global debugLevel = 1;
+  global use_v2 = false;
 
   uvar = parseOptions ( varargin,
                         {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
@@ -76,7 +77,8 @@ function ret = searchRingdown ( varargin )
   Dt_i = ts{1}.ti ( inds_match ) - (t0 - ts{1}.epoch);
   assert ( min(Dt_i) >= 0 );
 
-  xiOW = zeros ( size ( inds_match ) );
+  yiOW = zeros ( size ( inds_match ) );
+  ti   = ts{1}.ti ( inds_match );
   match = zeros ( size ( lap_s ) );
   for X = 1:Ndet
     %% prepare per-detector timeseries for matching: adapt L1 data to be phase-coherent with H1
@@ -93,7 +95,7 @@ function ret = searchRingdown ( varargin )
       ts{X}.xiOW *= -1;
     endif
 
-    xiOW += ts{X}.xiOW ( inds_match - shiftBins );
+    yiOW += ts{X}.xiOW ( inds_match - shiftBins );
   endfor %% X
 
   %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
@@ -101,7 +103,7 @@ function ret = searchRingdown ( varargin )
   for l = 1 : Ntempl	%% loop over all templates
     %% ----- (complex) time-domain template
     hExp_i = exp ( - Dt_i  * lap_s(l) );
-    match(l) = 2 * dt * sum ( xiOW .* hExp_i );
+    match(l) = 2 * dt * sum ( yiOW .* hExp_i );
   endfor
   DebugPrintf ( 1, "done.\n");
 
@@ -119,7 +121,11 @@ function ret = searchRingdown ( varargin )
   A_MPE    = A_est( l_MPE );
   phi0_MPE = phi0_est ( l_MPE );
   SNR_MPE  = SNR_est ( l_MPE );
-
+  [val, freqInd] = min ( abs ( fk - f0_MPE ) );
+  Stot_MPE = Stot ( freqInd );
+  for X = 1:Ndet
+    SX_MPE{X} = psd{X}.Sn ( freqInd );
+  endfor
   %% ---------- compute marginalized posteriors on {f,tau} ----------
   BSG_renorm = BSG / max ( BSG(:) );
   posterior_f0   = sum ( BSG_renorm, 1 );
@@ -143,7 +149,7 @@ function ret = searchRingdown ( varargin )
 
   %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
   if ( uvar.plotResults )
-    figure(3); clf;
+    figure(3 + use_v2); clf;
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
@@ -181,13 +187,14 @@ function ret = searchRingdown ( varargin )
     hold on;
     colors = { "red", "blue" };
     for X = 1:Ndet
-      sleg = sprintf (";%s;", ts{X}.IFO );
-      plot ( ts{X}.ti - (uvar.tCenter - ts{X}.epoch), ts{X}.xi, sleg, "linewidth", 2, "color", colors{X} );
+      sleg = sprintf (";OW[%s];", ts{X}.IFO );
+      plot ( ts{X}.ti - (uvar.tCenter - ts{X}.epoch), ts{X}.xiOW * SX_MPE{X}, sleg, "linewidth", 2, "color", colors{X} );
     endfor
+    %%plot ( ti - (uvar.tCenter - ts{1}.epoch), yiOW * Stot_MPE, ";OW[H1+L1];", "linewidth", 2, "color", "magenta" );
     indsRingdown = find ( Dt_i >= 0 );
     Dt_pos = Dt_i ( indsRingdown );
     tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
-    plot ( uvar.tOffs + Dt_i, tmpl_MPE, ";MPE;", "linewidth", 3, "color", "black" );
+    plot ( uvar.tOffs + Dt_i, tmpl_MPE, ";MPE;", "linewidth", 4, "color", "black" );
     legend ( "location", "NorthEast");
     yrange = [-1.3e-21, 1.3e-21 ];
     line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "--", "linewidth", 1 );
