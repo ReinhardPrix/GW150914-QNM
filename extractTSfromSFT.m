@@ -2,6 +2,7 @@
 
 function [ts, ft, psd] = extractTSfromSFT ( varargin )
   global debugLevel = 1;
+  global use_v2 = false;
 
   uvar = parseOptions ( varargin,
                         {"SFTpath", "char,vector" },
@@ -92,17 +93,18 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
     tsBand.epoch = tsBand0.epoch;
 
     %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
-    ## [psd_v2, ts_v2] = whitenTS_v2 ( "ftIn", ft0, ...
-    ##                                 "tCenter", uvar.tCenter, "Twindow", uvar.Twindow, ...
-    ##                                 "fMin", uvar.fMin, "fMax", uvar.fMax, ...
-    ##                                 "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth, ...
-    ##                                 "plotSpectrum", uvar.plotSpectrum );
-
-    [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
-                               "fMin", uvar.fMin, "fMax", uvar.fMax,
-                               "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
-                               "RngMedWindow", uvar.RngMedWindow,
-                               "plotSpectrum", uvar.plotSpectrum );
+    if ( use_v2 )
+      [ts, ft, psd] = whitenTS_v2 ( "tsIn", tsBand, ...
+                                    "fMin", uvar.fMin, "fMax", uvar.fMax, ...
+                                    "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth, ...
+                                    "plotSpectrum", uvar.plotSpectrum );
+    else
+      [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
+                                 "fMin", uvar.fMin, "fMax", uvar.fMax,
+                                 "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
+                                 "RngMedWindow", uvar.RngMedWindow,
+                                 "plotSpectrum", uvar.plotSpectrum );
+    endif
     if ( uvar.plotSpectrum )
       title ( bname );
       fname = sprintf ( "%s/%s-spectrum.pdf", resDir, bname);
