@@ -1,7 +1,7 @@
 function TS = freqBand2TS ( ft, fMin, fMax, fSamp )
 
-  fk = ft.fk;
-  xk = ft.xk;
+  fk = ft.fk(:);
+  xk = ft.xk(:);
   inds0 = binRange ( fMin, fMax, fk );
 
   %% place this band into a full spectrum including negative frequencies
@@ -10,7 +10,7 @@ function TS = freqBand2TS ( ft, fMin, fMax, fSamp )
   %% fk1 = -fNyquist : df : fNyquist;
   Nfreq = round ( fSamp / df );
   %% taken from 'fftshift()':
-  fk1 = [ -(ceil((Nfreq-1)/2):-1:1)*df, 0, (1:floor((Nfreq-1)/2))*df ];
+  fk1 = df * [ - ( ceil ( (Nfreq-1)/2 ) : (-1) : 1 ), 0, ( 1 : floor ( (Nfreq-1)/2) ) ];
   xk1 = zeros ( size(fk1) );
   inds1P = binRange ( fMin, fMax, fk1 );
   assert ( length(inds0) == length(inds1P) );
