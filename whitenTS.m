@@ -72,32 +72,45 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
   DebugPrintf ( 2, "\n----- Identified lines in %s: -----\n", IFO );
   DebugPrintf ( 2, "Line-frequencies: %f Hz\n", fk_wide ( inds_lines ) );
 
+  %% ----- whitened and overwhitened sFTs (with nuked lines) ----------
   if ( uvar.plotSpectrum )
+    if ( strcmp ( IFO, "H1" ) )
+      psd0 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0H1-PSD.dat" );
+    elseif ( strcmp ( IFO, "L1" ) )
+      psd0 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0L1-PSD.dat");
+    endif
     iFig = ifelse ( strcmp ( IFO, "H1" ), 1, 2 );
-    figure(iFig); clf; hold on;
+    figure(iFig); clf;
+
+    subplot ( 3, 1, 1); hold on;
     plot ( fk_wide, abs ( xk_wide ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
     plot ( fk_wide, sqrt(Sn_wide), "o;sqrt(SX);", "color", "green" );
-
-    NindsNuke = length ( indsNuke );
-    %%draws = normrnd ( 0, 1, 2, NindsNuke );
-    draws = zeros ( 2, NindsNuke );
-    %%Sn0 = (8.2e-24)^2;
-    Sn0 = Sn_wide ( indsNuke );
-    noise = sqrt(T/4 * Sn0 ) .* ( draws(1,:) + I * draws(2,:) );
     plot ( fk_wide ( indsNuke ), abs ( xk_wide ( indsNuke )) / sqrt(T), "o", "color", "red" );
-    xk_wide ( indsNuke ) = noise;
-    plot ( fk_wide ( indsNuke ), abs ( xk_wide ( indsNuke )) / sqrt(T), "x", "color", "red" );
-
-    %%draws = normrnd ( 0, 1, 2, NindsNuke );
-    grid on;
-    hold off;
-    xlim ( [uvar.fMin, uvar.fMax] );
-    ylim ( [0, 5e-23] );
+    if ( exist ( "psd0" ) )
+      plot ( psd0(:,1), sqrt(psd0(:,2)), "x;lalinference;", "color", "magenta" );
+    endif
   endif
 
-  %% ----- whitened and overwhitened sFTs (with nuked lines) ----------
+  NindsNuke = length ( indsNuke );
+  draws = zeros ( 2, NindsNuke );
+  Sn0 = Sn_wide ( indsNuke );
+  noise = sqrt(T/4 * Sn0 ) .* ( draws(1,:) + I * draws(2,:) );
+  xk_wide ( indsNuke ) = noise;
   xkW_wide  = xk_wide ./ sqrt(Sn_wide);
   xkOW_wide = xk_wide ./ Sn_wide;
+
+  if ( uvar.plotSpectrum )
+    plot ( fk_wide ( indsNuke ), abs ( xk_wide ( indsNuke )) / sqrt(T), "x", "color", "red" );
+    xlim ( [uvar.fMin, uvar.fMax] );
+    ylim ( [0, 5e-23] );
+    grid on;
+    hold off;
+
+    subplot ( 3, 1, 2 );
+    plot ( fk_wide, abs ( xkW_wide ), "+-", "color", "blue" ); legend ( IFO );
+    subplot ( 3, 1, 3 );
+    plot ( fk_wide, abs ( xkOW_wide ), "+-", "color", "blue" ); legend ( IFO );
+  endif
 
   %% ----- turn SFTs back into timeseries ----------
   ftOut.fk = fk_wide;

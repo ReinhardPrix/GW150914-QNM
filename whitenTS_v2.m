@@ -51,20 +51,36 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
   assert ( fk_use(1), psd.fk(1), 1e-6 );
   assert ( fk_use(end), psd.fk(end), 1e-6 );
 
-  if ( uvar.plotSpectrum )
-    iFig = 3 + ifelse ( strcmp ( IFO, "H1" ), 1, 2 );
-    figure(iFig); clf; hold on;
-    plot ( fk_use, abs ( xk_use ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
-    plot ( psd.fk, sqrt(psd.Sn), "o;sqrt(SX);", "color", "green" );
-    grid on;
-    hold off;
-    xlim ( [uvar.fMin, uvar.fMax] );
-    ylim ( [0, 5e-23] );
-  endif
-
   %% ----- whitened and overwhitened sFTs (with nuked lines) ----------
   xkW_use  = xk_use ./ sqrt(psd.Sn);
   xkOW_use = xk_use ./ psd.Sn;
+
+  if ( uvar.plotSpectrum )
+    if ( strcmp ( IFO, "H1" ) )
+      psd0 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0H1-PSD.dat" );
+    elseif ( strcmp ( IFO, "L1" ) )
+      psd0 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0L1-PSD.dat");
+    endif
+    iFig = 3 + ifelse ( strcmp ( IFO, "H1" ), 1, 2 );
+    figure(iFig); clf;
+
+    subplot ( 3, 1, 1 ); hold on;
+    plot ( fk_use, abs ( xk_use ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
+    plot ( psd.fk, sqrt(psd.Sn), "o;sqrt(SX);", "color", "green" );
+    if ( exist ( "psd0" ) )
+      plot ( psd0(:,1), sqrt(psd0(:,2)), "x;lalinference;", "color", "magenta" );
+    endif
+    xlim ( [uvar.fMin, uvar.fMax] );
+    ylim ( [0, 5e-23] );
+    grid on;
+    hold off;
+
+    subplot ( 3, 1, 2 );
+    plot ( fk_use, abs ( xkW_use ), "+-", "color", "blue" ); legend ( IFO );
+
+    subplot ( 3, 1, 3 );
+    plot ( fk_use, abs ( xkOW_use ), "+-", "color", "blue" ); legend ( IFO );
+  endif
 
   %% ----- turn SFTs back into timeseries ----------
   ftOut.fk = fk_use;
