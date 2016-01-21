@@ -3,6 +3,7 @@
 function [ts, ft, psd] = extractTSfromSFT ( varargin )
   global debugLevel = 1;
   global psd_version = 1;
+  global cleanLines = false;
 
   uvar = parseOptions ( varargin,
                         {"SFTpath", "char,vector" },
@@ -10,10 +11,7 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
                         {"fMax", "real,strictpos,scalar", 300 },
                         {"tCenter", "real,strictpos,scalar", 1126259462 },
                         {"Twindow", "real,strictpos,scalar", 10 },	%% time-window +- to extract around the event
-                        {"lineSigma", "real,positive,scalar", 5},	%% sigma deviations to indentify 'lines' in spectrum
-                        {"lineWidth", "real,positive,scalar", 0.1},	%% +- width in Hz to zero around 'lines'
                         {"plotSpectrum", "bool", false },
-                        {"RngMedWindow", "real,positive,scalar", 300 },  %% window size to use for rngmed-based PSD estimation
                         {"fSamp", "real,positive,scalar", 2000*2 },	%% sampling rate of output timeseries
                         {"useBuffer", "bool", true}			%% re-use timeseries-data files if found
                       );
@@ -22,8 +20,8 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
   pieces = strsplit ( uvar.SFTpath, "/" );
   sftfname = pieces { end };
   sftbname = strrep ( sftfname, ".sft", "");
-  bname = sprintf ( "%s-freq%.0fHz-%.0fHz-fSamp%.0fHz-GPS%.0fs+-%.0fs-ls%.1f-lw%.1f-rng%.0f",
-                    sftbname, uvar.fMin, uvar.fMax, uvar.fSamp, uvar.tCenter, uvar.Twindow, uvar.lineSigma, uvar.lineWidth, uvar.RngMedWindow );
+  bname = sprintf ( "%s-freq%.0fHz-%.0fHz-fSamp%.0fHz-GPS%.0fs+-%.0fs-psd_v%d-lineCleaning%s",
+                    sftbname, uvar.fMin, uvar.fMax, uvar.fSamp, uvar.tCenter, uvar.Twindow, psd_version, ifelse ( cleanLines, "On", "Off" ) );
 
   resDir = "extractTS-Results";
   [status, msg] = mkdir ( resDir );
@@ -99,7 +97,6 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
       tsBand.epoch = epoch;
       [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
                                  "fMin", uvar.fMin, "fMax", uvar.fMax,
-                                 "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
                                  "RngMedWindow", uvar.RngMedWindow,
                                  "plotSpectrum", uvar.plotSpectrum );
     case 2

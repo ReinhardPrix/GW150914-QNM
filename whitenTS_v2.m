@@ -3,6 +3,7 @@
 function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
   global debugLevel = 1;
   global iFig0 = 0;
+  global cleanLines = false;
 
   uvar = parseOptions ( varargin,
                         {"ftIn", "struct" },
@@ -66,6 +67,25 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
   ftTrunc.xkOW = ftTrunc.xk ./ psd.Sn;
   ftTrunc.xkU  = ftTrunc.xkW / sqrt(T/2);	%% normalized by rms=> unit variance
 
+  %% ---------- identify and nuke 'lines' > sigma +- lineWidth Hz ----------
+  if ( cleanLines )
+    Nbins = length ( ftTrunc.fk );
+    sigma = 3; lineWidth = 2;
+    inds_lines = find ( abs ( ftTrunc.xkU ) > sigma );
+    iNukeWidth = round ( lineWidth * T );
+    sides = -iNukeWidth : iNukeWidth;
+    [xx, yy] = meshgrid ( inds_lines, sides );
+    nuke_lines = xx + yy;
+    nuke = [ nuke_lines(:) ];
+    indsNuke = unique ( nuke(:) );
+    indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= Nbins ) );
+    Nnuke = length ( indsNuke );
+    indsOK = setdiff ( [1:Nbins], indsNuke );
+    sigLocal = sqrt ( var ( ftTrunc.xkOW (indsOK) ) / 2 );
+    ftTrunc.xkOW ( indsNuke ) = normrnd ( 0, sigLocal, size(indsNuke) ) + I * normrnd ( 0, sigLocal, size(indsNuke) );
+    psd.Sn ( indsNuke ) = inf;
+  endif
+
   %% ----- turn spectra back into narrow-banded timeseries ----------
   ft0    = ftTrunc;
   ts     = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, uvar.fSamp );
@@ -101,24 +121,27 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
     figure ( 5 * iFig0 + 1 + iIFO ); clf;
 
     subplot ( 3, 1, 1 ); hold on;
-    plot ( ftOut.fk, abs ( ftOut.xk ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
+    plot ( ftOut.fk, abs ( ftOut.xk ) / sqrt(T), "+-", "color", "blue" ); legend ( sprintf ( "%s: xk(f)", IFO ) );
     if ( exist ( "psd0" ) )
-      plot ( psd0(:,1), sqrt(psd0(:,2)), "x;lalinference;", "color", "magenta" );
+      plot ( psd0(:,1), sqrt(psd0(:,2)), "x;sqrt(SX)-LALInf;", "color", "magenta" );
     endif
-    plot ( psd.fk, sqrt(psd.Sn), "o;sqrt(SX);", "color", "green" );
+    plot ( psd.fk, sqrt(psd.Sn), "o;sqrt(SX)-pwelch;", "color", "green" );
     xlim ( [uvar.fMin, uvar.fMax] );
-    ylim ( [0, 5e-23] );
+    ylim ( [0, 10e-23] );
     grid on;
     hold off;
 
     subplot ( 3, 1, 2 );
-    plot ( ftOut.fk, abs ( ftOut.xkU ), "+-", "color", "blue" ); legend ( "xk/rms" );
+    plot ( ftOut.fk, abs ( ftOut.xkU ), "+-", "color", "blue" ); legend ( "xk / rms" );
     xlim ( [uvar.fMin, uvar.fMax] );
     ylim ( [ 0, 5 ] );
 
     subplot ( 3, 1, 3 );
-    plot ( ftOut.fk, abs ( ftOut.xkOW ), "+-", "color", "blue" ); legend ( "xk/Sn" );
+    plot ( ftOut.fk, abs ( ftOut.xkOW ), "+-", "color", "blue" ); legend ( "xk / SX" );
     xlim ( [uvar.fMin, uvar.fMax] );
+    ylim ( [0, 2e24] );
+    xlabel ("Freq [Hz]");
+    legend ( "location", "NorthEast" );
   endif
 
   return;

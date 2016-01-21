@@ -19,8 +19,10 @@ plotPosteriors = true;
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
 if ( !exist("psd_version") )    global psd_version = 1; endif
+if ( !exist("cleanLines") )     global cleanLines = false; endif
 if ( !exist("data_FreqRange") ) data_FreqRange  = [ 100, 300 ]; endif
 if ( !exist("iFig0") )          global iFig0 = 0; endif
+
 %% ---------- Prior range defaults ----------
 prior_f0Range   = [ 210, 270 ];
 prior_tauRange  = [ 1e-3, 20e-3 ];
@@ -82,7 +84,10 @@ endfor
 
 %% create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
-resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz%s", gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, data_FreqRange, extraLabel );
+resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz-psd_v%d-lineCleaning%s%s",
+                   gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, data_FreqRange,
+                   psd_version, ifelse ( cleanLines, "On", "Off" ),
+                   extraLabel );
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 addpath ( pwd() );
 cd ( resDir );

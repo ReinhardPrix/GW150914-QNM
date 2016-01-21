@@ -24,7 +24,7 @@
 \input{definitions.tex}
 \input{git_tag.tex}
 
-\newcommand{\dcc}{LIGO-T1500618-v2}
+\newcommand{\dcc}{LIGO-T1500618-v2+}
 
 \begin{document}
 
@@ -339,20 +339,35 @@ Eq.~\eqref{eq:36}, i.e.\
   \rho_0^2 = \Avec'\M\Avec'\,.
 \end{equation}
 
+\newpage
 \section{QNM search applied to GW150914}
 \label{sec:qnm-search-applied}
 
 \subsection{Data preparation}
 \label{sec:data-preparation}
 
-Band-passed data in (i) $[100,\,300]\,\Hz$ and (ii) $[30,1984]\,\Hz$, using a rectangular window on a 1800s Fourier-transform containing the GPS time
+Band-passed data in (i) $[30,\,1000]\,\Hz$ (using tukey(0.1) windowing) on a 1800s Fourier-transform containing the GPS time
 $\tEvent = 1126259462\,$s.
-From this we extracted a $T=20\,$s timeseries $x^X(t)$ centered on the event GPS time $\tEvent$.
-Time-shifted L1 data by (delaying it by $+7\,\ms$) and multiplied it by (-1) to account for the inverse detector response.
-Fourier-transformed this again, zeroed-out all bins $\pm0.1\,\Hz$ around 'lines', identified as $\ge 5$ sigma deviation of unit-variance normalized
-frequency-domain data.
-We estimate the (single-sided) PSD $S_X$ by a 300-bin running-median on FT power, using Wiener-Khintchine theorem
-$S(f) = \frac{2}{T} E\left[|\FT{x}(f)|^2\right]$ (as is standard practice in CW search pipelines).
+From this we extracted a $T=8\,$s timeseries $x^X(t)$ centered on the event GPS time $\tEvent$.
+Time-shifted L1 data by (delaying it by $+7\,\ms$) and multiplied it by $(-1)$ to account for the inverse detector response.
+We estimate the (single-sided) PSD $S_X$ by a standard welch method using 8s windows over the 1800s SFT data.
+We consider two cases: (i) without any further 'line' cleaning, or (ii) replacing any data in a band $\pm 2\Hz$ around any point where the
+rms-normalized spectrum exceeds 3sigma by Gaussian white noise with average PSD.
+
+The resulting spectra are shown here:
+
+\subsubsection{Without 'line cleaning'}
+\label{sec:with-line-clean}
+
+\includegraphics[width=0.5\textwidth]{{../extractTS-Results/H-1_H1_1800SFT_ER8-C01-1126257832-1800-freq30Hz-1000Hz-fSamp4000Hz-GPS1126259462s+-4s-psd_v2-lineCleaningOff-spectrum}.pdf}
+\includegraphics[width=0.5\textwidth]{{../extractTS-Results/L-1_L1_1800SFT_ER8-C01-1126258841-1800-freq30Hz-1000Hz-fSamp4000Hz-GPS1126259462s+-4s-psd_v2-lineCleaningOff-spectrum}.pdf}
+
+\subsubsection{With line-cleaning}
+\label{sec:with-line-cleaning}
+
+\includegraphics[width=0.5\textwidth]{{../extractTS-Results/H-1_H1_1800SFT_ER8-C01-1126257832-1800-freq30Hz-1000Hz-fSamp4000Hz-GPS1126259462s+-4s-psd_v2-lineCleaningOn-spectrum}.pdf}
+\includegraphics[width=0.5\textwidth]{{../extractTS-Results/L-1_L1_1800SFT_ER8-C01-1126258841-1800-freq30Hz-1000Hz-fSamp4000Hz-GPS1126259462s+-4s-psd_v2-lineCleaningOn-spectrum}.pdf}
+
 
 \subsection{Prior choices}
 \label{sec:prior-choices}
@@ -377,91 +392,95 @@ We search the $\{f,\tau\}$ range with uniform priors in
 at fixed QNM start-time $\tStart$, which we vary in steps of $0.5\,\ms$ in the range $\tStart\in [0.422,\,0.435]\,s + \tEvent$
 (referring to H1 arrival times).
 
-The following pages show snapshots of evidence and parameter-estimation at various fixed start-times $\tStart$.
-Each page shows one $\tStart$, the upper plot for the $[100,300]\,\Hz$ data frequency range, the lower plot for the $[30,1984]\,\Hz$ data frequency range.
+The following pages show snapshots of evidence and parameter-estimation at various fixed start-times $\tStart$, using a data frequency range of $[30,\,1000],\Hz$.
+Each page shows one $\tStart$, the upper plot for data-preparation \emph{without line cleaning}, the lower plot \emph{with line cleaning}.
+
+
+%%
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s-psd_v2-lineCleaningOn}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4240s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4240s-psd_v2-lineCleaningOn}.pdf}
+}
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4255s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4255s-psd_v2-lineCleaningOn}.pdf}
+}
 
 \newpage
 \vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s}.pdf}\\
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4240s}.pdf}\\
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4240s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4255s}.pdf}\\
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4255s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4270s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4270s-psd_v2-lineCleaningOn}.pdf}
 }
 
 \newpage
 \vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4270s}.pdf}\\
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4270s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4280s}.pdf}\\
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4280s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4290s}.pdf}\\
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4290s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4300s}.pdf}
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4300s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4310s}.pdf}
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4310s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4320s}.pdf}
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4320s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4330s}.pdf}
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4330s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4340s}.pdf}
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4340s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4345s}.pdf}
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4345s}.pdf}
-}
-\newpage
-\vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4350s}.pdf}
-\includegraphics[width=1\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4350s}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4280s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4280s-psd_v2-lineCleaningOn}.pdf}
 }
 
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4290s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4290s-psd_v2-lineCleaningOn}.pdf}
+}
 
 \newpage
 \vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=\textwidth]{{../Results/Results-160119-16h14-onSource-data100Hz-300Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s-summary}.pdf}\\
-\includegraphics[width=\textwidth]{{../Results/Results-160119-15h22-onSource-data30Hz-1984Hz/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s-summary}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4300s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4300s-psd_v2-lineCleaningOn}.pdf}
+}
+
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4310s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4310s-psd_v2-lineCleaningOn}.pdf}
+}
+
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4320s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4320s-psd_v2-lineCleaningOn}.pdf}
+}
+
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4330s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4330s-psd_v2-lineCleaningOn}.pdf}
+}
+
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4340s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4340s-psd_v2-lineCleaningOn}.pdf}
+}
+
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4345s-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4345s-psd_v2-lineCleaningOn}.pdf}
+}
+
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4350s-psd_v2-lineCleaningOff}.pdf}
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4350s-psd_v2-lineCleaningOn}.pdf}
+}
+
+\newpage
+\vspace*{-2cm}\parbox{\textwidth}{
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-12h45-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s-psd_v2-lineCleaningOff-summary}.pdf}\\
+\includegraphics[width=1\textwidth]{{../Results/Results-160121-11h25-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOn/Ringdown-GPS1126259462s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs0.4220s-psd_v2-lineCleaningOn-summary}.pdf}
 }
 
 \newpage
 \section{"Off Source"}
-\subsection{Data $\in[100, 300]\,\Hz$}
-
-\parbox{\textwidth}{
-\includegraphics[height=0.5\textheight]{{../Results/Results-160119-13h27-offSource/Ringdown-GPS1126259472s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs-5.0000s-summary}.pdf}
-\includegraphics[height=0.5\textheight]{{../Results/Results-160119-13h27-offSource/Ringdown-GPS1126259472s-f210Hz-270Hz-tau1.0ms-20.0ms-H4e-22-tOffs-5.0000s-hist}.pdf}
-}
 
 \newpage
 \appendix

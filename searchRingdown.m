@@ -4,6 +4,7 @@ function ret = searchRingdown ( varargin )
   global debugLevel = 1;
   global psd_version = 1;
   global iFig0 = 0;
+  global cleanLines = false;
 
   uvar = parseOptions ( varargin,
                         {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
@@ -20,11 +21,12 @@ function ret = searchRingdown ( varargin )
 
   shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
 
-  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%.2g-tOffs%.4fs",
+  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%.2g-tOffs%.4fs-psd_v%d-lineCleaning%s",
                     uvar.tCenter, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
                     1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
                     uvar.prior_H,
-                    uvar.tOffs
+                    uvar.tOffs,
+                    psd_version, ifelse ( cleanLines, "On", "Off" )
                   );
 
   ts = uvar.ts;
