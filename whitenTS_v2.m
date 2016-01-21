@@ -64,6 +64,7 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
   %% ----- whitened and overwhitened full-frequency range spectra ----------
   ftTrunc.xkW  = ftTrunc.xk ./ sqrt ( psd.Sn );
   ftTrunc.xkOW = ftTrunc.xk ./ psd.Sn;
+  ftTrunc.xkU  = ftTrunc.xkW / sqrt(T/2);	%% normalized by rms=> unit variance
 
   %% ----- turn spectra back into narrow-banded timeseries ----------
   ft0    = ftTrunc;
@@ -80,12 +81,13 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
   tsOut.xiW  = tsW.xi;
   tsOut.xiOW = tsOW.xi;
 
-  %% ----- also return narrow-banded spectra ----------
+  %% ----- return + plot narrow-banded spectra ----------
   ftOut      = ftTrunc;
   bins_out   = binRange ( uvar.fMin, uvar.fMax, ftTrunc.fk );
   ftOut.fk   = ftTrunc.fk ( bins_out );
   ftOut.xk   = ftTrunc.xk ( bins_out );
   ftOut.xkW  = ftTrunc.xkW ( bins_out );
+  ftOut.xkU  = ftTrunc.xkU ( bins_out );	%% normalized by rms=> unit variance
   ftOut.xkOW = ftTrunc.xkOW ( bins_out );
 
   %% ---------- plot spectra over narrow-banded output frequency range ----------
@@ -110,7 +112,7 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
     hold off;
 
     subplot ( 3, 1, 2 );
-    plot ( ftOut.fk, abs ( ftOut.xkW ) / sqrt(T/2), "+-", "color", "blue" ); legend ( "xk/rms" );
+    plot ( ftOut.fk, abs ( ftOut.xkU ), "+-", "color", "blue" ); legend ( "xk/rms" );
     xlim ( [uvar.fMin, uvar.fMax] );
     ylim ( [ 0, 5 ] );
 
