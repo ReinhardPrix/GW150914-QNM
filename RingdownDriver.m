@@ -20,6 +20,7 @@ if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
 if ( !exist("psd_version") )    global psd_version = 1; endif
 if ( !exist("data_FreqRange") ) data_FreqRange  = [ 100, 300 ]; endif
+if ( !exist("iFig0") )          global iFig0 = 0; endif
 %% ---------- Prior range defaults ----------
 prior_f0Range   = [ 210, 270 ];
 prior_tauRange  = [ 1e-3, 20e-3 ];
@@ -75,7 +76,7 @@ endswitch
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
   [ts{X}, ft{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
-                                              "tCenter", tCenter, "Twindow", 10, ...
+                                              "tCenter", tCenter, "Twindow", 4, ...
                                               "plotSpectrum", plotSpectra, "useBuffer", useTSBuffer );
 endfor
 
@@ -148,7 +149,7 @@ save ("-hdf5", fname )
 
 %% ----- plot quantities vs tOffs ----------
 if ( plotSummary )
-  figure(); clf;
+  figure ( iFig0 * 5 + 4 ); clf;
   xrange = [ tOffsStart, tOffsEnd ];
 
   subplot ( 2, 2, 1, "align" );
@@ -182,7 +183,7 @@ if ( plotSummary )
 endif
 
 if ( plotBSGHist )
-  figure(); clf;
+  figure ( iFig0 * 5  + 5 ); clf;
   hist ( dat.BSG_mean, 20 );
   xlabel ( "<BSG>" );
   fname = sprintf ( "%s-hist.pdf", ret{1}.bname );

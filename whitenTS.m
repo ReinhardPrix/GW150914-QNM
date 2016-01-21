@@ -2,6 +2,7 @@
 %% including an automated line-nuking algorithm: 'lines' are identified as > lineSigma deviations in power
 function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
   global debugLevel = 1;
+  global iFig0 = 0;
 
   uvar = parseOptions ( varargin,
                         {"tsIn", "struct" },
@@ -79,16 +80,16 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
     elseif ( strcmp ( IFO, "L1" ) )
       psd0 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0L1-PSD.dat");
     endif
-    iFig = ifelse ( strcmp ( IFO, "H1" ), 1, 2 );
-    figure(iFig); clf;
+    iIFO = ifelse ( strcmp ( IFO, "H1" ), 0, 1 );
+    figure ( 5 * iFig0 + 1 + iIFO ); clf;
 
     subplot ( 3, 1, 1); hold on;
     plot ( fk_wide, abs ( xk_wide ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
-    plot ( fk_wide, sqrt(Sn_wide), "o;sqrt(SX);", "color", "green" );
-    plot ( fk_wide ( indsNuke ), abs ( xk_wide ( indsNuke )) / sqrt(T), "o", "color", "red" );
     if ( exist ( "psd0" ) )
       plot ( psd0(:,1), sqrt(psd0(:,2)), "x;lalinference;", "color", "magenta" );
     endif
+    plot ( fk_wide, sqrt(Sn_wide), "o;sqrt(SX);", "color", "green" );
+    plot ( fk_wide ( indsNuke ), abs ( xk_wide ( indsNuke )) / sqrt(T), "o", "color", "red" );
   endif
 
   NindsNuke = length ( indsNuke );
@@ -107,9 +108,13 @@ function [ tsOut, ftOut, psd ] = whitenTS ( varargin )
     hold off;
 
     subplot ( 3, 1, 2 );
-    plot ( fk_wide, abs ( xkW_wide ), "+-", "color", "blue" ); legend ( IFO );
+    plot ( fk_wide, abs ( xkW_wide ) / sqrt(T/2), "+-", "color", "blue" ); legend ( "xk/rms" );
+    xlim ( [uvar.fMin, uvar.fMax] );
+    ylim ( [ 0, 5 ] );
+
     subplot ( 3, 1, 3 );
-    plot ( fk_wide, abs ( xkOW_wide ), "+-", "color", "blue" ); legend ( IFO );
+    plot ( fk_wide, abs ( xkOW_wide ), "+-", "color", "blue" ); legend ( "xk/Sn" );
+    xlim ( [uvar.fMin, uvar.fMax] );
   endif
 
   %% ----- turn SFTs back into timeseries ----------

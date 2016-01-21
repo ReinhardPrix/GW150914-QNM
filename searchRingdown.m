@@ -3,6 +3,7 @@
 function ret = searchRingdown ( varargin )
   global debugLevel = 1;
   global psd_version = 1;
+  global iFig0 = 0;
 
   uvar = parseOptions ( varargin,
                         {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
@@ -149,7 +150,7 @@ function ret = searchRingdown ( varargin )
 
   %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
   if ( uvar.plotResults )
-    figure(3 * psd_version); clf;
+    figure ( 5 * iFig0 + 3 ); clf;
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");

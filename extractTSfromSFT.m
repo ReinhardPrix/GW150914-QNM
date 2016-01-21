@@ -50,7 +50,7 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
     ft.fk   = (dat(:,1))';
     ft.xk   = (dat(:,2) + I * dat(:,3))';
     ft.xkW  = (dat(:,4) + I * dat(:,5))';
-    ft.xkOW = (dat(:,6) + I * dat(:,6))';
+    ft.xkOW = (dat(:,6) + I * dat(:,7))';
     ft.IFO  = IFO;
 
     dat = load ( ts_fname );
@@ -64,76 +64,77 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
     ts.epoch = epoch;
     psd.epoch = epoch;
     ft.epoch = epoch;
-  else
-    %% ---------- otherwise: Read SFT frequency-domain data ----------
-    DebugPrintf (2, "%s: Extracting TS from SFT '%s'\n", funcName(), uvar.SFTpath );
-    sft = readSFT ( uvar.SFTpath );
-    epoch = sft.header.epoch.gpsSeconds;
-    f0 = sft.header.f0;
-    assert ( strcmp ( IFO, sft.header.IFO ) );
-    Tsft = sft.header.Tsft; df = 1/Tsft;
-    Nfreq = length ( sft.SFTdata );
-    f1 = f0 + (Nfreq-1) * df;
-    fk0 = f0 : df : f1;
-    xk0 = sft.SFTdata(:,1) + I * sft.SFTdata(:,2);
-    assert ( length(fk0) == length(xk0) );
-    ft0.fk = fk0;
-    ft0.xk = xk0;
-    ft0.IFO = IFO;
-    ft0.epoch = epoch;
+    return;
+  endif
 
-    %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
-    tsBand0 = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, uvar.fSamp );
+  %% ---------- otherwise: Read SFT frequency-domain data ----------
+  DebugPrintf (2, "%s: Extracting TS from SFT '%s'\n", funcName(), uvar.SFTpath );
+  sft = readSFT ( uvar.SFTpath );
+  epoch = sft.header.epoch.gpsSeconds;
+  f0 = sft.header.f0;
+  assert ( strcmp ( IFO, sft.header.IFO ) );
+  Tsft = sft.header.Tsft;
+  df = 1/Tsft;
+  Nfreq = length ( sft.SFTdata );
+  f1 = f0 + (Nfreq-1) * df;
+  fk0 = f0 + df * [ 0 : (Nfreq-1) ];
+  xk0 = sft.SFTdata(:,1) + I * sft.SFTdata(:,2);
+  assert ( length(fk0) == length(xk0) );
+  ft0.fk = fk0;
+  ft0.xk = xk0;
+  ft0.IFO = IFO;
+  ft0.epoch = epoch;
 
-    %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
-    indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - tsBand0.epoch - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - tsBand0.epoch + uvar.Twindow )) );
-    tsBand.ti = tsBand0.ti ( indsTrunc );
-    tsBand.xi = tsBand0.xi ( indsTrunc );
-    tsBand.IFO = IFO;
-    tsBand.epoch = tsBand0.epoch;
+  %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
+  switch ( psd_version )
+    case 1
+      %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
+      tsBand0 = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, uvar.fSamp );
+      %%figure(); clf; plot ( tsBand0.ti + (epoch - uvar.tCenter), tsBand0.xi, "-" );
+      indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - tsBand0.epoch - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - tsBand0.epoch + uvar.Twindow )) );
+      %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
+      tsBand.ti    = tsBand0.ti ( indsTrunc );
+      tsBand.xi    = tsBand0.xi ( indsTrunc );
+      tsBand.IFO   = IFO;
+      tsBand.epoch = epoch;
+      [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
+                                 "fMin", uvar.fMin, "fMax", uvar.fMax,
+                                 "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
+                                 "RngMedWindow", uvar.RngMedWindow,
+                                 "plotSpectrum", uvar.plotSpectrum );
+    case 2
+      [ts, ft, psd] = whitenTS_v2 ( "ftIn", ft0, ...
+                                    "fSamp", uvar.fSamp, ...
+                                    "tCenter", uvar.tCenter, "Twindow", uvar.Twindow, ...
+                                    "fMin", uvar.fMin, "fMax", uvar.fMax, ...
+                                    "plotSpectrum", uvar.plotSpectrum );
+    otherwise
+      error ("psd_version = %d not supported\n", psd_version );
+  endswitch
 
-    %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
-    switch ( psd_version )
-      case 1
-        [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
-                                   "fMin", uvar.fMin, "fMax", uvar.fMax,
-                                   "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth,
-                                   "RngMedWindow", uvar.RngMedWindow,
-                                   "plotSpectrum", uvar.plotSpectrum );
-      case 2
-        [ts, ft, psd] = whitenTS_v2 ( "tsIn", tsBand, ...
-                                      "fMin", uvar.fMin, "fMax", uvar.fMax, ...
-                                      "lineSigma", uvar.lineSigma, "lineWidth", uvar.lineWidth, ...
-                                      "plotSpectrum", uvar.plotSpectrum );
-      otherwise
-        error ("psd_version = %d not supported\n", psd_version );
-    endswitch
+  if ( uvar.plotSpectrum )
+    fname = sprintf ( "%s/%s-spectrum.pdf", resDir, bname);
+    ezprint ( fname, "width", 512 );
+  endif
 
-    if ( uvar.plotSpectrum )
-      title ( bname );
-      fname = sprintf ( "%s/%s-spectrum.pdf", resDir, bname);
-      ezprint ( fname, "width", 512 );
-    endif
+  %% ---------- store results for potential future re-use ----------
+  fid = fopen ( psd_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", psd_fname );
+  fprintf ( fid, "%%%%%14s %16s\n", "freq [Hz]", "SX [1/Hz]" );
+  fprintf ( fid, "%16.9f  %16.9g\n", [psd.fk', psd.Sn']' );
+  fclose(fid);
 
-    %% ---------- store results for potential future re-use ----------
-    fid = fopen ( psd_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", psd_fname );
-    fprintf ( fid, "%%%%%14s %16s\n", "freq [Hz]", "SX [1/Hz]" );
-    fprintf ( fid, "%16.9f  %16.9g\n", [psd.fk', psd.Sn']' );
-    fclose(fid);
+  fid = fopen ( ts_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", ts_fname );
+  fprintf ( fid, "%%%%%14s %16s %16s %16s %16s\n", "ti [offs s]", "xi", "xi/sqrtSX", "xi/SX", "epoch [GPS s]" );
+  epochV = ts.epoch * ones ( size ( ts.ti ) );	%% stupid way, but ensure we keep epoch separate for 'offsets' ti to avoid roundoff problems
+  fprintf ( fid, "%16.9f %16.9g %16.9g %16.9g %16.9f\n", [ts.ti', ts.xi', ts.xiW', ts.xiOW', epochV']' );
+  fclose(fid);
 
-    fid = fopen ( ts_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", ts_fname );
-    fprintf ( fid, "%%%%%14s %16s %16s %16s %16s\n", "ti [offs s]", "xi", "xi/sqrtSX", "xi/SX", "epoch [GPS s]" );
-    epochV = ts.epoch * ones ( size ( ts.ti ) );	%% stupid way, but ensure we keep epoch separate for 'offsets' ti to avoid roundoff problems
-    fprintf ( fid, "%16.9f %16.9g %16.9g %16.9g %16.9f\n", [ts.ti', ts.xi', ts.xiW', ts.xiOW', epochV']' );
-    fclose(fid);
-
-    fid = fopen ( ft_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", ft_fname );
-    fprintf ( fid, "%%%%%14s %16s %16s %16s %16s %16s %16s\n", "fk [Hz]", "Re(xk)", "Im(xk)", "Re(xk/sqrtSX)", "Im(xk/sqrtSX)", "Re(xk/SX)", "Im(xk/SX)" );
-    fprintf ( fid, "%16.9f %16.9g %16.9g %16.9g %16.9g %16.9g %16.9g\n",
-              [ ft.fk', real(ft.xk'), imag(ft.xk'), real(ft.xkW'), imag(ft.xkW'), real(ft.xkOW'), imag(ft.xkOW') ]' );
-    fclose(fid);
-
-  endif %% if no previous results re-used
+  fid = fopen ( ft_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", ft_fname );
+  fprintf ( fid, "%%%%%14s %16s %16s %16s %16s %16s %16s\n", "fk [Hz]", "Re(xk)", "Im(xk)", "Re(xk/sqrtSX)", "Im(xk/sqrtSX)", "Re(xk/SX)", "Im(xk/SX)" );
+  fprintf ( fid, "%16.9f %16.9g %16.9g %16.9g %16.9g %16.9g %16.9g\n",
+            [ ft.fk', real(ft.xk'), imag(ft.xk'), real(ft.xkW'), imag(ft.xkW'), real(ft.xkOW'), imag(ft.xkOW') ]' );
+  fclose(fid);
 
   return;
-endfunction
+
+endfunction %% extractTSfromSFT()
