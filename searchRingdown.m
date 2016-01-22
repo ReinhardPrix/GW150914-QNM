@@ -76,6 +76,12 @@ function ret = searchRingdown ( varargin )
   %% ----- prepare time-series stretch to analyze
   t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
 
+  %% ---------- offset from 'merger time': https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
+  tMerger.sec = 1126259462;
+  tMerger.frac = 0.42285;
+  tOffsM = (tMerger.sec - uvar.tCenter) + tMerger.frac;
+  tOffsFromM = uvar.tOffs - tOffsM;
+
   inds_match = find ( (ts{1}.ti >= (t0 - ts{1}.epoch) ) & (ts{1}.ti <= (t0 - ts{1}.epoch + Tmax)) );
   Dt_i = ts{1}.ti ( inds_match ) - (t0 - ts{1}.epoch);
   assert ( min(Dt_i) >= 0 );
@@ -153,65 +159,77 @@ function ret = searchRingdown ( varargin )
   %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
   if ( uvar.plotResults )
     figure ( 5 * iFig0 + 3 ); clf;
+    %% ----- posterior (f0, tau)
     subplot ( 2, 2, 1 );
     hold on;
     colormap ("jet");
     surf ( ff0, ttau * 1e3, BSG ); view(2); shading("interp"); %% colorbar("location", "NorthOutside");
     plot3 ( f0_MPE, tau_MPE * 1e3, 1.1*BSG_max, "marker", "o", "markersize", 3, "color", "white" );
-    yrange = ylim();
-    xlabel ("f0 [Hz]"); ylabel ("tau [ms]");
+    xlim ( uvar.prior_f0Range );
+    ylim ( uvar.prior_tauRange * 1e3 );
+    %%xlabel ("f0 [Hz]");
+    ylabel ("tau [ms]");
     hold off;
-
+    %% ----- posterior(f0)
     subplot ( 2, 2, 3 );
     plot ( f0, posterior_f0, "linewidth", 2 );
     grid on;
+    xrange = uvar.prior_f0Range;
     yrange = ylim();
     if ( !failed_intervals )
       line ( [f0_est.MPE, f0_est.MPE], yrange );
       line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
     endif
-    ylim ( [0, max(yrange)] );
+    xlim ( xrange );
+    ylim ( yrange );
     xlabel ("f0 [Hz]");
-    ylabel ("pdf(f0)");
+    %%ylabel ("pdf(f0)");
+    set ( gca(), "yticklabel", {} );
 
+    %% ----- posterior (tau)
     subplot ( 2, 2, 2 );
-    plot ( tau * 1e3, posterior_tau, "linewidth", 2 );
-    yrange = ylim();
+    plot ( posterior_tau, tau * 1e3, "linewidth", 2 );
+    xrange = xlim();
+    yrange = uvar.prior_tauRange * 1e3;
     if ( !failed_intervals )
-      line ( [tau_est.MPE, tau_est.MPE]*1e3, yrange );
-      line ( [tau_est.lower, tau_est.upper]* 1e3, [tau_est.pIso, tau_est.pIso] );
+      line ( xrange, [tau_est.MPE, tau_est.MPE]*1e3 );
+      line ( [tau_est.pIso, tau_est.pIso], [tau_est.lower, tau_est.upper]* 1e3 );
     endif
-    ylim ( [0, max(yrange)] );
+    xlim ( xrange );
+    ylim ( yrange );
     grid on;
-    xlabel ("tau [ms]");
-    ylabel ("pdf(tau)");
+    %%label ("pdf(tau)");
+    ylabel ("tau [ms]");
+    set ( gca(), "xticklabel", {} );
 
+    %% ----- timeseries {h(t), template}
     subplot ( 2, 2, 4 );
     hold on;
     colors = { "red", "blue" };
     for X = 1:Ndet
-      sleg = sprintf (";OW[%s];", ts{X}.IFO );
+      sleg = sprintf (";OW[%s] ;", ts{X}.IFO );
       plot ( ts{X}.ti - (uvar.tCenter - ts{X}.epoch), ts{X}.xiOW * SX_MPE{X}, sleg, "linewidth", 2, "color", colors{X} );
     endfor
     %%plot ( ti - (uvar.tCenter - ts{1}.epoch), yiOW * Stot_MPE, ";OW[H1+L1];", "linewidth", 2, "color", "magenta" );
     indsRingdown = find ( Dt_i >= 0 );
     Dt_pos = Dt_i ( indsRingdown );
     tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
-    plot ( uvar.tOffs + Dt_i, tmpl_MPE, ";MPE;", "linewidth", 4, "color", "black" );
+    plot ( uvar.tOffs + Dt_i, tmpl_MPE, ";MPE ;", "linewidth", 4, "color", "black" );
     legend ( "location", "NorthEast");
-    yrange = [-1.3e-21, 1.3e-21 ];
-    line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "--", "linewidth", 1 );
-    xlim ( [uvar.tOffs - 0.005, uvar.tOffs + 5 * tau_MPE ] );
+    yrange = [-1.7e-21, 1.5e-21 ];
+    line ( [ uvar.tOffs, uvar.tOffs],   yrange, "linestyle", "--", "linewidth", 2 );
+    line ( [ tOffsM, tOffsM], yrange, "linestyle", "-", "linewidth", 2 );
+    xlim ( [uvar.tOffs - 0.01, uvar.tOffs + 5 * tau_MPE ] );
     ylim ( yrange );
     xlabel ( sprintf ( "%.0f + tOffs [s]", uvar.tCenter) );
-    tOffs_text = sprintf ( "tOffs = %.4f s", uvar.tOffs );
-    x0 = uvar.tOffs + 0.02 * abs(diff(xlim()));
-    y0 = max(yrange) - 0.2*abs(diff(yrange));
-    text ( x0, y0, tOffs_text );
     text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
+
+    textOffs = sprintf ( "tOffs = %.5fs = tM + %.2fms", uvar.tOffs, tOffsFromM * 1e3 );
+    title ( textOffs );
     textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g", log10 ( BSG_mean ), SNR_MPE );
-    y1 = min(yrange) + 0.2*abs(diff(yrange));
-    text ( x0, y1, textB );
+    x0 = uvar.tOffs + 0.02 * abs(diff(xlim()));
+    y0 = min(yrange) + 0.2*abs(diff(yrange));
+    text ( x0, y0, textB );
     ylim ( yrange );
     grid on;
     hold off;

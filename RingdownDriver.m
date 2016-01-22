@@ -18,25 +18,27 @@ plotPosteriors = true;
 
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
-if ( !exist("psd_version") )    global psd_version = 1; endif
+if ( !exist("psd_version") )    global psd_version = 2; endif
 if ( !exist("cleanLines") )     global cleanLines = false; endif
-if ( !exist("data_FreqRange") ) data_FreqRange  = [ 100, 300 ]; endif
+if ( !exist("data_FreqRange") ) data_FreqRange  = [ 30, 1e3 ]; endif
 if ( !exist("iFig0") )          global iFig0 = 0; endif
 
 %% ---------- Prior range defaults ----------
-prior_f0Range   = [ 210, 270 ];
-prior_tauRange  = [ 1e-3, 20e-3 ];
+prior_f0Range   = [ 200, 300 ];
+prior_tauRange  = [ 0.5e-3, 20e-3 ];
 prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
 step_f0         = 0.5;
 step_tau        = 0.5e-3;
+
+%% NR best-fit 'merger time'
+%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
 
 switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tCenter = 1126259462;
-    tCenter     = 1126259472; %% 10s past GW150914
     if ( !exist ( "tOffs" ) )
-      tOffs = 0.43;
+      tOffs = 0.42985;
     endif
     tOffsStart = tOffs;
     dtOffs     = 0.0005;
@@ -49,9 +51,9 @@ switch ( searchType )
   case "onSource"
     %% ---------- "ON-SOURCE ----------
     tCenter = 1126259462;
-    tOffsStart = 0.422;		%% this is about when the signal enters f0>~200Hz
+    tOffsStart = tMerger.frac;		%% this is about when the signal enters f0>~200Hz
     dtOffs     = 0.0005;	%% 0.5ms stepsize
-    tOffsEnd   = 0.435; %% 0.438;
+    tOffsEnd   = tMerger.frac + 10e-3;
 
     plotBSGHist = false;
     plotSummary = true;
@@ -93,15 +95,16 @@ resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz-
 addpath ( pwd() );
 cd ( resDir );
 
-try
+%%try
 %% ----- run search
 tOffsV = [ tOffsStart : dtOffs : tOffsEnd ];
 Nsteps = length(tOffsV);
 
 ret = cell ( 1, Nsteps );
 for i = 1:Nsteps
-  DebugPrintf ( 1, "tOffs = %.4f s:\n", tOffsV(i) );
-  ret{i} = searchRingdown ( "ts", ts, "psd", psd, "tOffs", tOffsV(i), "tCenter", tCenter, ...
+  DebugPrintf ( 1, "tOffs = %.5f s:\n", tOffsV(i) );
+  ret{i} = searchRingdown ( "ts", ts, "psd", psd, ...
+                            "tCenter", tCenter, "tOffs", tOffsV(i), ...
                             "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
                             "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
                             "prior_H", prior_H, ...
@@ -198,12 +201,12 @@ endif
 
 cd ("../..");
 
-catch
-  err = lasterror();
-  warning(err.identifier, err.message);
-  err.stack.file
-  err.stack.name
-  err.stack.line
+## catch
+##   err = lasterror();
+##   warning(err.identifier, err.message);
+##   err.stack.file
+##   err.stack.name
+##   err.stack.line
 
-  cd ("../..");	%% make sure we end up in main dir in case of failure
-end_try_catch
+##   cd ("../..");	%% make sure we end up in main dir in case of failure
+## end_try_catch
