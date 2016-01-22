@@ -97,7 +97,6 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
       tsBand.epoch = epoch;
       [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
                                  "fMin", uvar.fMin, "fMax", uvar.fMax,
-                                 "RngMedWindow", uvar.RngMedWindow,
                                  "plotSpectrum", uvar.plotSpectrum );
     case 2
       [ts, ft, psd] = whitenTS_v2 ( "ftIn", ft0, ...
