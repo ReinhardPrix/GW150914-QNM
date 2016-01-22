@@ -10,6 +10,8 @@ global debugLevel = 1;
 SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C01-1126258841-1800.sft" };
 fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such that 7.0ms timeshift between IFOs
                 %% can be represented by exactly by an integer bin-shift: 7e-3 s * 4e3 Hz =  28.0 bins
+tEvent = 1126259462;
+tMergerOffs = 0.42285; %% https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
 
 plotSummary = false;
 plotSpectra = false;
@@ -36,7 +38,7 @@ step_tau        = 0.5e-3;
 switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
-    tCenter = 1126259462;
+    tCenter = tEvent;
     if ( !exist ( "tOffs" ) )
       tOffs = 0.42985;
     endif
@@ -50,10 +52,10 @@ switch ( searchType )
 
   case "onSource"
     %% ---------- "ON-SOURCE ----------
-    tCenter = 1126259462;
-    tOffsStart = tMerger.frac;		%% this is about when the signal enters f0>~200Hz
+    tCenter = tEvent;
+    tOffsStart = tMergerOffs;		%% this is about when the signal enters f0>~200Hz
     dtOffs     = 0.0005;	%% 0.5ms stepsize
-    tOffsEnd   = tMerger.frac + 10e-3;
+    tOffsEnd   = tMergerOffs + 10e-3;
 
     plotBSGHist = false;
     plotSummary = true;
@@ -62,7 +64,7 @@ switch ( searchType )
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
-    tCenter     = 1126259472; %% 10s past GW150914
+    tCenter     = tEvent + 10;
     tOffsStart  = -3;
     dtOffs      = 0.05;	%% stepsize to avoid template overlap --> 'independent' templates
     tOffsEnd    = 3;
@@ -159,36 +161,103 @@ save ("-hdf5", fname )
 %% ----- plot quantities vs tOffs ----------
 if ( plotSummary )
   figure ( iFig0 * 5 + 4 ); clf;
-  xrange = [ tOffsStart, tOffsEnd ];
 
+  %% ----- plot log10BSG(tOffs)
   subplot ( 2, 2, 1, "align" );
-  plot ( tOffsV, log10(dat.BSG_mean), "-o" ); grid on;
+  xrange = [ tOffsStart, tOffsEnd ];
+  yrange = [ -1, 10 ];
+  plot ( tOffsV, log10(dat.BSG_mean), "-o" );
   xlim ( xrange );
-  ylim ( [ -2, 5 ] );
+  ylim ( yrange );
   line ( xrange, 0, "linestyle", "-", "linewidth", 3 );
   line ( xrange, 1, "linestyle", ":", "linewidth", 3 );
+  line ( tMergerOffs * [1,1], yrange, "linestyle", "-", "linewidth", 2 );
   xlim ( xrange );
   ylabel ("log10<BSG>");
+  xlabel ( "tOffs [s]")
+  grid on;
+  %% add second x-axis on top
+  axes1 = gca ();
+  set (axes1, "XAxisLocation",  "bottom");
+  set (axes1, "activepositionproperty", "position")
+  hold on;
+  axes2 = axes ();
+  set (axes2, "color", "none", "ytick", [])
+  set (axes2, "XAxisLocation",  "top" )
+  set (axes2, "activepositionproperty", "position")
+  set (axes2, "position", get (axes1, "position"))
+  set (axes2, "XTick", (get ( axes1, "xtick" ) - tMergerOffs) * 1e3 );
+  hold off
+  set (axes2, "xlim", (get (axes1, "xlim") - tMergerOffs) * 1e3 );
+  xlabel ( "tOffs from Merger [ms]")
 
-  subplot ( 2, 2, 3, "align" );
-  plot ( tOffsV, dat.SNR_MPE, "-o" ); grid on;
-  xlim ( xrange );
-  ylabel ("SNR(MPE)");
-
+  %% ----- plot f0_MPE(tOffs)
   subplot ( 2, 2, 2, "align" );
   errorbar ( tOffsV, dat.f0_MPE, dat.f0_lerr, dat.f0_uerr, ";90%;" ); grid on;
   xlim ( xrange );
   ylim ( prior_f0Range );
   ylabel ("f0 [Hz]");
+  %% add second x-axis on top
+  axes1 = gca ();
+  set (axes1, "XAxisLocation",  "bottom");
+  set (axes1, "activepositionproperty", "position")
+  hold on;
+  axes2 = axes ();
+  set (axes2, "color", "none", "ytick", [])
+  set (axes2, "XAxisLocation",  "top" )
+  set (axes2, "activepositionproperty", "position")
+  set (axes2, "position", get (axes1, "position"))
+  set (axes2, "XTick", (get ( axes1, "xtick" ) - tMergerOffs) * 1e3 );
+  hold off
+  set (axes2, "xlim", (get (axes1, "xlim") - tMergerOffs) * 1e3 );
+  xlabel ( "tOffs from Merger [ms]")
 
+
+  %% ----- plot SNR(tOffs)
+  subplot ( 2, 2, 3, "align" );
+  plot ( tOffsV, dat.SNR_MPE, "-o" ); grid on;
+  xlim ( xrange );
+  ylabel ("SNR(MPE)");
+  %% add second x-axis on top
+  axes1 = gca ();
+  set (axes1, "XAxisLocation",  "bottom");
+  set (axes1, "activepositionproperty", "position")
+  hold on;
+  axes2 = axes ();
+  set (axes2, "color", "none", "ytick", [])
+  set (axes2, "XAxisLocation",  "top" )
+  set (axes2, "activepositionproperty", "position")
+  set (axes2, "position", get (axes1, "position"))
+  set (axes2, "XTick", (get ( axes1, "xtick" ) - tMergerOffs) * 1e3 );
+  hold off
+  set (axes2, "xlim", (get (axes1, "xlim") - tMergerOffs) * 1e3 );
+
+
+  %% ----- plot tau_MPE(tOffs)
   subplot ( 2, 2, 4, "align" );
   errorbar ( tOffsV, 1e3*dat.tau_MPE, 1e3*dat.tau_lerr, 1e3*dat.tau_uerr, ";90%;" ); grid on;
   xlim ( xrange );
   ylim ( 1e3 * prior_tauRange );
   ylabel ("tau [ms]");
   xlabel ( sprintf ( "%.0f + tOffs [s]", tCenter) );
+  %% add second x-axis on top
+  axes1 = gca ();
+  set (axes1, "XAxisLocation",  "bottom");
+  set (axes1, "activepositionproperty", "position")
+  hold on;
+  axes2 = axes ();
+  set (axes2, "color", "none", "ytick", [])
+  set (axes2, "XAxisLocation",  "top" )
+  set (axes2, "activepositionproperty", "position")
+  set (axes2, "position", get (axes1, "position"))
+  set (axes2, "XTick", (get ( axes1, "xtick" ) - tMergerOffs) * 1e3 );
+  hold off
+  set (axes2, "xlim", (get (axes1, "xlim") - tMergerOffs) * 1e3 );
+
+
   fname = sprintf ( "%s-summary.pdf", ret{1}.bname );
   ezprint ( fname, "width", 512 );
+
 endif
 
 if ( plotBSGHist )

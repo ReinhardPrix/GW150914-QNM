@@ -21,7 +21,7 @@ function ret = searchRingdown ( varargin )
 
   shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
 
-  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%.2g-tOffs%.4fs-psd_v%d-lineCleaning%s",
+  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%.2g-tOffs%.5fs-psd_v%d-lineCleaning%s",
                     uvar.tCenter, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
                     1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
                     uvar.prior_H,
@@ -130,10 +130,10 @@ function ret = searchRingdown ( varargin )
   A_MPE    = A_est( l_MPE );
   phi0_MPE = phi0_est ( l_MPE );
   SNR_MPE  = SNR_est ( l_MPE );
-  [val, freqInd] = min ( abs ( fk - f0_MPE ) );
-  Stot_MPE = Stot ( freqInd );
+  [val, freqInd] = min ( abs ( fk - 250 ) );
+  Stot_GR = Stot ( freqInd );
   for X = 1:Ndet
-    SX_MPE{X} = psd{X}.Sn ( freqInd );
+    SX_GR{X} = psd{X}.Sn ( freqInd );
   endfor
   %% ---------- compute marginalized posteriors on {f,tau} ----------
   BSG_renorm = BSG / max ( BSG(:) );
@@ -208,9 +208,9 @@ function ret = searchRingdown ( varargin )
     colors = { "red", "blue" };
     for X = 1:Ndet
       sleg = sprintf (";OW[%s] ;", ts{X}.IFO );
-      plot ( ts{X}.ti - (uvar.tCenter - ts{X}.epoch), ts{X}.xiOW * SX_MPE{X}, sleg, "linewidth", 2, "color", colors{X} );
+      plot ( ts{X}.ti - (uvar.tCenter - ts{X}.epoch), ts{X}.xiOW * SX_GR{X}, sleg, "linewidth", 2, "color", colors{X} );
     endfor
-    %%plot ( ti - (uvar.tCenter - ts{1}.epoch), yiOW * Stot_MPE, ";OW[H1+L1];", "linewidth", 2, "color", "magenta" );
+    %%plot ( ti - (uvar.tCenter - ts{1}.epoch), yiOW * Stot_GR, ";OW[H1+L1];", "linewidth", 2, "color", "magenta" );
     indsRingdown = find ( Dt_i >= 0 );
     Dt_pos = Dt_i ( indsRingdown );
     tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
