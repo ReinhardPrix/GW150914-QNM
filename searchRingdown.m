@@ -201,7 +201,7 @@ function ret = searchRingdown ( varargin )
     legend ( "location", "NorthEast");
     yrange = [-1.3e-21, 1.3e-21 ];
     line ( [ uvar.tOffs, uvar.tOffs], yrange, "linestyle", "--", "linewidth", 1 );
-    xlim ( [uvar.tOffs - 0.005, uvar.tOffs + 4.5 * tau_MPE ] );
+    xlim ( [uvar.tOffs - 0.005, uvar.tOffs + 5 * tau_MPE ] );
     ylim ( yrange );
     xlabel ( sprintf ( "%.0f + tOffs [s]", uvar.tCenter) );
     tOffs_text = sprintf ( "tOffs = %.4f s", uvar.tOffs );
