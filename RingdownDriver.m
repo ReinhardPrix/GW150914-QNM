@@ -34,6 +34,7 @@ switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tCenter = 1126259462;
+    tCenter     = 1126259472; %% 10s past GW150914
     if ( !exist ( "tOffs" ) )
       tOffs = 0.43;
     endif
@@ -60,9 +61,9 @@ switch ( searchType )
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
     tCenter     = 1126259472; %% 10s past GW150914
-    tOffsStart  = -5;
-    dtOffs      = 0.1;	%% 100ms stepsize, to avoid template overlap --> 'independent' templates
-    tOffsEnd    = 5;
+    tOffsStart  = -3;
+    dtOffs      = 0.05;	%% stepsize to avoid template overlap --> 'independent' templates
+    tOffsEnd    = 3;
     plotPosteriors = true;
     plotSummary = true;
     plotSpectra = false;
