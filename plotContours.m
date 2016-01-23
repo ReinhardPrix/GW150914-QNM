@@ -1,4 +1,4 @@
-function plotContours ( in )
+function plotContours ( in, select = [] )
   global iFig0 = 0;
   global tMergerOffs
   global tEvent;
@@ -11,6 +11,9 @@ function plotContours ( in )
   hold on;
   he = errorbar ( f0GR.val, taumsGR.val, f0GR.lerr, f0GR.uerr, taumsGR.lerr, taumsGR.uerr, "~>.r;IMR;" );
   for i = 1 : Nsteps
+    if ( !isempty ( select )  && !( any ( i == select )) )
+      continue;
+    endif
     [C, H] = contour ( in{i}.ff0, in{i}.ttau * 1e3, in{i}.posterior2D, in{i}.isoConf2 * [ 1, 1 ] );
     set ( H, "linecolor", "black", "linewidth", 2 );
     leg = sprintf ( "tM + %.1fms", (in{i}.tGPS - tEvent - tMergerOffs) * 1e3 );

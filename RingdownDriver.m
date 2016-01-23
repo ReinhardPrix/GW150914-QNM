@@ -76,6 +76,7 @@ switch ( searchType )
     doPlotSummary   = true;
     doPlotSpectra   = false;
     doPlotBSGHist   = false;
+    doPlotH         = true;
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
@@ -200,11 +201,14 @@ if ( doPlotH )
   figure(); clf; hold on;
   plot ( prior_H(:,1), prior_H(:,2), "-xg;prior;", "linestyle", "--", "linewidth", 2 );
   for i = 1 : Nsteps
-    leg = sprintf ( "-;tM + %.1fms;", (ret{i}.tGPS - tEvent - tMergerOffs) * 1e3 );
-    plot ( prior_H(:,1), ret{i}.post_H, leg );
+    plot ( prior_H(:,1), ret{i}.post_H, "-b" );
+    leg = sprintf ( "+%.1fms", (ret{i}.tGPS - tEvent - tMergerOffs) * 1e3 );
+    text ( prior_H(end,1), ret{i}.post_H(end), leg );
   endfor
   xlabel ( "H" ); ylabel ("pdf");
-
+  grid on; hold off;
+  fname = sprintf ( "%s-post_H.pdf", ret{1}.bname );
+  ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotBSGHist )

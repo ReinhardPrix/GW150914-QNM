@@ -7,7 +7,7 @@ function plotSummary ( in )
 
   %% ----- prepare quantities to be plotted versus QNM start-time
   Nsteps = length ( in );
-  tOffs = BSG_mean = SNR_MPE2 = f0_MPE = f0_lerr = f0_uerr = taums_MPE = taums_lerr = taums_uerr = zeros ( 1, Nsteps );
+  tOffs = BSG = SNR_MPE2 = f0_MPE = f0_lerr = f0_uerr = taums_MPE = taums_lerr = taums_uerr = zeros ( 1, Nsteps );
   for i = 1 : Nsteps
     tOffs(i)      = in{i}.tGPS - tEvent;
     BSG(i)        = in{i}.BSG;
@@ -33,7 +33,7 @@ function plotSummary ( in )
   subplot ( 2, 2, 1, "align" );
   xrange = tOffs_Range;
   yrange = [ -1, 10 ];
-  plot ( tOffs, log10(BSG_mean), "-o" );
+  plot ( tOffs, log10(BSG), "-o" );
   xlim ( xrange );
   ylim ( yrange );
   line ( xrange, 0, "linestyle", "-", "linewidth", 3 );
