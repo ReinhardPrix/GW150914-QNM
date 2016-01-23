@@ -4,7 +4,6 @@
 *.dat
 *.log
 *.out
-*.pdf
 *.sft
 *~
 /#*Inferior Octave*#

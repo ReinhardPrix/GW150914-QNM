@@ -1,0 +1,119 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 13.04.2 ] */
+
+/* [wxMaxima: input   start ] */
+Is : integrate ( %e^(-x/Q)*sin(x)^2, x )$
+'Is = factor ( trigsimp ( trigexpand ( Is ) ));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Ic : integrate ( %e^(-x/Q)*cos(x)^2, x )$
+'Ic = factor ( trigsimp ( trigexpand ( Ic ) ));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Isc : integrate ( %e^(-x/Q)*sin(x)*cos(x), x )$
+'Isc = factor ( trigsimp ( trigexpand ( Isc ) ));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+limit ( Is, Q, inf );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+integrate ( sin(x)*cos(x), x );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Is0 : -Q^2/(1+4*Q^2) * %e^(-x/Q) * (sin(2*x) + 2*Q + 1/Q * sin(x)^2 )$
+trigsimp(trigexpand( ratsimp(Is - Is0)));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Ic0: -Q^2/(1+4*Q^2) * %e^(-x/Q) * (-sin(2*x) + 2*Q + 1/Q * cos(x)^2 )$
+trigsimp ( trigexpand ( ratsimp ( Ic - Ic0) ) );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Isc0 :  - Q^2/(1+4*Q^2) * %e^(-x/Q) * (2*cos(x)^2 - 1 + 1/(2*Q)*sin(2*x))$
+trigsimp ( trigexpand ( ratsimp ( Isc - Isc0 ) ) );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ev ( Is0, x= 0);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ev ( Ic0, x=0 );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ev ( Isc0, x = 0);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+plot2d ( ev ( sin(x) * %e^(-x/Q), Q=2*%pi), [x, 0, 8*%pi] );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ev ( Q^2/(1+4*Q^2), Q=30, numer );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ev ( 1 / (2*%pi), numer );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+assume ( H > 0 );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+assume ( H > 0, Gam > 0)$
+1/(2*%pi*H^2) * integrate ( integrate ( exp ( -1/2 * (1/Gam) * (As^2 + Ac^2) + As*xs + Ac * xc) , As, -inf, inf), Ac, -inf, inf );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+trigexpand ( A * cos ( 2*pi*f*t + phi0 ) );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+assume ( H>0)$
+1/(2*%pi*H^2) * integrate ( integrate ( exp ( -1/(2*H^2) * (As^2 + Ac^2) ), As, -inf, inf ), Ac, -inf, inf );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+assume(A>0)$
+priorA(A) := A/H^2 * exp ( -A^2 / (2*H^2) );
+integrate ( priorA(A), A, 0, inf );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+plot2d ( ev( priorA(A), H=4), [A, 0, 10], [xlabel, "Amplitude A [1e-22]"], [ylabel, "pdf P(A|H_S)"]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+assume ( tau > 0, f0 > 0, f>0 )$
+ep(t) := %e^(-t/tau) * %e^(%i*2*%pi*f0*t);
+em(t) := %e^(-t/tau) * %e^(%i*2*%pi*(-f0)*t);
+Ip : integrate ( ep(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$ 'Ip = Ip;
+Im : integrate ( em(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$ 'Im = Im;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+assume ( tau > 0, f0 > 0 )$
+es(t) := %e^(-t/tau) * sin(2*%pi*f0*t);
+ec(t) := %e^(-t/tau) * cos(2*%pi*f0*t);
+
+Is : integrate ( es(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$
+Is_check : tau * ( 2*%pi * f0 * tau ) / ( 1 + %i*4*%pi*f*tau - 4*%pi^2*(f^2-f0^2)*tau^2  )$
+'Is_check = Is_check;
+print ( "Is - Is_check =",  ev( Is - Is_check, expand, factor) )$
+
+Ic : integrate ( ec(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$
+Ic_check : tau * (1 + %i*2*%pi*f*tau)/(1 + %i*4*%pi*f*tau - 4*%pi^2*(f^2-f0^2)*tau^2 )$
+'Ic_check = Ic_check;
+print ( "Ic - Ic_check =",  ev( Ic - Ic_check, expand, factor) )$
+/* [wxMaxima: input   end   ] */
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$
