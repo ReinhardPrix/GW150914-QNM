@@ -14,10 +14,11 @@ fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such
 confidence = 0.90;
 useTSBuffer = true;
 
-doPlotSnapshots = true;
-doPlotContours = true;
-doPlotSummary = false;
-doPlotSpectra = false;
+doPlotSnapshots = false;
+doPlotContours  = false;
+doPlotSummary   = false;
+doPlotSpectra   = false;
+doPlotBSGHist   = false;
 
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
@@ -48,16 +49,19 @@ switch ( searchType )
     %% ---------- test-case to compare different code-versions on ----------
     tCenter = tEvent;
     if ( !exist ( "tOffs" ) )
-      tOffs = 0.42985;
+      tOffs = tMergerOffs + 5e-3;
     endif
-    tOffsStart = tMergerOffs + 1e-3;
+    tOffsStart = tOffs;
+    tOffsEnd   = tOffs;
     dtOffs     = 0.001;
-    tOffsEnd   = tMergerOffs + 5e-3;
 
     useTSBuffer = true;
 
-    doPlotSpectra = false;
-    doPlotBSGHist = false;
+    doPlotSnapshots = true;
+    doPlotContours  = true;
+    doPlotSummary   = false;
+    doPlotSpectra   = true;
+    doPlotBSGHist   = false;
 
   case "onSource"
     %% ---------- "ON-SOURCE ----------
@@ -68,10 +72,11 @@ switch ( searchType )
 
     useTSBuffer = true;
 
-    doPlotBSGHist = false;
-    doPlotSummary = true;
     doPlotSnapshots = true;
-
+    doPlotContours  = true;
+    doPlotSummary   = true;
+    doPlotSpectra   = false;
+    doPlotBSGHist   = false;
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
@@ -83,9 +88,10 @@ switch ( searchType )
     useTSBuffer = true;
 
     doPlotSnapshots = true;
-    doPlotSummary = true;
-    doPlotSpectra = false;
-    doPlotBSGHist = true;
+    doPlotContours  = false;
+    doPlotSummary   = true;
+    doPlotSpectra   = false;
+    doPlotBSGHist   = true;
   otherwise
     error ("Unknown searchType = '%s' specified\n", searchType );
 
@@ -120,7 +126,7 @@ Nsteps = length(tOffsV);
 
 ret = cell ( 1, Nsteps );
 for i = 1:Nsteps
-  DebugPrintf ( 1, "tOffs = %.5f s:\n", tOffsV(i) );
+  DebugPrintf ( 1, "tOffs = %.5fs = tMerger + %.1fms:\n", tOffsV(i), (tOffsV(i) - tMergerOffs) * 1e3 );
 
   ret{i} = searchRingdown ( "ts", ts, "psd", psd, ...
                             "tCenter", tCenter, "tOffs", tOffsV(i), ...

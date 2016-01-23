@@ -2,6 +2,8 @@ function plotSnapshot ( in, ts, tRange = [0.41, 0.455] )
   global iFig0 = 0;
   global tMergerOffs
   global tEvent;
+  global f0GR;
+  global taumsGR;
 
   f0 = unique ( in.ff0 );
   f0Range = [ min(f0), max(f0) ];
@@ -19,11 +21,16 @@ function plotSnapshot ( in, ts, tRange = [0.41, 0.455] )
   hold on;
   colormap ("jet");
   surf ( in.ff0, in.ttau * 1e3, in.posterior2D ); view(2); shading("interp"); %% colorbar("location", "NorthOutside");
-  plot3 ( in.f0_MPE2, in.tau_MPE2 * 1e3,  1.1 * in.posteriorMax, "marker", "o", "markersize", 3, "color", "white" );
+  plot3 ( in.f0_MPE2, in.tau_MPE2 * 1e3,  1.1 * in.posteriorMax, "marker", "x", "markersize", 2, "linewidth", 2, "color", "white" );
   xlim ( f0Range );
   ylim ( tauRange * 1e3 );
   %%xlabel ("f0 [Hz]");
   ylabel ("tau [ms]");
+
+  he = errorbar ( f0GR.val, taumsGR.val, f0GR.lerr, f0GR.uerr, taumsGR.lerr, taumsGR.uerr, "~>." );
+  set ( he, "color", "white", "linewidth", 2, "markersize", 0 );
+  [C, H] = contour ( in.ff0, in.ttau * 1e3, in.posterior2D, in.isoConf2 * [ 1, 1 ] );
+  set ( H, "linecolor", "white", "linewidth", 1 );
   hold off;
 
   %% ----- posterior(f0)
