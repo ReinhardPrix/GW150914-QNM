@@ -76,18 +76,12 @@ function ret = searchRingdown ( varargin )
   %% ----- prepare time-series stretch to analyze
   t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
 
-  %% ---------- offset from 'merger time': https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
-  tMerger.sec = 1126259462;
-  tMerger.frac = 0.42285;
-  tOffsM = (tMerger.sec - uvar.tCenter) + tMerger.frac;
-  tOffsFromM = uvar.tOffs - tOffsM;
-
-  inds_match = find ( (ts{1}.ti >= (t0 - ts{1}.epoch) ) & (ts{1}.ti <= (t0 - ts{1}.epoch + Tmax)) );
-  Dt_i = ts{1}.ti ( inds_match ) - (t0 - ts{1}.epoch);
+  inds_MaxRange = find ( (ts{1}.ti >= (t0 - ts{1}.epoch) ) & (ts{1}.ti <= (t0 - ts{1}.epoch + Tmax)) );
+  Dt_i = ts{1}.ti ( inds_MaxRange ) - (t0 - ts{1}.epoch);
   assert ( min(Dt_i) >= 0 );
 
-  yiOW = zeros ( size ( inds_match ) );
-  ti   = ts{1}.ti ( inds_match );
+  yiOW = zeros ( size ( inds_MaxRange ) );
+  ti   = ts{1}.ti ( inds_MaxRange );
   match = zeros ( size ( lap_s ) );
   for X = 1:Ndet
     %% prepare per-detector timeseries for matching: adapt L1 data to be phase-coherent with H1
@@ -96,22 +90,21 @@ function ret = searchRingdown ( varargin )
       shiftBins = round ( shiftL1 / dt );
       shiftL1_eff = shiftBins * dt;
       assert ( abs(shiftL1_eff - shiftL1) < 1e-6 );
-
-      %% just for later plotting purposes
       ts{X}.ti += shiftL1_eff;
       ts{X}.xi   *= -1;
       ts{X}.xiW  *= -1;
       ts{X}.xiOW *= -1;
     endif
 
-    yiOW += ts{X}.xiOW ( inds_match - shiftBins );
+    yiOW += ts{X}.xiOW ( inds_MaxRange - shiftBins );
   endfor %% X
 
   %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
   DebugPrintf ( 1, "Computing match with ringdown templates ... " );
   for l = 1 : Ntempl	%% loop over all templates
     %% ----- (complex) time-domain template
-    hExp_i = exp ( - Dt_i  * lap_s(l) );
+    %%lenMatch = ceil ( 3 * ttau(l) / dt );
+    hExp_i = exp ( - Dt_i * lap_s(l) );
     match(l) = 2 * dt * sum ( yiOW .* hExp_i );
   endfor
   DebugPrintf ( 1, "done.\n");
@@ -119,142 +112,13 @@ function ret = searchRingdown ( varargin )
   DebugPrintf ( 1, "Computing BSG ..." );
   [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( uvar.prior_H, match, Mxy );
   DebugPrintf ( 1, "done.\n");
-  BSG_mean = mean ( BSG(:) );
-
-  %% ---------- determine maximum-posterior estimates (MPE) ----------
-  BSG_max = max ( BSG(:) );
-  l_MPE = ( find ( BSG(:) == BSG_max ) )(1);
-  f0_MPE = ff0 ( l_MPE );
-  tau_MPE = ttau ( l_MPE );
-
-  A_MPE    = A_est( l_MPE );
-  phi0_MPE = phi0_est ( l_MPE );
-  SNR_MPE  = SNR_est ( l_MPE );
-  [val, freqInd] = min ( abs ( fk - 250 ) );
-  Stot_GR = Stot ( freqInd );
-  for X = 1:Ndet
-    SX_GR{X} = psd{X}.Sn ( freqInd );
-  endfor
-  %% ---------- compute marginalized posteriors on {f,tau} ----------
-  BSG_renorm = BSG / max ( BSG(:) );
-  posterior_f0   = sum ( BSG_renorm, 1 );
-  norm_f0 = uvar.step_f0 * sum ( posterior_f0 );
-  posterior_f0 /= norm_f0;
-
-  posterior_tau = sum ( BSG_renorm, 2 );
-  norm_tau = uvar.step_tau * sum ( posterior_tau);
-  posterior_tau /= norm_tau;
-
-  %% find 90% credible intervals
-  confidence = 0.90;
-  try
-    f0_est  = credibleInterval ( f0, posterior_f0, confidence );
-    tau_est = credibleInterval ( tau, posterior_tau, confidence );
-    failed_intervals = false;
-  catch
-    failed_intervals = true;
-    error ("credibleInterval() failed\n");
-  end_try_catch
-
-  %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
-  if ( uvar.plotResults )
-    figure ( iFig0 + 3 ); clf;
-    %% ----- posterior (f0, tau)
-    subplot ( 2, 2, 1 );
-    hold on;
-    colormap ("jet");
-    surf ( ff0, ttau * 1e3, BSG ); view(2); shading("interp"); %% colorbar("location", "NorthOutside");
-    plot3 ( f0_MPE, tau_MPE * 1e3, 1.1*BSG_max, "marker", "o", "markersize", 3, "color", "white" );
-    xlim ( uvar.prior_f0Range );
-    ylim ( uvar.prior_tauRange * 1e3 );
-    %%xlabel ("f0 [Hz]");
-    ylabel ("tau [ms]");
-    hold off;
-    %% ----- posterior(f0)
-    subplot ( 2, 2, 3 );
-    plot ( f0, posterior_f0, "linewidth", 2 );
-    grid on;
-    xrange = uvar.prior_f0Range;
-    yrange = ylim();
-    if ( !failed_intervals )
-      line ( [f0_est.MPE, f0_est.MPE], yrange );
-      line ( [f0_est.lower, f0_est.upper], [f0_est.pIso, f0_est.pIso] );
-    endif
-    xlim ( xrange );
-    ylim ( yrange );
-    xlabel ("f0 [Hz]");
-    %%ylabel ("pdf(f0)");
-    set ( gca(), "yticklabel", {} );
-
-    %% ----- posterior (tau)
-    subplot ( 2, 2, 2 );
-    plot ( posterior_tau, tau * 1e3, "linewidth", 2 );
-    xrange = xlim();
-    yrange = uvar.prior_tauRange * 1e3;
-    if ( !failed_intervals )
-      line ( xrange, [tau_est.MPE, tau_est.MPE]*1e3 );
-      line ( [tau_est.pIso, tau_est.pIso], [tau_est.lower, tau_est.upper]* 1e3 );
-    endif
-    xlim ( xrange );
-    ylim ( yrange );
-    grid on;
-    %%label ("pdf(tau)");
-    ylabel ("tau [ms]");
-    set ( gca(), "xticklabel", {} );
-
-    %% ----- timeseries {h(t), template}
-    subplot ( 2, 2, 4 );
-    hold on;
-    colors = { "red", "blue" };
-    for X = 1:Ndet
-      sleg = sprintf (";OW[%s] ;", ts{X}.IFO );
-      plot ( ts{X}.ti - (uvar.tCenter - ts{X}.epoch), ts{X}.xiOW * SX_GR{X}, sleg, "linewidth", 2, "color", colors{X} );
-    endfor
-    %%plot ( ti - (uvar.tCenter - ts{1}.epoch), yiOW * Stot_GR, ";OW[H1+L1];", "linewidth", 2, "color", "magenta" );
-    indsRingdown = find ( Dt_i >= 0 );
-    Dt_pos = Dt_i ( indsRingdown );
-    tmpl_MPE = A_MPE * e.^(- Dt_pos / tau_MPE ) .* cos ( 2*pi * f0_MPE * Dt_pos + phi0_MPE );
-    plot ( uvar.tOffs + Dt_i, tmpl_MPE, ";MPE ;", "linewidth", 4, "color", "black" );
-    legend ( "location", "NorthEast");
-    yrange = [-1.7e-21, 1.5e-21 ];
-    line ( [ uvar.tOffs, uvar.tOffs],   yrange, "linestyle", "--", "linewidth", 2 );
-    line ( [ tOffsM, tOffsM], yrange, "linestyle", "-", "linewidth", 2 );
-    xlim ( [uvar.tOffs - 0.01, uvar.tOffs + 5 * tau_MPE ] );
-    ylim ( yrange );
-    xlabel ( sprintf ( "%.0f + tOffs [s]", uvar.tCenter) );
-    text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
-
-    textOffs = sprintf ( "tOffs = %.5fs = tM + %.2fms", uvar.tOffs, tOffsFromM * 1e3 );
-    title ( textOffs );
-    textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g", log10 ( BSG_mean ), SNR_MPE );
-    x0 = uvar.tOffs + 0.02 * abs(diff(xlim()));
-    y0 = min(yrange) + 0.2*abs(diff(yrange));
-    text ( x0, y0, textB );
-    ylim ( yrange );
-    grid on;
-    hold off;
-
-  endif %% plotResults
-
-  %% summarize numerical outcomes on stdout
-  DebugPrintf (1, "tGPS = %.0f + %f s\n", uvar.tCenter, uvar.tOffs );
-  DebugPrintf (1, "log10<BSG>    = %.2g\n", log10(BSG_mean) );
-  DebugPrintf (1, "f0_est  = { %.1f, %.1f, %1.f } Hz\n", f0_est.lower, f0_est.MPE, f0_est.upper );
-  DebugPrintf (1, "tau_est = { %.1f, %.1f, %1.f } ms\n", 1e3 * tau_est.lower, 1e3 * tau_est.MPE, 1e3 * tau_est.upper );
-  DebugPrintf (1, "A_MPE   = %.2g\n", A_MPE );
-  DebugPrintf (1, "phi0_MPE= %.2g\n", phi0_MPE );
-  DebugPrintf (1, "SNR_MPE = %.2g\n", SNR_MPE );
 
   ret = struct ( "bname", bname, ...
                  "tGPS", uvar.tCenter + uvar.tOffs, ...
-                 "BSG_mean", BSG_mean, ...
-                 "A_MPE", A_MPE, ...
-                 "phi0_MPE", phi0_MPE, ...
-                 "f0_est", f0_est, ...
-                 "tau_est", tau_est, ...
-                 "SNR_MPE", SNR_MPE, ...
                  "ff0", ff0, ...
                  "ttau", ttau, ...
+                 "A_est", A_est, ...
+                 "phi0_est", phi0_est, ...
                  "BSG", BSG, ...
                  "SNR", SNR_est
                );
@@ -263,44 +127,6 @@ function ret = searchRingdown ( varargin )
   return
 
 endfunction
-
-%% return MP estimate 'x_est' with fields 'MPE', 'lower', 'upper', and 'pIso'
-%% ie: maximum-posterior estimate x_est.MPE
-%% 'confidence'-credible interval [x_est.lower, x_est.upper], and
-%% corresponding iso-posterior value x_est.pIso
-function x_est = credibleInterval ( x, posterior_x, confidence = 0.9 )
-
-  assert ( size ( x ) == size ( posterior_x ) );
-  dx = mean ( diff ( x ) );
-  [x_pIso, delta, INFO, OUTPUT] = fzero ( @(x_pIso)  dx * sum ( posterior_x ( find ( posterior_x >= x_pIso ) ) ) - confidence, ...
-                                          [ min(posterior_x), max(posterior_x) ], ...
-                                          optimset ( "TolX", 1e-4 )
-                                        );
-  try
-    assert ( INFO == 1 );
-  catch
-    delta
-    INFO
-    OUTPUT
-    error ("fzero() failed\n");
-  end_try_catch
-  x_MP = x ( find ( posterior_x == max(posterior_x) ) );
-
-  inds0 = find ( posterior_x >= x_pIso );
-  i_min = min(inds0);
-  i_max = max(inds0);
-  %% check if these are respective closest to p_iso
-  if ( (i_min > 1) && abs(posterior_x(i_min-1)-x_pIso) < abs(posterior_x(i_min)-x_pIso) )
-    i_min --;
-  endif
-  if ( (i_max < length(posterior_x)) && abs(posterior_x(i_max+1)-x_pIso) < abs(posterior_x(i_max)-x_pIso) )
-    i_max ++;
-  endif
-
-  x_est = struct ( "MPE", x_MP, "lower", x(i_min), "upper", x(i_max), "pIso", x_pIso );
-  return;
-endfunction
-
 
 function Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
 
