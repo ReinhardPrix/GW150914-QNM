@@ -158,7 +158,7 @@ function ret = searchRingdown ( varargin )
 
   %% ----- Plot Bayes factor / posterior over {f0,tau} ----------
   if ( uvar.plotResults )
-    figure ( 5 * iFig0 + 3 ); clf;
+    figure ( iFig0 + 3 ); clf;
     %% ----- posterior (f0, tau)
     subplot ( 2, 2, 1 );
     hold on;

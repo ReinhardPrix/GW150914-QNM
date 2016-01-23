@@ -118,7 +118,7 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
       psd0 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0L1-PSD.dat");
     endif
     iIFO = ifelse ( strcmp ( IFO, "H1" ), 0, 1 );
-    figure ( 5 * iFig0 + 1 + iIFO ); clf;
+    figure ( iFig0 + 1 + iIFO ); clf;
 
     subplot ( 3, 1, 1 ); hold on;
     plot ( ftOut.fk, abs ( ftOut.xk ) / sqrt(T), "+-", "color", "blue" ); legend ( sprintf ( "%s: xk(f)", IFO ) );
