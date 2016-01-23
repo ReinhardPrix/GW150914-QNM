@@ -240,22 +240,23 @@ First we assume that the amplitude prior is \emph{logically} independent of the 
 possible dependence, not a claim about \emph{physical} independence \cite{jaynes:_logic_of_science},
 i.e.\ $\prob{\Avec}{\parmsEvol,\HypS} = \prob{\Avec}{\HypS}$
 
-Further we use a simple isotropic Gaussian amplitude prior, which expresses ignorance about the initial phase $\phi_0$, and posits a characteristic
-scale $H$ for the amplitude $A$, namely
+Further we use a simple isotropic Gaussian amplitude prior, which expresses ignorance about the initial phase $\phi_0$, and posits an (unknown)
+characteristic scale $H$ for the amplitude $A$, namely
 \begin{equation}
   \label{eq:22}
-  \prob{\Avec}{\HypS} = \frac{1}{2\pi\,H^2}\,e^{-\frac{1}{2}{\Avec\cdot\Avec}/H^2}\,\,,
+  \prob{\Avec}{\HypS,H} = \frac{1}{2\pi\,H^2}\,e^{-\frac{1}{2}{\Avec\cdot\Avec}/H^2}\,\,,
 \end{equation}
 which implies a prior on the amplitude $A$ (marginalized over $\phi_0$):
 \begin{equation}
   \label{eq:28}
-  \prob{A}{\HypS} = \frac{A}{H^2}\,e^{-\frac{A^2}{2H^2}}\,.
+  \prob{A}{\HypS, H} = \frac{A}{H^2}\,e^{-\frac{A^2}{2H^2}}\,.
 \end{equation}
-Using the Gaussian amplitude prior we find
+Using this Gaussian amplitude prior we find the $H$-dependent Bayes factor:
 \begin{align}
   \label{eq:29}
-  \BSG(x;\parmsEvol) &= \frac{1}{2\pi H^2}\int e^{-\frac{1}{2}\,\Avec\cdot\Gam^{-1}\cdot\Avec + \Avec\cdot\xvec}\,d^2\A\\
-  &= \frac{\sqrt{\det\Gam}}{H^2}\, e^{\frac{1}{2}\,\xvec\cdot\Gam\cdot\xvec}\,,
+  \BSG(x;\parmsEvol,H) &\equiv \frac{\prob{x}{\HypS,\parmsEvol,H}}{\prob{x}{\HypG}}\\
+  &=\frac{1}{2\pi H^2}\int e^{-\frac{1}{2}\,\Avec\cdot\Gam^{-1}\cdot\Avec + \Avec\cdot\xvec}\,d^2\A\\
+  &= \frac{\sqrt{\det\Gam}}{H^2}\, e^{\frac{1}{2}\,\xvec\cdot\Gam\cdot\xvec}
 \end{align}
 with
 \begin{equation}
@@ -290,10 +291,35 @@ and
 We note that in the limit $H\rightarrow0$ we have $\Gam^{-1}\rightarrow H^{-2}\eye$, so $\Gam\rightarrow0$, and
 $\sqrt{\det\Gam}/H^2\rightarrow 1$, therefore $\BSG\rightarrow 1$.
 The signal hypothesis becomes indistinguishable from the noise hypothesis if signal amplitudes are assumed to be vanishingly small.
-
 In the opposite limit of $H\gg 1$, we find $\Gam\rightarrow\M^{-1}$, and $\sqrt{\det\Gam}/H^2\rightarrow 1/(H^2\sqrt{\det\M})$, which is equivalent to
 the ``$\F$-statistic'' for finite $H$, but $\BSG\rightarrow 0$ for $H\rightarrow \infty$, as the prior volume gets increasingly thinly spread out,
 resulting in an ``Occam factor'' effect disfavoring the signal hypothesis.
+
+\subsubsection{Marginalizing unknown scale $H$}
+\label{sec:marg-unkn-scale}
+
+The most robust way to deal with the unknown scale parameter $H$ is to marginalize this out using a Jeffreys prior $\propto 1/H$. Given that we
+\emph{roughly} know the scale of $H$ to fall somewhere in $H\in[2,10]\times10^{-22}$, we can simply discretize the corresponding marginalization
+integrals on a few points ${H_i}$, allowing us to normalize this discrete ``hyper-prior'' as
+\begin{equation}
+  \label{eq:44}
+  \prob{H_i}{\HypS} = c\,\frac{1}{H_i},,\quad\text{with}\quad c^{-1} = \sum_i H_i^{-1}\,.
+\end{equation}
+We can therefore estimate the unknown $H$ parameter from the data via Eq.~\eqref{eq:29}, namely
+\begin{align}
+  \label{eq:45}
+  \prob{H}{x} &= \int \prob{\parmsEvol,H}{x,\HypS}\,d\parmsEvol\\
+  &= \left[\int \prob{x}{\HypS,\parmsEvol,H}\,\prob{\parmsEvol}{\HypS}\,d\parmsEvol\right]\,\prob{H}{\HypS}\\
+  &\propto \BSG(x;H)\,\prob{H}{\HypS} \\
+  &= c\,\frac{1}{H_i}\,\BSG(x;H_i)\,.
+\end{align}
+Furthermore, we can compute the $H$-independent Bayes factor and posterior by marginalizing over $H$ via
+\begin{align}
+  \label{eq:46}
+  \prob{\parmsEvol}{\HypS,x} &\propto \BSG(x;\parmsEvol)\\
+  &=\int \BSG(x;\parmsEvol,H)\prob{H}{\HypS}\,dH\\
+  &= c\,\sum_i \frac{1}{H_i} \, \BSG(x;\parmsEvol,H_i)\,.
+\end{align}
 
 \section{Parameter estimation}
 \label{sec:parameter-estimation}
@@ -317,7 +343,9 @@ Finding the maximum-posterior estimates (MPE) for $\As,\Ac$ at fixed $\parmsEvol
   \label{eq:31}
   \Avec' = \Gam(\parmsEvol)\cdot\xvec\,.
 \end{equation}
-We will evaluate this at the MPE values found for $\parmsEvol$ in the Bayes-factor search using \eqref{eq:32}.
+Note that this depends on the unknown scale parameter $H$, but we will simplify this by using the MPE estimator for $H$ from Eq.~\eqref{eq:45}, i.e.\
+$H_{MPE}$ that maximizes  $\BSG(x;H) / H$.
+We will further evaluate this at the MPE values found for $\parmsEvol$ in the Bayes-factor search using \eqref{eq:32}.
 From these we can obtain $A' = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\left(\frac{\As}{\Ac}\right)$.
 
 From this can can also estimate an ``SNR'' in the MPE template, by substituting the MPE amplitude parameters into the SNR expression

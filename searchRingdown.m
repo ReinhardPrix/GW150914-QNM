@@ -15,16 +15,28 @@ function ret = searchRingdown ( varargin )
                         {"step_f0", "real,strictpos,scalar", 0.1 },
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
                         {"step_tau", "real,strictpos,scalar", 0.2e-3 },
-                        {"prior_H", "real,strictpos,scalar", 4e-22},
+                        {"prior_H", "real,strictpos,matrix", [4e-22, 1]},
                         {"plotResults", "bool", false }
                       );
 
+  if ( isscalar ( uvar.prior_H ) )
+    numH = 1;
+    priorH = [ uvar.prior_H, 1 ];
+    priorHname = sprintf ( "%.2g", uvar.prior_H );
+  else
+    priorHname = "Jeffreys";
+    [numH, check] = size ( uvar.prior_H );
+    assert ( check == 2, "prior_H needs to be of size [numH x 2]\n");
+    priorH = uvar.prior_H;
+    normH = sum ( priorH ( :, 2 ) );
+    priorH ( :, 2) /= normH;
+  endif
   shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
 
-  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%.2g-tOffs%.5fs-psd_v%d-lineCleaning%s",
+  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%s-tOffs%.5fs-psd_v%d-lineCleaning%s",
                     uvar.tCenter, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
                     1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
-                    uvar.prior_H,
+                    priorHname,
                     uvar.tOffs,
                     psd_version, ifelse ( cleanLines, "On", "Off" )
                   );
@@ -109,9 +121,28 @@ function ret = searchRingdown ( varargin )
   endfor
   DebugPrintf ( 1, "done.\n");
 
-  DebugPrintf ( 1, "Computing BSG ..." );
-  [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( uvar.prior_H, match, Mxy );
+  DebugPrintf ( 1, "Computing BSG ... " );
+  BSG_f0_tau = zeros ( size ( match ) );
+  post_H = zeros ( 1, numH );
+  %% marginalize over unknown H scale
+  for i = 1 : numH
+    H_i      = priorH(i,1);
+    priorH_i = priorH(i,2);
+    DebugPrintf ( 1, "H = %.2g ...", H_i );
+    [ BSG_f0_tau_H, SNR_H{i}, A_H{i}, phi0_H{i} ] = compute_BSG_SNR ( H_i, match, Mxy );
+    BSG_f0_tau += priorH_i * BSG_f0_tau_H;	%% marginalize BSG(x;f0,tau,H) over H to get BSG(x;f0,tau)
+    post_H(i) = mean ( BSG_f0_tau_H(:) ); 	%%marginalize BSG(x;f0,tau,H) over {f0,tau} to get propto P(H|x)
+  endfor
+  post_H /= sum (post_H(:));			%% normalize posterior to be sure
+  BSG = mean ( BSG_f0_tau(:) );			%% marginalize BSG(x;f0,tau) over {f0,tau} with uniform prior --> BSG(x)
   DebugPrintf ( 1, "done.\n");
+
+  %% pick amplitude-estimates and SNR from H_MPE
+  [ val, iMPE ] = max ( post_H(:) );
+  H_MPE    = priorH(iMPE,1);
+  SNR_est  = SNR_H{iMPE};
+  A_est    = A_H{iMPE};
+  phi0_est = phi0_H{iMPE};
 
   ret = struct ( "bname", bname, ...
                  "tGPS", uvar.tCenter + uvar.tOffs, ...
@@ -120,7 +151,10 @@ function ret = searchRingdown ( varargin )
                  "A_est", A_est, ...
                  "phi0_est", phi0_est, ...
                  "BSG", BSG, ...
-                 "SNR", SNR_est
+                 "BSG_f0_tau", BSG_f0_tau, ...
+                 "SNR", SNR_est, ...
+                 "post_H", post_H, ...
+                 "H_MPE", H_MPE
                );
   ret.Mxy = Mxy;
 

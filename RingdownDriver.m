@@ -19,6 +19,7 @@ doPlotContours  = false;
 doPlotSummary   = false;
 doPlotSpectra   = false;
 doPlotBSGHist   = false;
+doPlotH         = false;
 
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
@@ -37,7 +38,12 @@ global taumsGR = struct ( "val", 4, "lerr", 0.2, "uerr", 0.4 );
 
 prior_f0Range   = [ 200, 300 ];
 prior_tauRange  = [ 0.5e-3, 20e-3 ];
-prior_H         = 4e-22;	%% allow going up from 1e-22 to ~1e-21, fairly "flat" in that region
+if ( !exist ( "prior_H" ) )
+  H_i = [ 2e-22, 3e-22, 4e-22, 5e-22, 6e-22, 7e-22, 8e-22, 9e-22, 10e-22 ];
+  p_i = 1 ./ H_i;
+  p_i /= sum ( p_i(:) );
+  prior_H = [ H_i', p_i' ];
+endif
 step_f0         = 0.5;
 step_tau        = 0.5e-3;
 
@@ -48,27 +54,20 @@ switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tCenter = tEvent;
-    if ( !exist ( "tOffs" ) )
-      tOffs = tMergerOffs + 5e-3;
-    endif
-    tOffsStart = tOffs;
-    tOffsEnd   = tOffs;
-    dtOffs     = 0.001;
+    tOffsV = tMergerOffs + [ 3e-3, 5e-3, 7e-3 ];
 
     useTSBuffer = true;
 
-    doPlotSnapshots = true;
     doPlotContours  = true;
-    doPlotSummary   = false;
+    doPlotSummary   = true;
+    doPlotSnapshots = true;
     doPlotSpectra   = true;
-    doPlotBSGHist   = false;
+    doPlotH         = true;
 
   case "onSource"
     %% ---------- "ON-SOURCE ----------
     tCenter = tEvent;
-    tOffsStart = tMergerOffs;		%% this is about when the signal enters f0>~200Hz
-    dtOffs     = 0.0005;	%% 0.5ms stepsize
-    tOffsEnd   = tMergerOffs + 10e-3;
+    tOffsV = tMergerOffs + [ 0 : 1e-3 : 9e-3 ];
 
     useTSBuffer = true;
 
@@ -80,10 +79,8 @@ switch ( searchType )
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
+    tOffsV = [ -3 : 0.05 : 3 ];
     tCenter     = tEvent + 10;
-    tOffsStart  = -3;
-    dtOffs      = 0.05;	%% stepsize to avoid template overlap --> 'independent' templates
-    tOffsEnd    = 3;
 
     useTSBuffer = true;
 
@@ -121,7 +118,6 @@ cd ( resDir );
 
 %%try
 %% ----- run search
-tOffsV = [ tOffsStart : dtOffs : tOffsEnd ];
 Nsteps = length(tOffsV);
 
 ret = cell ( 1, Nsteps );
@@ -137,7 +133,7 @@ for i = 1:Nsteps
 
   %% ----- save posterior in matrix format ----------
   fname = sprintf ( "%s-BSG.dat", ret{i}.bname );
-  tmp = ret{i}.BSG;
+  tmp = ret{i}.BSG_f0_tau;
   save ( "-ascii", fname, "tmp" );
 
   fname = sprintf ( "%s-SNR.dat", ret{i}.bname );
@@ -145,10 +141,8 @@ for i = 1:Nsteps
   save ( "-ascii", fname, "tmp" );
 
   %% ----- compute derived quantities
-  ret{i}.BSG_mean = mean ( ret{i}.BSG(:) );
-
   %% 2D and 1D marginalized posteriors on {f,tau} ----------
-  tmp = ret{i}.BSG;
+  tmp = ret{i}.BSG_f0_tau;
   ret{i}.posterior2D = tmp / sum ( tmp(:) );
 
   tmp = sum ( ret{i}.posterior2D, 1 );
@@ -172,7 +166,6 @@ for i = 1:Nsteps
   ret{i}.A_MPE2    = ret{i}.A_est( l_MPE2 );
   ret{i}.phi0_MPE2 = ret{i}.phi0_est ( l_MPE2 );
   ret{i}.SNR_MPE2  = ret{i}.SNR ( l_MPE2 );
-
   %% ---------- plot results summary page
   %%fname = sprintf ( "%s.png", ret{i}.bname );
   %%ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
@@ -203,9 +196,24 @@ if ( doPlotContours )
   plotContours ( ret )
 endif
 
+if ( doPlotH )
+  figure(); clf; hold on;
+  plot ( prior_H(:,1), prior_H(:,2), "-xg;prior;", "linestyle", "--", "linewidth", 2 );
+  for i = 1 : Nsteps
+    leg = sprintf ( "-;tM + %.1fms;", (ret{i}.tGPS - tEvent - tMergerOffs) * 1e3 );
+    plot ( prior_H(:,1), ret{i}.post_H, leg );
+  endfor
+  xlabel ( "H" ); ylabel ("pdf");
+
+endif
+
 if ( doPlotBSGHist )
   figure ( iFig0  + 6 ); clf;
-  hist ( summary.BSG_mean, 20 );
+  BSG = zeros ( 1, Nsteps );
+  for i = 1 : Nsteps
+    BSG(i) = ret{i}.BSG;
+  endfor
+  hist ( BSG, 20 );
   xlabel ( "<BSG>" );
   fname = sprintf ( "%s-hist.pdf", ret{1}.bname );
   ezprint ( fname, "width", 512 );

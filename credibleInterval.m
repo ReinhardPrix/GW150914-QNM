@@ -6,8 +6,8 @@ function x_est = credibleInterval ( x, posterior_x, confidence = 0.9 )
 
   assert ( isvector ( x ) && isvector(posterior_x) && (length ( x ) == length ( posterior_x )) );
 
-  norm = sum ( posterior_x(:) );
-  posterior1D = posterior_x / norm;
+  normx = sum ( posterior_x(:) );
+  posterior1D = posterior_x / normx;
 
   [pIso, delta, INFO, OUTPUT] = fzero ( @(pIso)  sum ( posterior1D ( find ( posterior1D >= pIso ) ) ) - confidence, ...
                                         [ min(posterior1D), max(posterior1D) ], ...
@@ -36,6 +36,6 @@ function x_est = credibleInterval ( x, posterior_x, confidence = 0.9 )
     i_max ++;
   endif
 
-  x_est = struct ( "MPE", x_MP, "lerr", x_MP - x(i_min), "uerr", x(i_max) - x_MP, "pIso", pIso * norm );
+  x_est = struct ( "MPE", x_MP, "lerr", x_MP - x(i_min), "uerr", x(i_max) - x_MP, "pIso", pIso * normx );
   return;
 endfunction

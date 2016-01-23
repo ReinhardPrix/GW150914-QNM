@@ -112,7 +112,7 @@ function plotSnapshot ( in, ts, tRange = [0.41, 0.455] )
 
   textOffs = sprintf ( "tOffs = %.5fs = tM + %.2fms", tOffs, tOffsFromM * 1e3 );
   title ( textOffs );
-  textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g", log10 ( in.BSG_mean ), in.SNR_MPE2 );
+  textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g", log10 ( in.BSG ), in.SNR_MPE2 );
   x0 = tOffs + 0.02 * abs(diff(xlim()));
   y0 = min(yrange) + 0.2*abs(diff(yrange));
   text ( x0, y0, textB );

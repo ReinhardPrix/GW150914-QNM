@@ -10,7 +10,7 @@ function plotSummary ( in )
   tOffs = BSG_mean = SNR_MPE2 = f0_MPE = f0_lerr = f0_uerr = taums_MPE = taums_lerr = taums_uerr = zeros ( 1, Nsteps );
   for i = 1 : Nsteps
     tOffs(i)      = in{i}.tGPS - tEvent;
-    BSG_mean(i)   = in{i}.BSG_mean;
+    BSG(i)        = in{i}.BSG;
     SNR_MPE2(i)   = in{i}.SNR_MPE2;
 
     f0_MPE(i)     = in{i}.f0_est.MPE;
