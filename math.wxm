@@ -1,118 +1,164 @@
 /* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
 /* [ Created with wxMaxima version 13.04.2 ] */
 
-/* [wxMaxima: input   start ] */
-Is : integrate ( %e^(-x/Q)*sin(x)^2, x )$
-'Is = factor ( trigsimp ( trigexpand ( Is ) ));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-Ic : integrate ( %e^(-x/Q)*cos(x)^2, x )$
-'Ic = factor ( trigsimp ( trigexpand ( Ic ) ));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-Isc : integrate ( %e^(-x/Q)*sin(x)*cos(x), x )$
-'Isc = factor ( trigsimp ( trigexpand ( Isc ) ));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-limit ( Is, Q, inf );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-integrate ( sin(x)*cos(x), x );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-Is0 : -Q^2/(1+4*Q^2) * %e^(-x/Q) * (sin(2*x) + 2*Q + 1/Q * sin(x)^2 )$
-trigsimp(trigexpand( ratsimp(Is - Is0)));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-Ic0: -Q^2/(1+4*Q^2) * %e^(-x/Q) * (-sin(2*x) + 2*Q + 1/Q * cos(x)^2 )$
-trigsimp ( trigexpand ( ratsimp ( Ic - Ic0) ) );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-Isc0 :  - Q^2/(1+4*Q^2) * %e^(-x/Q) * (2*cos(x)^2 - 1 + 1/(2*Q)*sin(2*x))$
-trigsimp ( trigexpand ( ratsimp ( Isc - Isc0 ) ) );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ev ( Is0, x= 0);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ev ( Ic0, x=0 );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ev ( Isc0, x = 0);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d ( ev ( sin(x) * %e^(-x/Q), Q=2*%pi), [x, 0, 8*%pi] );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ev ( Q^2/(1+4*Q^2), Q=30, numer );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ev ( 1 / (2*%pi), numer );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-assume ( H > 0 );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-assume ( H > 0, Gam > 0)$
-1/(2*%pi*H^2) * integrate ( integrate ( exp ( -1/2 * (1/Gam) * (As^2 + Ac^2) + As*xs + Ac * xc) , As, -inf, inf), Ac, -inf, inf );
-/* [wxMaxima: input   end   ] */
+/* [wxMaxima: subsect start ]
+General
+   [wxMaxima: subsect end   ] */
 
 /* [wxMaxima: input   start ] */
 trigexpand ( A * cos ( 2*pi*f*t + phi0 ) );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-assume ( H>0)$
-1/(2*%pi*H^2) * integrate ( integrate ( exp ( -1/(2*H^2) * (As^2 + Ac^2) ), As, -inf, inf ), Ac, -inf, inf );
+assume ( H > 0, A > 0 )$
+priorAxy ( As, Ac, H ) := 1/(2*%pi*H^2) * exp ( -1/(2*H^2) * (As^2 + Ac^2) );
+/* check normalization */
+integrate ( integrate ( priorAxy ( As, Ac, H) , As, -inf, inf ), Ac, -inf, inf );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-assume(A>0)$
-priorA(A) := A/H^2 * exp ( -A^2 / (2*H^2) );
-integrate ( priorA(A), A, 0, inf );
+priorA ( A, H ) := '' (2*%pi * subst ( As^2 + Ac^2 = A^2, A * priorAxy(As, Ac, H ) ));
+/* check normalization */
+integrate ( priorA(A, H), A, 0, inf );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-plot2d ( ev( priorA(A), H=4), [A, 0, 10], [xlabel, "Amplitude A [1e-22]"], [ylabel, "pdf P(A|H_S)"]);
+plot2d ( [priorA(A,0.5), priorA(A,1), priorA(A,2), priorA(A, 4), priorA(A,6)], [A, 0, 10],
+        [xlabel, "Amplitude A [1e-22]"], [ylabel, "P(A|QNM)"],
+        [legend, "H = 0.5e-22", "H = 1e-22", "H = 2e-22", "H = 4e-22", "H = 6e-22" ],
+        [grid2d, true])$
 /* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+priorAJeff ( A ) := sum ( 1/H * priorA(A,H), H, 2, 10 );
+plot2d ( priorAJeff ( A ), [A, 0, 15 ] );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: subsect start ]
+Old M_xy approximation (time-domain integration)
+   [wxMaxima: subsect end   ] */
+
+/* [wxMaxima: input   start ] */
+assume ( Q > 0 )$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Qsubst: Q = %pi*f0*tau$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Is : 1/(2*%pi*f0) * integrate ( %e^(-x/Q)*sin(x)^2, x, 0, inf)$
+'Is = factor ( trigsimp ( trigexpand ( ev ( Is, Qsubst) ) )) ;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Is0: tau / ( 4 + 1/Q^2 )$
+ev ( Is - Is0, Qsubst ), ratsimp;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Ic : 1/(2*%pi*f0) * integrate ( %e^(-x/Q)*cos(x)^2, x, 0, inf)$
+'Ic = factor ( trigsimp ( trigexpand ( ev ( Ic, Qsubst) ) ));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Ic0 : tau/4 * ( 2 + 1/Q^2 ) / ( 2 + 1/(2*Q^2))$
+ev ( Ic - Ic0, Qsubst ), ratsimp;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Isc : 1/(2*%pi*f0) * integrate ( %e^(-x/Q)*sin(x)*cos(x), x, 0, inf )$
+'Isc = factor ( trigsimp ( trigexpand ( ev ( Isc, Qsubst) ) ));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Isc0 : tau / (8*Q * ( 1 + 1/(4*Q^2) ) )$
+ev ( Isc - Isc0, Qsubst ), ratsimp;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: subsect start ]
+New M_xy approximation (frequency-domain integration)
+   [wxMaxima: subsect end   ] */
 
 /* [wxMaxima: input   start ] */
 assume ( tau > 0, f0 > 0, f>0 )$
-ep(t) := %e^(-t/tau) * %e^(%i*2*%pi*f0*t);
-em(t) := %e^(-t/tau) * %e^(%i*2*%pi*(-f0)*t);
-Ip : integrate ( ep(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$ 'Ip = Ip;
-Im : integrate ( em(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$ 'Im = Im;
+hp(t) := %e^(-t/tau) * %e^(%i*2*%pi*f0*t);
+hm(t) := %e^(-t/tau) * %e^(%i*2*%pi*(-f0)*t);
+hpFT : integrate ( hp(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$ 'hpFT = hpFT;
+hmFT : integrate ( hm(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$ 'hmFT = hmFT;
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-assume ( tau > 0, f0 > 0 )$
-es(t) := %e^(-t/tau) * sin(2*%pi*f0*t);
-ec(t) := %e^(-t/tau) * cos(2*%pi*f0*t);
+hs(t) := %e^(-(t-t0)/tau) * sin(2*%pi * f0 * (t-t0) );
+hc(t) := %e^(-(t-t0)/tau) * cos(2*%pi * f0 * (t-t0) );
 
-Is : integrate ( es(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$
-Is_check : tau * ( 2*%pi * f0 * tau ) / ( 1 + %i*4*%pi*f*tau - 4*%pi^2*(f^2-f0^2)*tau^2  )$
-'Is_check = Is_check;
-print ( "Is - Is_check =",  ev( Is - Is_check, expand, factor) )$
+hsFT : integrate ( hs(t) * %e^(-%i * 2*%pi*f*t), t, t0, inf )$
+hsFT_check : %e^(-%i*2*%pi*f*t0) * tau * ( 2*%pi * f0 * tau ) / ( 1 + %i*4*%pi*f*tau - 4*%pi^2*(f^2-f0^2)*tau^2  )$
+'hsFT_check = hsFT_check;
+print ( "hsFT - hsFT_check =",  ev( hsFT - hsFT_check, expand, factor) )$
 
-Ic : integrate ( ec(t) * %e^(-%i * 2*%pi*f*t), t, 0, inf )$
-Ic_check : tau * (1 + %i*2*%pi*f*tau)/(1 + %i*4*%pi*f*tau - 4*%pi^2*(f^2-f0^2)*tau^2 )$
-'Ic_check = Ic_check;
-print ( "Ic - Ic_check =",  ev( Ic - Ic_check, expand, factor) )$
+hcFT : integrate ( hc(t) * %e^(-%i * 2*%pi*f*t), t, t0, inf )$
+hcFT_check : %e^(-%i*2*%pi*f*t0) * tau * (1 + %i*2*%pi*f*tau)/(1 + %i*4*%pi*f*tau - 4*%pi^2*(f^2-f0^2)*tau^2 )$
+'hcFT_check = hcFT_check;
+print ( "hcFT - hcFT_check =",  ev( hcFT - hcFT_check, expand, factor) )$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+hsAbs2 : realpart ( hsFT_check * conjugate(hsFT_check) )$
+Is_new : ratsimp ( 2 * integrate ( hsAbs2, f, 0, inf ) )$
+'Is_new = Is_new;
+ratsimp(Is_new - ev(Is, Qsubst) );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+hcAbs2 : ratsimp ( realpart ( hcFT_check * conjugate(hcFT_check) ) )$
+Ic_new : ratsimp ( 2 * integrate ( hcAbs2, f, 0, inf ) )$
+'Ic_new = Ic_new;
+ratsimp(Ic_new - ev(Ic, Qsubst) );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+hscReal : ratsimp ( realpart ( hsFT_check * conjugate(hcFT_check) ) )$
+Isc_new : ratsimp ( 2 * integrate ( hscReal, f, 0, inf ) );
+'Isc_new = Isc_new;
+ratsimp(Isc_new - ev(Isc, Qsubst) );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+Is / ( 2*Q ), Qsubst, ratsimp;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+heFD : hcF - %i * hsFT$
+plot2d ( ev([ realpart(heFT), imagpart(heFT)], f0=210, tau=1e-3, t0=0), [f, -2e3, 2e3] );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+heTD : exp ( -Dt * (1/tau + %i*2*%pi * f0 ) );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+plot2d ( ev ( [ hsAbs2, hcAbs2 ], f0=250, tau=4.5e-3, t0=0), [f, 0, 1e3] );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+hsAbs2;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+heFT2 : integrate ( heTD * exp(-%i*2*%pi*f*Dt), Dt, 0, inf );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+plot2d ( ev([ realpart(heFT), imagpart(heFT), realpart(heFT2), imagpart(heFT2)], f0=210, tau=4e-3, t0=0), [f, -1e3, 1e3] );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ev(hsFT, f0=210,tau=1e-3);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+hsAbs2;
 /* [wxMaxima: input   end   ] */
 
 /* Maxima can't load/batch files which end with a comment! */

@@ -54,12 +54,12 @@ switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tCenter = tEvent;
-    tOffsV = tMergerOffs + [ 3e-3, 5e-3, 7e-3 ];
+    tOffsV = tMergerOffs + [ 7e-3 ];
 
     useTSBuffer = true;
 
     doPlotContours  = true;
-    doPlotSummary   = true;
+    doPlotSummary   = false;
     doPlotSnapshots = true;
     doPlotSpectra   = true;
     doPlotH         = true;
@@ -67,7 +67,7 @@ switch ( searchType )
   case "onSource"
     %% ---------- "ON-SOURCE ----------
     tCenter = tEvent;
-    tOffsV = tMergerOffs + [ 0 : 1e-3 : 9e-3 ];
+    tOffsV = tMergerOffs + [ 1, 3, 5, 7 ] * 1e-3;
 
     useTSBuffer = true;
 
