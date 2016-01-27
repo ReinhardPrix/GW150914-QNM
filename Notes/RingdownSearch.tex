@@ -24,7 +24,7 @@
 \input{definitions.tex}
 \input{git_tag.tex}
 
-\newcommand{\dcc}{LIGO-T1500618-v3}
+\newcommand{\dcc}{LIGO-T1500618-v3+}
 
 \begin{document}
 
@@ -46,7 +46,7 @@
   $s(t\ge\tStart) = A\,e^{-\frac{t-\tStart}{\tau}}\cos\left(2\pi \freq (t-\tStart) + \phi_0\right)$ with unknown amplitude $A$, initial phase $\phi_0$,
   frequency $\freq$ and decay time $\tau$, as a function of the QNM start-time $\tStart$.
   Using a Gaussian-isotropic prior on $\{\As=-A\sin\phi_0,\,\Ac=A\cos\phi_0\}$ we can approximate the Bayes factor by analytically marginalizing over
-  $\{A,\phi_0\}$, leaving an explicit template search over $\{\freq,\,\tau\}$. We search the range $f\in[210,\,270]\,\Hz$ and $\tau \in [1, 20]\,\ms$
+  $\{A,\phi_0\}$, leaving an explicit template search over $\{\freq,\,\tau\}$. We search the range $f\in[200,\,300]\,\Hz$ and $\tau \in [0.5, 20]\,\ms$
   assuming a uniform prior.
 
 \end{abstract}
@@ -390,17 +390,18 @@ plots, for H1 and L1, respectively.
 \subsection{Numerical results}
 \label{sec:numerical-results}
 
+
 We search the $\{f,\tau\}$ range with uniform priors in
 \begin{equation}
   \label{eq:33}
-  f\in[210,\,270]\,\Hz,\quad
-  \tau\in[1,\,20]\,\ms\,.
+  f\in[200,\,300]\,\Hz,\quad
+  \tau\in[0.5,\,20]\,\ms\,.
 \end{equation}
-at fixed QNM start-time $\tStart$, which we vary in steps of $0.5\,\ms$ in the range $\tStart\in [0.422,\,0.435]\,s + \tEvent$
-(referring to H1 arrival times).
 
 The following pages show snapshots of evidence and parameter-estimation at various fixed start-times $\tStart$, using a data frequency range of $[30,\,1000],\Hz$.
 The offset from merger assumes a merger time $t_{\mathrm{merger}} =  1126259462.42285$ (in H1 arrival time), as taken from \href{https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence}{Ian's wiki}
+
+We vary the QNM start-time $\tStart$ in steps of $1\,\ms$ in the range $\tStart - t_{\mathrm{merger}}\in [0,\,8]\,\mathrm{ms}$ (referring to H1 arrival times).
 
 \includegraphics[width=1\textwidth]{{../Results/Results-160123-20h16-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-tOffs0.42285s-psd_v2-lineCleaningOff}.pdf}
 
