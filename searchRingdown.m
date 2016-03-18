@@ -1,4 +1,18 @@
-#!/usr/bin/octave -q
+## Copyright (C) 2015 Reinhard Prix
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 3 of the License, or
+## (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with Octave; see the file COPYING.  If not, see
+## <http://www.gnu.org/licenses/>.
 
 function ret = searchRingdown ( varargin )
   global debugLevel = 1;
@@ -131,7 +145,7 @@ function ret = searchRingdown ( varargin )
     DebugPrintf ( 1, "H = %.2g ...", H_i );
     [ BSG_f0_tau_H, SNR_H{i}, A_H{i}, phi0_H{i} ] = compute_BSG_SNR ( H_i, match, Mxy );
     BSG_f0_tau += priorH_i * BSG_f0_tau_H;	%% marginalize BSG(x;f0,tau,H) over H to get BSG(x;f0,tau)
-    post_H(i) = mean ( BSG_f0_tau_H(:) ); 	%%marginalize BSG(x;f0,tau,H) over {f0,tau} to get propto P(H|x)
+    post_H(i) = mean ( BSG_f0_tau_H(:) ); 	%% marginalize BSG(x;f0,tau,H) over {f0,tau} to get propto P(H|x)
   endfor
   post_H /= sum (post_H(:));			%% normalize posterior to be sure
   BSG = mean ( BSG_f0_tau(:) );			%% marginalize BSG(x;f0,tau) over {f0,tau} with uniform prior --> BSG(x)
