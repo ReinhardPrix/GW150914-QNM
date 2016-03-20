@@ -30,7 +30,8 @@ function ret = searchRingdown ( varargin )
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
                         {"step_tau", "real,strictpos,scalar", 0.2e-3 },
                         {"prior_H", "real,strictpos,matrix", [4e-22, 1]},
-                        {"plotResults", "bool", false }
+                        {"plotResults", "bool", false },
+                        {"shiftL1", "real,scalar", 7.0e-3}	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
                       );
 
   if ( isscalar ( uvar.prior_H ) )
@@ -45,7 +46,6 @@ function ret = searchRingdown ( varargin )
     normH = sum ( priorH ( :, 2 ) );
     priorH ( :, 2) /= normH;
   endif
-  shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
 
   bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%s-tOffs%.5fs-psd_v%d-lineCleaning%s",
                     uvar.tCenter, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
@@ -113,9 +113,9 @@ function ret = searchRingdown ( varargin )
     %% prepare per-detector timeseries for matching: adapt L1 data to be phase-coherent with H1
     shiftBins = 0;
     if ( strcmp ( ts{X}.IFO, "L1" ) )
-      shiftBins = round ( shiftL1 / dt );
+      shiftBins = round ( uvar.shiftL1 / dt );
       shiftL1_eff = shiftBins * dt;
-      assert ( abs(shiftL1_eff - shiftL1) < 1e-6 );
+      assert ( abs(shiftL1_eff - uvar.shiftL1) < 1e-6 );
       ts{X}.ti += shiftL1_eff;
       ts{X}.xi   *= -1;
       ts{X}.xiW  *= -1;

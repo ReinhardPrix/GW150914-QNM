@@ -27,6 +27,7 @@ global debugLevel = 1;
 SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C01-1126258841-1800.sft" };
 fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such that 7.0ms timeshift between IFOs
                 %% can be represented by exactly by an integer bin-shift: 7e-3 s * 4e3 Hz =  28.0 bins
+shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
 
 confidence = 0.90;
 useTSBuffer = true;
@@ -147,7 +148,8 @@ for i = 1:Nsteps
                             "tCenter", tCenter, "tOffs", tOffsV(i), ...
                             "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
                             "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
-                            "prior_H", prior_H
+                            "prior_H", prior_H,
+                            "shiftL1", shiftL1
                           );
 
   %% ----- save posterior in matrix format ----------
