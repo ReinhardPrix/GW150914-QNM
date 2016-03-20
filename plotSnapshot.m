@@ -14,12 +14,10 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotSnapshot ( in, ts, tRange = [0.41, 0.455] )
+function plotSnapshot ( in, ts, tRange = [0.41, 0.455], plotMarkers = [] )
   global iFig0 = 0;
   global tMergerOffs
   global tEvent;
-  global f0GR;
-  global taumsGR;
 
   f0 = unique ( in.ff0 );
   f0Range = [ min(f0), max(f0) ];
@@ -43,8 +41,12 @@ function plotSnapshot ( in, ts, tRange = [0.41, 0.455] )
   %%xlabel ("f0 [Hz]");
   ylabel ("tau [ms]");
 
-  he = errorbar ( f0GR.val, taumsGR.val, f0GR.lerr, f0GR.uerr, taumsGR.lerr, taumsGR.uerr, "~>." );
   if ( !isempty(plotMarkers) )
+    for i = 1 : length ( plotMarkers )
+      plot3 ( plotMarkers(i).f0, plotMarkers(i).tau * 1e3, 1.1 * in.posteriorMax, "marker", "o", "markersize", 3, "color", "white" );
+    endfor
+  endif
+
   if ( !isempty(in.isoConf2))
     [C, H] = contour ( in.ff0, in.ttau * 1e3, in.posterior2D, in.isoConf2 * [ 1, 1 ] );
     set ( H, "linecolor", "white", "linewidth", 1 );

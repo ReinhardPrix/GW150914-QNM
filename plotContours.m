@@ -14,12 +14,10 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotContours ( in, select = [] )
+function plotContours ( in, select = [], plotMarkers = [] )
   global iFig0 = 0;
   global tMergerOffs
   global tEvent;
-  global f0GR;
-  global taumsGR;
 
   Nsteps = length ( in );
   if ( isempty ( select ) )
@@ -36,7 +34,13 @@ function plotContours ( in, select = [] )
 
   figure ( iFig0 + 5 ); clf;
   hold on;
-  he = errorbar ( f0GR.val, taumsGR.val, f0GR.lerr, f0GR.uerr, taumsGR.lerr, taumsGR.uerr, "~>.r;IMR;" );
+  if ( !isempty(plotMarkers) )
+    for i = 1 : length ( plotMarkers )
+      leg = sprintf ( "x;%s;", plotMarkers(i).name );
+      plot ( plotMarkers(i).f0, plotMarkers(i).tau * 1e3, leg, "markersize", 5 );
+    endfor
+  endif
+
   for i = select
     log10Bi = log10 ( in{i}.BSG );
     color_i = "black"; %% (1 - log10Bi / maxlog10B) * [ 1, 1, 1];

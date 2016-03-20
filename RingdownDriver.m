@@ -48,9 +48,9 @@ if ( !exist("iFig0") )          global iFig0 = 0; endif
 %% ----- 'GR predictions ----------
 global tMergerOffs = 0.42285; %% https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
 global tEvent = 1126259462;
-global f0GR = struct ( "val", 251, "lerr", 9, "uerr", 5 );	%% taken from 'testing GR paper' v21: DCC https://dcc.ligo.org/LIGO-P1500213-v21
-global taumsGR = struct ( "val", 4, "lerr", 0.2, "uerr", 0.4 );
-
+f0GR = struct ( "val", 251, "lerr", 9, "uerr", 5 );	%% taken from 'testing GR paper' v21: DCC https://dcc.ligo.org/LIGO-P1500213-v21
+taumsGR = struct ( "val", 4, "lerr", 0.2, "uerr", 0.4 );
+plotMarkers = struct ( "name", "IMR", "f0", f0GR.val, "tau", taumsGR.val * 1e-3 );	%% by default: show IMR parameters on PE plots
 %% ---------- Prior range defaults ----------
 
 prior_f0Range   = [ 200, 300 ];
@@ -99,6 +99,7 @@ switch ( searchType )
     %% ---------- "OFF-SOURCE" for background estimation ----------
     tOffsV = [ -3 : 0.05 : 3 ];
     tCenter     = tEvent + 10;
+    plotMarkers = [];
 
     useTSBuffer = true;
 
@@ -188,7 +189,7 @@ for i = 1:Nsteps
   %%fname = sprintf ( "%s.png", ret{i}.bname );
   %%ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
   if ( doPlotSnapshots )
-    plotSnapshot ( ret{i}, ts );
+    plotSnapshot ( ret{i}, ts, [], plotMarkers );
   endif
 
   DebugPrintSummary ( 1, ret{i} );
@@ -211,7 +212,7 @@ if ( doPlotSummary )
 endif
 
 if ( doPlotContours )
-  plotContours ( ret )
+  plotContours ( ret, [], plotMarkers )
 endif
 
 if ( doPlotH )
