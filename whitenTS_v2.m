@@ -16,7 +16,7 @@
 
 %% estimate single-sided noise PSD 'psd(f)', and return whitened and over-whitened TS
 %% including an automated line-nuking algorithm: 'lines' are identified as > lineSigma deviations in power
-function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
+function [ tsOut, psd ] = whitenTS_v2 ( varargin )
   global debugLevel = 1;
   global iFig0 = 0;
   global cleanLines = false;

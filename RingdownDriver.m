@@ -136,11 +136,11 @@ endswitch
 
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
-  [ts{X}, ft{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
-                                              "tCenter", tCenter, "Twindow", 4, ...
-                                              "plotSpectrum", doPlotSpectra, "useBuffer", useTSBuffer,
-                                              "injectionSources", injectionSources
-                                            );
+  [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
+                                       "tCenter", tCenter, "Twindow", 4, ...
+                                       "plotSpectrum", doPlotSpectra, "useBuffer", useTSBuffer,
+                                       "injectionSources", injectionSources
+                                     );
   %% for plotting OW-timeseries: store noise-values at 'GR frequency f0GR'
   [val, freqInd] = min ( abs ( psd{X}.fk - f0GR.val ) );
   ts{X}.SX_GR = psd{X}.Sn ( freqInd );

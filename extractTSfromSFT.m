@@ -14,7 +14,7 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function [ts, ft, psd] = extractTSfromSFT ( varargin )
+function [ts, psd] = extractTSfromSFT ( varargin )
   global debugLevel = 1;
   global psd_version = 1;
   global cleanLines = false;
@@ -44,27 +44,19 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
 
   psd_fname = sprintf ( "%s/%s.psd", resDir, bname );
   ts_fname  = sprintf ( "%s/%s.ts",  resDir, bname );
-  ft_fname  = sprintf ( "%s/%s.ft",  resDir, bname );
   %% extract IFO name from SFT name: only works for SFT-name compliant SFTs
   pieces = strsplit ( sftfname, {"-", "_"} );
   IFO = pieces{3};
   assert ( (length ( IFO ) == 2) && isalpha(IFO(1)) && isdigit(IFO(2)) );
 
   %% ---------- check if TS results for this parameters already exist: re-use if yes ----------
-  if ( uvar.useBuffer && (length ( glob ( { psd_fname; ts_fname; ft_fname } ) ) == 3) )
+  if ( uvar.useBuffer && (length ( glob ( { psd_fname; ts_fname } ) ) == 2) )
     DebugPrintf (2, "%s: Re-using previous TS results '%s'\n", funcName(), bname );
 
     dat = load ( psd_fname );
     psd.fk = (dat(:,1))';
     psd.Sn = (dat(:,2))';
     psd.IFO = IFO;
-
-    dat = load ( ft_fname );
-    ft.fk   = (dat(:,1))';
-    ft.xk   = (dat(:,2) + I * dat(:,3))';
-    ft.xkW  = (dat(:,4) + I * dat(:,5))';
-    ft.xkOW = (dat(:,6) + I * dat(:,7))';
-    ft.IFO  = IFO;
 
     dat = load ( ts_fname );
     ts.ti   = (dat(:,1))';
@@ -76,7 +68,6 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
     epoch = unique ( dat(:,5) );
     ts.epoch = epoch;
     psd.epoch = epoch;
-    ft.epoch = epoch;
     return;
   endif
 
@@ -110,19 +101,19 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
       tsBand.xi    = tsBand0.xi ( indsTrunc );
       tsBand.IFO   = IFO;
       tsBand.epoch = epoch;
-      [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
-                                 "fMin", uvar.fMin, "fMax", uvar.fMax,
-                                 "plotSpectrum", uvar.plotSpectrum );
+      [ts, psd] = whitenTS ( "tsIn", tsBand,
+                             "fMin", uvar.fMin, "fMax", uvar.fMax,
+                             "plotSpectrum", uvar.plotSpectrum );
       assert ( isempty ( uvar.injectionSources ), "Sorry, QNM injections only supported with 'psd_version=2'\n");
 
     case 2
-      [ts, ft, psd] = whitenTS_v2 ( "ftIn", ft0, ...
-                                    "fSamp", uvar.fSamp, ...
-                                    "tCenter", uvar.tCenter, "Twindow", uvar.Twindow, ...
-                                    "fMin", uvar.fMin, "fMax", uvar.fMax, ...
-                                    "plotSpectrum", uvar.plotSpectrum,
-                                    "injectionSources", uvar.injectionSources
-                                  );
+      [ts, psd] = whitenTS_v2 ( "ftIn", ft0, ...
+                                "fSamp", uvar.fSamp, ...
+                                "tCenter", uvar.tCenter, "Twindow", uvar.Twindow, ...
+                                "fMin", uvar.fMin, "fMax", uvar.fMax, ...
+                                "plotSpectrum", uvar.plotSpectrum,
+                                "injectionSources", uvar.injectionSources
+                              );
     otherwise
       error ("psd_version = %d not supported\n", psd_version );
   endswitch
@@ -142,12 +133,6 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
   fprintf ( fid, "%%%%%14s %16s %16s %16s %16s\n", "ti [offs s]", "xi", "xi/sqrtSX", "xi/SX", "epoch [GPS s]" );
   epochV = ts.epoch * ones ( size ( ts.ti ) );	%% stupid way, but ensure we keep epoch separate for 'offsets' ti to avoid roundoff problems
   fprintf ( fid, "%16.9f %16.9g %16.9g %16.9g %16.9f\n", [ts.ti', ts.xi', ts.xiW', ts.xiOW', epochV']' );
-  fclose(fid);
-
-  fid = fopen ( ft_fname, "wb" ); assert ( fid != -1, "Failed to open '%s' for writing\n", ft_fname );
-  fprintf ( fid, "%%%%%14s %16s %16s %16s %16s %16s %16s\n", "fk [Hz]", "Re(xk)", "Im(xk)", "Re(xk/sqrtSX)", "Im(xk/sqrtSX)", "Re(xk/SX)", "Im(xk/SX)" );
-  fprintf ( fid, "%16.9f %16.9g %16.9g %16.9g %16.9g %16.9g %16.9g\n",
-            [ ft.fk', real(ft.xk'), imag(ft.xk'), real(ft.xkW'), imag(ft.xkW'), real(ft.xkOW'), imag(ft.xkOW') ]' );
   fclose(fid);
 
   return;
