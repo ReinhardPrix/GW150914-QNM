@@ -28,7 +28,8 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
                         {"fMin", "real,strictpos,scalar", 100 },
                         {"fMax", "real,strictpos,scalar", 300 },
                         {"fSamp", "real,positive,scalar", 2000*2 },	%% sampling rate of output timeseries
-                        {"plotSpectrum", "bool", false }
+                        {"plotSpectrum", "bool", false },
+                        {"injectionSources", "struct", [] }
                       );
 
   %% handy shortcuts
@@ -52,6 +53,34 @@ function [ tsOut, ftOut, psd ] = whitenTS_v2 ( varargin )
   Nsamples = length ( samplesTrunc );
   dt = mean ( diff ( tsTrunc.ti ) );
   T = Nsamples * dt;
+
+  %% ----- inject QNM signal(s) into 'tsTrunc' if requested
+  if ( !isempty ( uvar.injectionSources ) )
+    numInjections = length(uvar.injectionSources);
+    xiInj = zeros ( size ( tsTrunc.xi ) );
+    for l = 1 : numInjections
+      inj_l = uvar.injectionSources(l);
+      if ( strcmp ( IFO, "L1" ) )
+        t0 = inj_l.t0 - inj_l.shiftL1;
+        ampFact = -1;
+      else
+        t0 = inj_l.t0;
+        ampFact = 1;
+      endif
+      t0InjOffs = t0 - tsTrunc.epoch;
+      iStart_l = min ( find ( (tsTrunc.ti - t0InjOffs) >= 0 ) );	%% find earliest QNM time within scope
+      if ( isempty ( iStart_l ) )
+        DebugPrintf ( 1, "Dropping injection %d in %s: t0Inj = %.9f s > tEnd = %.9f s\n", l, IFO, t0InjOffs, max ( tsTrunc.ti ) );
+      else
+        DebugPrintf ( 1, "Starting injection %d in %s at t_i(%d) = %.9f s, for t0 = %.9f s: {A = %g, phi0 = %g, f0 = %g Hz, tau = %g ms ... ",
+                      l, IFO, iStart_l, tsTrunc.ti(iStart_l), t0InjOffs, inj_l.A, inj_l.phi0, inj_l.f0, inj_l.tau  * 1e3 );
+        tsQNM_l = QNMtemplate ( t0, ampFact * inj_l.A, inj_l.phi0, inj_l.f0, inj_l.tau, tsTrunc );
+        xiInj ( iStart_l : end ) += tsQNM_l.xi;
+        DebugPrintf ( 1, "done.\n");
+      endif
+    endfor %% for l = 1 : numInjections
+    tsTrunc.xi += xiInj;
+  endif
 
   %% ---------- estimate PSD on full-length (1800s) timeseries using pwelch() using segments of length 'samplesTrunc' ----------
   window = length ( samplesTrunc );

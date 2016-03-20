@@ -27,7 +27,8 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
                         {"Twindow", "real,strictpos,scalar", 10 },	%% time-window +- to extract around the event
                         {"plotSpectrum", "bool", false },
                         {"fSamp", "real,positive,scalar", 2000*2 },	%% sampling rate of output timeseries
-                        {"useBuffer", "bool", true}			%% re-use timeseries-data files if found
+                        {"useBuffer", "bool", true},			%% re-use timeseries-data files if found
+                        {"injectionSources", "struct", []}
                       );
   assert ( uvar.fMax > uvar.fMin );
 
@@ -112,12 +113,16 @@ function [ts, ft, psd] = extractTSfromSFT ( varargin )
       [ts, ft, psd] = whitenTS ( "tsIn", tsBand,
                                  "fMin", uvar.fMin, "fMax", uvar.fMax,
                                  "plotSpectrum", uvar.plotSpectrum );
+      assert ( isempty ( uvar.injectionSources ), "Sorry, QNM injections only supported with 'psd_version=2'\n");
+
     case 2
       [ts, ft, psd] = whitenTS_v2 ( "ftIn", ft0, ...
                                     "fSamp", uvar.fSamp, ...
                                     "tCenter", uvar.tCenter, "Twindow", uvar.Twindow, ...
                                     "fMin", uvar.fMin, "fMax", uvar.fMax, ...
-                                    "plotSpectrum", uvar.plotSpectrum );
+                                    "plotSpectrum", uvar.plotSpectrum,
+                                    "injectionSources", uvar.injectionSources
+                                  );
     otherwise
       error ("psd_version = %d not supported\n", psd_version );
   endswitch

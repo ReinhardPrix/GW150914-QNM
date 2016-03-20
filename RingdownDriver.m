@@ -45,6 +45,7 @@ if ( !exist("psd_version") )    global psd_version = 2; endif
 if ( !exist("cleanLines") )     global cleanLines = false; endif
 if ( !exist("data_FreqRange") ) data_FreqRange  = [ 30, 1e3 ]; endif
 if ( !exist("iFig0") )          global iFig0 = 0; endif
+if ( !exist("injectionSources") ) injectionSources = []; endif
 
 %% ----- 'GR predictions ----------
 global tMergerOffs = 0.42285; %% https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
@@ -109,6 +110,23 @@ switch ( searchType )
     doPlotSummary   = true;
     doPlotSpectra   = false;
     doPlotBSGHist   = true;
+
+  case "injection"
+    %% ---------- add QNM signal to test parameter-estimation accuracy ----------
+    tEvent += 4;	%% go to some 'off source' time-stretch
+    tCenter = tEvent;
+    tOffsV = tMergerOffs + 10e-3;
+    injectionSources = struct ( "name", "Inj", "t0", tEvent + tMergerOffs + 10e-3, "A", 5e-21, "phi0", 0.5, "f0", 251, "tau", 4e-3, "shiftL1", shiftL1 );
+    plotMarkers = injectionSources;
+
+    useTSBuffer     = false;
+
+    doPlotContours  = true;
+    doPlotSummary   = false;
+    doPlotSnapshots = true;
+    doPlotSpectra   = false;
+    doPlotH         = false;
+
   otherwise
     error ("Unknown searchType = '%s' specified\n", searchType );
 
@@ -120,11 +138,16 @@ endswitch
 for X = 1:length(SFTs)
   [ts{X}, ft{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
                                               "tCenter", tCenter, "Twindow", 4, ...
-                                              "plotSpectrum", doPlotSpectra, "useBuffer", useTSBuffer );
+                                              "plotSpectrum", doPlotSpectra, "useBuffer", useTSBuffer,
+                                              "injectionSources", injectionSources
+                                            );
   %% for plotting OW-timeseries: store noise-values at 'GR frequency f0GR'
   [val, freqInd] = min ( abs ( psd{X}.fk - f0GR.val ) );
   ts{X}.SX_GR = psd{X}.Sn ( freqInd );
 endfor
+
+
+
 
 %% create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
