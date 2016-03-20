@@ -112,11 +112,8 @@ function plotSnapshot ( in, ts, tRange = [0.41, 0.455], plotMarkers = [] )
   tOffsFromM = tOffs - tMergerOffs;
 
   %% MPE template
-  Dt_i = ts{1}.ti - (in.tGPS - ts{1}.epoch);
-  indsRingdown = find ( Dt_i >= 0 );
-  Dt_pos = Dt_i ( indsRingdown );
-  tmpl_MPE = in.A_MPE2 * e.^(- Dt_pos / in.tau_MPE2 ) .* cos ( 2*pi * in.f0_MPE2 * Dt_pos + in.phi0_MPE2 );
-  plot ( in.tGPS + Dt_pos - tEvent, tmpl_MPE, ";MPE ;", "linewidth", 4, "color", "black" );
+  tmpl_MPE = QNMtemplate ( in.tGPS, in.A_MPE2, in.phi0_MPE2, in.f0_MPE2, in.tau_MPE2, ts{1} );
+  plot ( tmpl_MPE.ti - tEvent, tmpl_MPE.xi, ";MPE ;", "linewidth", 4, "color", "black" );
   legend ( "location", "NorthEast");
   yrange = [-1.7e-21, 1.5e-21 ];
   line ( (in.tGPS - tEvent) * [ 1, 1 ],   yrange, "linestyle", "--", "linewidth", 2 );
