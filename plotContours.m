@@ -40,7 +40,9 @@ function plotContours ( in, select = [] )
   for i = select
     log10Bi = log10 ( in{i}.BSG );
     color_i = "black"; %% (1 - log10Bi / maxlog10B) * [ 1, 1, 1];
-    [C, H] = contour ( in{i}.ff0, in{i}.ttau * 1e3, in{i}.posterior2D, in{i}.isoConf2 * [ 1, 1 ] );
+    if ( !isempty ( in{i}.isoConf2 ) )
+      [C, H] = contour ( in{i}.ff0, in{i}.ttau * 1e3, in{i}.posterior2D, in{i}.isoConf2 * [ 1, 1 ] );
+    endif
     set ( H, "linecolor", color_i, "linewidth", 2 );
     leg = sprintf ( "tM + %.1fms", (in{i}.tGPS - tEvent - tMergerOffs) * 1e3 );
     cl = clabel ( C, H, "FontSize", 12, "Color", color_i);

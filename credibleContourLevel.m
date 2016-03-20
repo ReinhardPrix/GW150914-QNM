@@ -22,17 +22,17 @@ function zConf = credibleContourLevel ( posterior2D, confidence = 0.9 )
 
   normC = sum ( posterior2D (:) );
   posterior2D ./= normC;
-  [zConf0, delta, INFO, OUTPUT] = fzero ( @(zIso)  sum ( posterior2D ( find ( posterior2D >= zIso ) )(:) ) - confidence, ...
-                                          [ min(posterior2D(:)), max(posterior2D(:)) ], ...
-                                          optimset ( "TolX", 1e-4 )
-                                        );
   try
+    [zConf0, delta, INFO, OUTPUT] = fzero ( @(zIso)  sum ( posterior2D ( find ( posterior2D >= zIso ) )(:) ) - confidence, ...
+                                            [ min(posterior2D(:)), max(posterior2D(:)) ], ...
+                                            optimset ( "TolX", 1e-4 )
+                                          );
     assert ( INFO == 1 );
+    zConf = [];
   catch
-    delta
-    INFO
-    OUTPUT
-    error ("fzero() failed\n");
+    printf ("fzero() failed\n");
+    zConf = [];
+    return;
   end_try_catch
 
   zConf = normC * zConf0;

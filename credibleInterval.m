@@ -25,18 +25,16 @@ function x_est = credibleInterval ( x, posterior_x, confidence = 0.9 )
   normx = sum ( posterior_x(:) );
   posterior1D = posterior_x / normx;
 
-  [pIso, delta, INFO, OUTPUT] = fzero ( @(pIso)  sum ( posterior1D ( find ( posterior1D >= pIso ) ) ) - confidence, ...
-                                        [ min(posterior1D), max(posterior1D) ], ...
-                                        optimset ( "TolX", 1e-4 )
-                                      );
   try
+    [pIso, delta, INFO, OUTPUT] = fzero ( @(pIso)  sum ( posterior1D ( find ( posterior1D >= pIso ) ) ) - confidence, ...
+                                          [ min(posterior1D), max(posterior1D) ], ...
+                                          optimset ( "TolX", 1e-4 )
+                                        );
     assert ( INFO == 1 );
   catch
-    delta
-    INFO
-    OUTPUT
     DebugPrintf (0, "fzero() failed\n");
     x_est = [];
+    return;
   end_try_catch
 
   x_MP = x ( find ( posterior1D == max(posterior1D) ) );

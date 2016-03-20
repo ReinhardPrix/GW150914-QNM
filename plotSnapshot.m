@@ -44,9 +44,11 @@ function plotSnapshot ( in, ts, tRange = [0.41, 0.455] )
   ylabel ("tau [ms]");
 
   he = errorbar ( f0GR.val, taumsGR.val, f0GR.lerr, f0GR.uerr, taumsGR.lerr, taumsGR.uerr, "~>." );
-  set ( he, "color", "white", "linewidth", 2, "markersize", 0 );
-  [C, H] = contour ( in.ff0, in.ttau * 1e3, in.posterior2D, in.isoConf2 * [ 1, 1 ] );
-  set ( H, "linecolor", "white", "linewidth", 1 );
+  if ( !isempty(plotMarkers) )
+  if ( !isempty(in.isoConf2))
+    [C, H] = contour ( in.ff0, in.ttau * 1e3, in.posterior2D, in.isoConf2 * [ 1, 1 ] );
+    set ( H, "linecolor", "white", "linewidth", 1 );
+  endif
   hold off;
 
   %% ----- posterior(f0)
@@ -120,7 +122,7 @@ function plotSnapshot ( in, ts, tRange = [0.41, 0.455] )
   if ( !isempty ( tRange ) )
     xlim ( tRange );
   else
-    xlim ( [tOffs - 0.01, tOffs + 5 * tau_MPE2 ] );
+    xlim ( [tOffs - 0.01, tOffs + 5 * in.tau_MPE2 ] );
   endif
   ylim ( yrange );
   xlabel ( sprintf ( "%.0f + tOffs [s]", tEvent) );
