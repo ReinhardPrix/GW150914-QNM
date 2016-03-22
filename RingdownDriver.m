@@ -30,7 +30,6 @@ fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such
 shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
 
 confidence = 0.90;
-useTSBuffer = true;
 
 doPlotSnapshots = false;
 doPlotContours  = false;
@@ -74,8 +73,6 @@ switch ( searchType )
     tMerger = tMergerGW150914;
     tOffsV = [7e-3];
 
-    useTSBuffer = false;
-
     doPlotContours  = true;
     doPlotSummary   = false;
     doPlotSnapshots = true;
@@ -86,8 +83,6 @@ switch ( searchType )
     %% ---------- "ON-SOURCE ----------
     tMerger = tMergerGW150914;
     tOffsV = [ 1, 3, 5, 7 ] * 1e-3;
-
-    useTSBuffer = false;
 
     doPlotSnapshots = true;
     doPlotContours  = true;
@@ -102,8 +97,6 @@ switch ( searchType )
     tOffsV = [ -3 : 0.05 : 3 ];
     plotMarkers = [];
 
-    useTSBuffer = true;
-
     doPlotSnapshots = true;
     doPlotContours  = false;
     doPlotSummary   = true;
@@ -116,8 +109,6 @@ switch ( searchType )
     tOffsV = [10e-3];
     injectionSources = struct ( "name", "Inj", "t0", tMerger + 10e-3, "A", 5e-22, "phi0", 0.5, "f0", 251, "tau", 4e-3, "shiftL1", shiftL1 );
     plotMarkers = injectionSources;
-
-    useTSBuffer     = false;
 
     doPlotContours  = true;
     doPlotSummary   = false;
@@ -136,7 +127,7 @@ endswitch
 for X = 1:length(SFTs)
   [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
                                        "tCenter", fix(tMerger), "Twindow", 4, ...
-                                       "plotSpectrum", doPlotSpectra, "useBuffer", useTSBuffer,
+                                       "plotSpectrum", doPlotSpectra, ...
                                        "injectionSources", injectionSources
                                      );
   %% for plotting OW-timeseries: store noise-values at 'GR frequency f0GR'

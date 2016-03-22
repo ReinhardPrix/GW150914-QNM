@@ -27,7 +27,6 @@ function [ts, psd] = extractTSfromSFT ( varargin )
                         {"Twindow", "real,strictpos,scalar", 10 },	%% time-window +- to extract around the event
                         {"plotSpectrum", "bool", false },
                         {"fSamp", "real,positive,scalar", 2000*2 },	%% sampling rate of output timeseries
-                        {"useBuffer", "bool", true},			%% re-use timeseries-data files if found
                         {"injectionSources", "struct", []}
                       );
   assert ( uvar.fMax > uvar.fMin );
@@ -48,28 +47,6 @@ function [ts, psd] = extractTSfromSFT ( varargin )
   pieces = strsplit ( sftfname, {"-", "_"} );
   IFO = pieces{3};
   assert ( (length ( IFO ) == 2) && isalpha(IFO(1)) && isdigit(IFO(2)) );
-
-  %% ---------- check if TS results for this parameters already exist: re-use if yes ----------
-  if ( uvar.useBuffer && (length ( glob ( { psd_fname; ts_fname } ) ) == 2) )
-    DebugPrintf (2, "%s: Re-using previous TS results '%s'\n", funcName(), bname );
-
-    dat = load ( psd_fname );
-    psd.fk = (dat(:,1))';
-    psd.Sn = (dat(:,2))';
-    psd.IFO = IFO;
-
-    dat = load ( ts_fname );
-    ts.ti   = (dat(:,1))';
-    ts.xi   = (dat(:,2))';
-    ts.xiW  = (dat(:,3))';
-    ts.xiOW = (dat(:,4))';
-    ts.IFO  = IFO;
-
-    epoch = unique ( dat(:,5) );
-    ts.epoch = epoch;
-    psd.epoch = epoch;
-    return;
-  endif
 
   %% ---------- otherwise: Read SFT frequency-domain data ----------
   DebugPrintf (2, "%s: Extracting TS from SFT '%s'\n", funcName(), uvar.SFTpath );
