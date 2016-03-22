@@ -87,10 +87,6 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
   overlap = 0.5;
   NsFFT = length ( window );
   [Sn, fkPSD] = pwelch ( ts0.xi, window, overlap, NsFFT, uvar.fSamp, 'onesided' );	%% computes single-sided PSD
-  %% limit to original SFT frequency range
-  binsFullPSD  = binRange ( fMinSFT, fMaxSFT, fkPSD );
-  psd.fk    = fkPSD ( binsFullPSD )';
-  psd.Sn    = Sn (binsFullPSD )';
   psd.IFO   = IFO;
   psd.epoch = ts0.epoch;
 
@@ -98,12 +94,18 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
   ftTrunc = FourierTransform ( tsTrunc.ti, tsTrunc.xi );
   ftTrunc.IFO = IFO;
   ftTrunc.epoch = tsTrunc.epoch;
-  %% limit to original SFT frequency range
-  binsFull  = binRange ( fMinSFT, fMaxSFT, ftTrunc.fk );
-  ftTrunc.fk = ftTrunc.fk ( binsFull );
-  ftTrunc.xk = ftTrunc.xk ( binsFull );
+
+  %% limit FT and PSD to original SFT frequency range
+  fMax = min ( [fMaxSFT, max(fkPSD), max(ftTrunc.fk) ] );
+  binsFullPSD  = binRange ( fMinSFT, fMax, fkPSD );
+  psd.fk    = fkPSD ( binsFullPSD )';
+  psd.Sn    = Sn (binsFullPSD )';
+
+  binsFullFT  = binRange ( fMinSFT, fMax, ftTrunc.fk );
+  ftTrunc.fk = ftTrunc.fk ( binsFullFT );
+  ftTrunc.xk = ftTrunc.xk ( binsFullFT );
   %% PSD bins should agree exactly with data spectrum bins
-  assert ( length ( binsFullPSD ) == length ( binsFull ) );
+  assert ( length ( binsFullPSD ) == length ( binsFullFT ) );
   err = max ( abs ( ftTrunc.fk(:) - psd.fk(:) ));
   assert ( err < 1e-6 );
 

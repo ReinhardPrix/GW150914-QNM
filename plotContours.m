@@ -16,8 +16,6 @@
 
 function plotContours ( in, select = [], plotMarkers = [] )
   global iFig0 = 0;
-  global tMergerOffs
-  global tEvent;
 
   Nsteps = length ( in );
   if ( isempty ( select ) )
@@ -36,8 +34,8 @@ function plotContours ( in, select = [], plotMarkers = [] )
   hold on;
   if ( !isempty(plotMarkers) )
     for i = 1 : length ( plotMarkers )
-      leg = sprintf ( "x;%s;", plotMarkers(i).name );
-      plot ( plotMarkers(i).f0, plotMarkers(i).tau * 1e3, leg, "markersize", 5 );
+      leg = sprintf ( ";%s;", plotMarkers(i).name );
+      plot ( plotMarkers(i).f0, plotMarkers(i).tau * 1e3, leg, "marker", "o", "markersize", 5 );
     endfor
   endif
 
@@ -48,12 +46,12 @@ function plotContours ( in, select = [], plotMarkers = [] )
       [C, H] = contour ( in{i}.ff0, in{i}.ttau * 1e3, in{i}.posterior2D, in{i}.isoConf2 * [ 1, 1 ] );
     endif
     set ( H, "linecolor", color_i, "linewidth", 2 );
-    leg = sprintf ( "tM + %.1fms", (in{i}.tGPS - tEvent - tMergerOffs) * 1e3 );
+    leg = sprintf ( "tM + %.1fms", in{i}.tOffs * 1e3 );
     cl = clabel ( C, H, "FontSize", 12, "Color", color_i);
     set ( cl, "string", "" );
     %%set ( cl(1), "string", leg );
     set ( cl(end), "string", leg );
-    %%plot ( in{i}.f0_MPE2, in{i}.tau_MPE2 * 1e3, "x;MPE;", 'markeredgecolor', color_i, "markersize", 5 );
+    plot ( in{i}.f0_MPE2, in{i}.tau_MPE2 * 1e3, "x;MPE;", 'markeredgecolor', color_i, "markersize", 5 );
   endfor
   xlabel ( "Freq [Hz]" );
   ylabel ( "tau [ms]" );

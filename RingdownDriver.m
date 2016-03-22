@@ -47,9 +47,8 @@ if ( !exist("data_FreqRange") ) data_FreqRange  = [ 30, 1e3 ]; endif
 if ( !exist("iFig0") )          global iFig0 = 0; endif
 if ( !exist("injectionSources") ) injectionSources = []; endif
 
-%% ----- 'GR predictions ----------
-global tMergerOffs = 0.42285; %% https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
-global tEvent = 1126259462;
+%% ----- 'GR predictions/values on GW150914 ----------
+tMergerGW150914 = 1126259462.42285;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
 f0GR = struct ( "val", 251, "lerr", 9, "uerr", 5 );	%% taken from 'testing GR paper' v21: DCC https://dcc.ligo.org/LIGO-P1500213-v21
 taumsGR = struct ( "val", 4, "lerr", 0.2, "uerr", 0.4 );
 plotMarkers = struct ( "name", "IMR", "f0", f0GR.val, "tau", taumsGR.val * 1e-3 );	%% by default: show IMR parameters on PE plots
@@ -72,8 +71,8 @@ step_tau        = 0.5e-3;
 switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
-    tCenter = tEvent;
-    tOffsV = tMergerOffs + [ 7e-3 ];
+    tMerger = tMergerGW150914;
+    tOffsV = [7e-3];
 
     useTSBuffer = false;
 
@@ -85,8 +84,8 @@ switch ( searchType )
 
   case "onSource"
     %% ---------- "ON-SOURCE ----------
-    tCenter = tEvent;
-    tOffsV = tMergerOffs + [ 1, 3, 5, 7 ] * 1e-3;
+    tMerger = tMergerGW150914;
+    tOffsV = [ 1, 3, 5, 7 ] * 1e-3;
 
     useTSBuffer = false;
 
@@ -99,8 +98,8 @@ switch ( searchType )
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
+    tMerger = tMergerGW150914 + 10;
     tOffsV = [ -3 : 0.05 : 3 ];
-    tCenter     = tEvent + 10;
     plotMarkers = [];
 
     useTSBuffer = true;
@@ -113,10 +112,9 @@ switch ( searchType )
 
   case "injection"
     %% ---------- add QNM signal to test parameter-estimation accuracy ----------
-    tEvent += 4;	%% go to some 'off source' time-stretch
-    tCenter = tEvent;
-    tOffsV = tMergerOffs + 10e-3;
-    injectionSources = struct ( "name", "Inj", "t0", tEvent + tMergerOffs + 10e-3, "A", 5e-21, "phi0", 0.5, "f0", 251, "tau", 4e-3, "shiftL1", shiftL1 );
+    tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
+    tOffsV = [10e-3];
+    injectionSources = struct ( "name", "Inj", "t0", tMerger + 10e-3, "A", 5e-22, "phi0", 0.5, "f0", 251, "tau", 4e-3, "shiftL1", shiftL1 );
     plotMarkers = injectionSources;
 
     useTSBuffer     = false;
@@ -137,7 +135,7 @@ endswitch
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
   [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
-                                       "tCenter", tCenter, "Twindow", 4, ...
+                                       "tCenter", fix(tMerger), "Twindow", 4, ...
                                        "plotSpectrum", doPlotSpectra, "useBuffer", useTSBuffer,
                                        "injectionSources", injectionSources
                                      );
@@ -165,15 +163,17 @@ Nsteps = length(tOffsV);
 
 ret = cell ( 1, Nsteps );
 for i = 1:Nsteps
-  DebugPrintf ( 1, "tOffs = %.5fs = tMerger + %.1fms:\n", tOffsV(i), (tOffsV(i) - tMergerOffs) * 1e3 );
+  DebugPrintf ( 1, "t0GPS = tMerger + tOffs = %.6f s + %.1f ms\n", tMerger, tOffsV(i) * 1e3 );
 
   ret{i} = searchRingdown ( "ts", ts, "psd", psd, ...
-                            "tCenter", tCenter, "tOffs", tOffsV(i), ...
+                            "t0GPS", tMerger + tOffsV(i), ...
                             "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
                             "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
-                            "prior_H", prior_H,
+                            "prior_H", prior_H, ...
                             "shiftL1", shiftL1
                           );
+  ret{i}.tMerger = tMerger;
+  ret{i}.tOffs   = tOffsV(i);
 
   %% ----- save posterior in matrix format ----------
   fname = sprintf ( "%s-BSG.dat", ret{i}.bname );
@@ -214,7 +214,7 @@ for i = 1:Nsteps
   %%fname = sprintf ( "%s.png", ret{i}.bname );
   %%ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
   if ( doPlotSnapshots )
-    plotSnapshot ( ret{i}, ts, [], plotMarkers );
+    plotSnapshot ( ret{i}, [], plotMarkers );
   endif
 
   DebugPrintSummary ( 1, ret{i} );
@@ -245,7 +245,7 @@ if ( doPlotH )
   plot ( prior_H(:,1), prior_H(:,2), "-xg;prior;", "linestyle", "--", "linewidth", 2 );
   for i = 1 : Nsteps
     plot ( prior_H(:,1), ret{i}.post_H, "-b" );
-    leg = sprintf ( "+%.1fms", (ret{i}.tGPS - tEvent - tMergerOffs) * 1e3 );
+    leg = sprintf ( "+%.1fms", ret{i}.tOffs * 1e3 );
     text ( prior_H(end,1), ret{i}.post_H(end), leg );
   endfor
   xlabel ( "H" ); ylabel ("pdf");

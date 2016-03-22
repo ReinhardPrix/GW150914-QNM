@@ -14,10 +14,8 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotSnapshot ( in, ts, tRange = [0.41, 0.455], plotMarkers = [] )
+function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
   global iFig0 = 0;
-  global tMergerOffs
-  global tEvent;
 
   f0 = unique ( in.ff0 );
   f0Range = [ min(f0), max(f0) ];
@@ -87,52 +85,38 @@ function plotSnapshot ( in, ts, tRange = [0.41, 0.455], plotMarkers = [] )
   subplot ( 2, 2, 4 );
   hold on;
   colors = { "red", "blue" };
+  markers = {".", "."};
   %% plot data timeseries:
-  for X = 1 : length ( ts )
-    sleg = sprintf (";OW[%s] ;", ts{X}.IFO );
-    %% prepare per-detector timeseries for matching: adapt L1 data to be phase-coherent with H1
-    shiftBins = 0;
-    if ( strcmp ( ts{X}.IFO, "L1" ) )
-      shiftL1 = 7.0e-3;
-      dt = mean( diff ( ts{X}.ti ) );
-      shiftBins = round ( shiftL1 / dt );
-      shiftL1_eff = shiftBins * dt;
-      assert ( abs(shiftL1_eff - shiftL1) < 1e-6 );
-      %% adjust time-offset and relative (antenna-pattern) amplitudes
-      ts{X}.ti += shiftL1_eff;
-      ts{X}.xi   *= -1;
-      ts{X}.xiW  *= -1;
-      ts{X}.xiOW *= -1;
-    endif
-
-    plot ( ts{X}.epoch + ts{X}.ti - tEvent, ts{X}.xiOW * ts{X}.SX_GR, sleg, "linewidth", 2, "color", colors{X} );
+  for X = 1 : length ( in.ts )
+    sleg = sprintf (";OW[%s] ;", in.ts{X}.IFO );
+    Dti_ms = 1e3 * ( in.ts{X}.epoch + in.ts{X}.ti - in.tMerger );
+    plot ( Dti_ms, in.ts{X}.xiOW * in.ts{X}.SX_GR, sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X} );
   endfor
 
-  tOffs = in.tGPS - tEvent;
-  tOffsFromM = tOffs - tMergerOffs;
-
-  %% MPE template
-  tmpl_MPE = QNMtemplate ( in.tGPS, in.A_MPE2, in.phi0_MPE2, in.f0_MPE2, in.tau_MPE2, ts{1} );
-  plot ( tmpl_MPE.ti - tEvent, tmpl_MPE.xi, ";MPE ;", "linewidth", 4, "color", "black" );
+  tOffs_ms = in.tOffs * 1e3;
+  tau_ms = in.tau_MPE2 * 1e3;
+  %% MPE template in H1
+  tmpl_MPE = QNMtemplate ( in.t0GPS, in.A_MPE2, in.phi0_MPE2, in.f0_MPE2, in.tau_MPE2, in.ts{1} );	%% refer to IFO 1, assumed H1
+  Dti_ms = (tmpl_MPE.epoch + tmpl_MPE.ti - in.tMerger) * 1e3;
+  plot( Dti_ms, tmpl_MPE.xi, ";MPE ;", "linewidth", 4, "color", "black" );
   legend ( "location", "NorthEast");
   yrange = [-1.7e-21, 1.5e-21 ];
-  line ( (in.tGPS - tEvent) * [ 1, 1 ],   yrange, "linestyle", "--", "linewidth", 2 );
-  line ( [ tMergerOffs, tMergerOffs], yrange, "linestyle", "-", "linewidth", 2 );
-  if ( !isempty ( tRange ) )
-    xlim ( tRange );
-  else
-    xlim ( [tOffs - 0.01, tOffs + 5 * in.tau_MPE2 ] );
-  endif
-  ylim ( yrange );
-  xlabel ( sprintf ( "%.0f + tOffs [s]", tEvent) );
-  text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
+  xrange = [tOffs_ms - 10, tOffs_ms + 5 * tau_ms ];
+  line ( [ 0, 0 ],   yrange, "linestyle", "--", "linewidth", 2 );
+  line ( tOffs_ms * [1,1], yrange, "linestyle", "-", "linewidth", 2 );
+  xlabel ( sprintf ( "%.6f s + tOffs [ms]", in.tMerger ) );
+  %%text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
+  ylabel ( "h(t)");
 
-  textOffs = sprintf ( "tOffs = %.5fs = tM + %.2fms", tOffs, tOffsFromM * 1e3 );
-  title ( textOffs );
-  textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g", log10 ( in.BSG ), in.SNR_MPE2 );
-  x0 = tOffs + 0.02 * abs(diff(xlim()));
+  textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g\nt0 = +%.1f ms", log10 ( in.BSG ), in.SNR_MPE2, tOffs_ms );
+  x0 = tOffs_ms + 0.02 * abs(diff(xrange));
   y0 = min(yrange) + 0.2*abs(diff(yrange));
   text ( x0, y0, textB );
+  x0 = 0 + 0.02 * diff(xrange);
+  y0 = min(yrange) + 0.07*abs(diff(yrange));
+  text ( x0, y0, "tMerger" );
+
+  xlim ( xrange );
   ylim ( yrange );
   grid on;
   hold off;

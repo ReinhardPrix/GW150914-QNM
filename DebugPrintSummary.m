@@ -1,9 +1,7 @@
 function DebugPrintSummary ( level, in )
-  global tMergerOffs;
-  global tEvent;
 
   %% summarize numerical outcomes on stdout
-  DebugPrintf (level, "tGPS = %.0f + %f s = tMerger + %.2fms\n", fix(in.tGPS), rem(in.tGPS,1), (in.tGPS - (tEvent + tMergerOffs)) * 1e3 );
+  DebugPrintf (level, "t0GPS = tMerger + tOffs = %.6f s + %.1f ms = %.6f s\n", in.tMerger, in.tOffs * 1e3, in.t0GPS );
   DebugPrintf (level, "log10<BSG>    = %.2g\n", log10(in.BSG) );
   DebugPrintf (level, "f0_est  = {%.1f -%.1f +%.1f} Hz\n", in.f0_est.MPE, in.f0_est.lerr, in.f0_est.uerr );
   DebugPrintf (level, "tau_est = {%.1f -%.1f +%1.f} ms\n", 1e3 * [in.tau_est.MPE, in.tau_est.lerr, in.tau_est.uerr] );

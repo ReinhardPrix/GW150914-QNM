@@ -1,4 +1,4 @@
-## Copyright (C) 2015 Reinhard Prix
+## Copyright (C) 2015, 2016 Reinhard Prix
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -23,8 +23,7 @@ function ret = searchRingdown ( varargin )
   uvar = parseOptions ( varargin,
                         {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
                         {"psd", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
-                        {"tCenter", "real,strictpos,scalar", 1126259462 },
-                        {"tOffs", "real,scalar", 0.43 },
+                        {"t0GPS", "real,strictpos,scalar", 1126259462.43 },	%% ringdown start-time in GPS s
                         {"prior_f0Range", "real,strictpos,vector", [220,  270] },
                         {"step_f0", "real,strictpos,scalar", 0.1 },
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
@@ -47,11 +46,10 @@ function ret = searchRingdown ( varargin )
     priorH ( :, 2) /= normH;
   endif
 
-  bname = sprintf ( "Ringdown-GPS%.0fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%s-tOffs%.5fs-psd_v%d-lineCleaning%s",
-                    uvar.tCenter, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
+  bname = sprintf ( "Ringdown-GPS%.6fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%s-psd_v%d-lineCleaning%s",
+                    uvar.t0GPS, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
                     1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
                     priorHname,
-                    uvar.tOffs,
                     psd_version, ifelse ( cleanLines, "On", "Off" )
                   );
 
@@ -100,10 +98,8 @@ function ret = searchRingdown ( varargin )
   %%DebugPrintf ( 1, "done.\n");
 
   %% ----- prepare time-series stretch to analyze
-  t0 = uvar.tCenter + uvar.tOffs;   	%% start-time of exponential ringdown-template
-
-  inds_MaxRange = find ( (ts{1}.ti >= (t0 - ts{1}.epoch) ) & (ts{1}.ti <= (t0 - ts{1}.epoch + Tmax)) );
-  Dt_i = ts{1}.ti ( inds_MaxRange ) - (t0 - ts{1}.epoch);
+  inds_MaxRange = find ( (ts{1}.ti >= (uvar.t0GPS - ts{1}.epoch) ) & (ts{1}.ti <= (uvar.t0GPS - ts{1}.epoch + Tmax)) );
+  Dt_i = ts{1}.ti ( inds_MaxRange ) - (uvar.t0GPS - ts{1}.epoch);
   assert ( min(Dt_i) >= 0 );
 
   yiOW = zeros ( size ( inds_MaxRange ) );
@@ -159,7 +155,7 @@ function ret = searchRingdown ( varargin )
   phi0_est = phi0_H{iMPE};
 
   ret = struct ( "bname", bname, ...
-                 "tGPS", uvar.tCenter + uvar.tOffs, ...
+                 "t0GPS", uvar.t0GPS, ...
                  "ff0", ff0, ...
                  "ttau", ttau, ...
                  "A_est", A_est, ...
@@ -170,6 +166,7 @@ function ret = searchRingdown ( varargin )
                  "post_H", post_H, ...
                  "H_MPE", H_MPE
                );
+  ret.ts = ts;
   ret.Mxy = Mxy;
 
   return
