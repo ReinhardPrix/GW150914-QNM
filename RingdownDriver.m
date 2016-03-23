@@ -219,6 +219,10 @@ tmp = ret{i}.ttau;
 save ( "-ascii", "taus.dat", "tmp" );
 
 %% ----- store complete results dump ----------
+versioning.octave = version();
+versioning.octapps = octapps_gitID();
+versioning.scripts = octapps_gitID(".", "QNM-scripts");
+
 fname = sprintf ( "RingdownDriver-%s.hd5", ret{1}.bname );
 save ("-hdf5", fname )
 
