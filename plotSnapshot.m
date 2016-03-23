@@ -41,7 +41,7 @@ function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
 
   if ( !isempty(plotMarkers) )
     for i = 1 : length ( plotMarkers )
-      plot3 ( plotMarkers(i).f0, plotMarkers(i).tau * 1e3, 1.1 * in.posteriorMax, "marker", "o", "markersize", 3, "color", "white" );
+      plot3 ( plotMarkers(i).f0, plotMarkers(i).tau * 1e3, 1.1 * in.posteriorMax, "marker", "o", "markersize", 3, "linewidth", 2, "color", "white" );
     endfor
   endif
 
@@ -100,21 +100,18 @@ function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
   Dti_ms = (tmpl_MPE.epoch + tmpl_MPE.ti - in.tMerger) * 1e3;
   plot( Dti_ms, tmpl_MPE.xi, ";MPE ;", "linewidth", 4, "color", "black" );
   legend ( "location", "NorthEast");
-  yrange = [-1.7e-21, 1.5e-21 ];
-  xrange = [tOffs_ms - 10, tOffs_ms + 5 * tau_ms ];
+  yrange = [-1.8e-21, 1.7e-21 ];
+  xrange = [tOffs_ms - 15, tOffs_ms + 5 * tau_ms ];
   line ( [ 0, 0 ],   yrange, "linestyle", "--", "linewidth", 2 );
-  line ( tOffs_ms * [1,1], yrange, "linestyle", "-", "linewidth", 2 );
-  xlabel ( sprintf ( "%.6f s + tOffs [ms]", in.tMerger ) );
+  line ( tOffs_ms * [1,1], yrange, "linestyle", "-", "linewidth", 4 );
+  xlabel ( sprintf ( "H1:%.6f s + tOffs [ms]", in.tMerger ) );
   %%text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
   ylabel ( "h(t)");
 
-  textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g\nt0 = +%.1f ms", log10 ( in.BSG ), in.SNR_MPE2, tOffs_ms );
+  textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g\ntM + %.1f ms", log10 ( in.BSG ), in.SNR_MPE2, tOffs_ms );
   x0 = tOffs_ms + 0.02 * abs(diff(xrange));
   y0 = min(yrange) + 0.2*abs(diff(yrange));
   text ( x0, y0, textB );
-  x0 = 0 + 0.02 * diff(xrange);
-  y0 = min(yrange) + 0.07*abs(diff(yrange));
-  text ( x0, y0, "tMerger" );
 
   xlim ( xrange );
   ylim ( yrange );
