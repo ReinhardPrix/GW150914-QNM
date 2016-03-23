@@ -73,7 +73,7 @@ switch ( searchType )
     tCenter = tEvent;
     tOffsV = tMergerOffs + [ 7e-3 ];
 
-    useTSBuffer = true;
+    useTSBuffer = false;
 
     doPlotContours  = true;
     doPlotSummary   = false;
@@ -86,7 +86,7 @@ switch ( searchType )
     tCenter = tEvent;
     tOffsV = tMergerOffs + [ 1, 3, 5, 7 ] * 1e-3;
 
-    useTSBuffer = true;
+    useTSBuffer = false;
 
     doPlotSnapshots = true;
     doPlotContours  = true;
