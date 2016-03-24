@@ -85,12 +85,13 @@ function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
   subplot ( 2, 2, 4 );
   hold on;
   colors = { "red", "blue" };
-  markers = {".", "."};
+  markers = {".", "o"};
+  markersize = [ 5, 2 ];
   %% plot data timeseries:
   for X = 1 : length ( in.ts )
     sleg = sprintf (";OW[%s] ;", in.ts{X}.IFO );
     Dti_ms = 1e3 * ( in.ts{X}.epoch + in.ts{X}.ti - in.tMerger );
-    plot ( Dti_ms, in.ts{X}.xiOW * in.ts{X}.SX_GR, sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X} );
+    plot ( Dti_ms, in.ts{X}.xiOW * in.ts{X}.SX_GR, sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X}, "markersize", markersize(X) );
   endfor
 
   tOffs_ms = in.tOffs * 1e3;
@@ -102,8 +103,8 @@ function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
   legend ( "location", "NorthEast");
   yrange = [-1.8e-21, 1.7e-21 ];
   xrange = [tOffs_ms - 15, tOffs_ms + 5 * tau_ms ];
-  line ( [ 0, 0 ],   yrange, "linestyle", "--", "linewidth", 2 );
-  line ( tOffs_ms * [1,1], yrange, "linestyle", "-", "linewidth", 4 );
+  line ( [ 0, 0 ],   yrange, "linestyle", "-", "linewidth", 2 );
+  line ( tOffs_ms * [1,1], yrange, "linestyle", "--", "linewidth", 3 );
   xlabel ( sprintf ( "H1:%.6f s + tOffs [ms]", in.tMerger ) );
   %%text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
   ylabel ( "h(t)");
