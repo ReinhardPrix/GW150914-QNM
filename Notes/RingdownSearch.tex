@@ -374,7 +374,7 @@ isotropic prior in $\phi_0$ and an $A$-prior of \eqref{eq:28}, as shown here:\\
 \subsection{Data preparation}
 \label{sec:data-preparation}
 
-Band-passed data in (i) $[30,\,1000]\,\Hz$ (using tukey(0.1) windowing) on a 1800s Fourier-transform containing the GPS time
+Band-passed data in (i) $[10,\,2000]\,\Hz$ (using tukey(0.1) windowing) on a 1800s Fourier-transform containing the GPS time
 $\tEvent = 1126259462\,$s.
 From this we extracted a $T=8\,$s timeseries $x^X(t)$ centered on the event GPS time $\tEvent$.
 Time-shifted L1 data by (delaying it by $+7\,\ms$) and multiplied it by $(-1)$ to account for the inverse detector response.
@@ -383,75 +383,53 @@ We estimate the (single-sided) PSD $S_X$ by a standard welch method using 8s win
 The resulting original spectrum (top row), rms-whitened spectrum (middle row) and over-whitened spectrum (bottom row) are shown in the following
 plots, for H1 and L1, respectively.
 
-\includegraphics[width=0.5\textwidth]{{../extractTS-Results/H-1_H1_1800SFT_ER8-C01-1126257832-1800-freq30Hz-1000Hz-fSamp4000Hz-GPS1126259462s+-4s-psd_v2-lineCleaningOff-spectrum}.pdf}
-\includegraphics[width=0.5\textwidth]{{../extractTS-Results/L-1_L1_1800SFT_ER8-C01-1126258841-1800-freq30Hz-1000Hz-fSamp4000Hz-GPS1126259462s+-4s-psd_v2-lineCleaningOff-spectrum}.pdf}
+\includegraphics[width=0.5\textwidth]{{../extractTS-Results/H-1_H1_1800SFT_ER8-C01-1126257832-1800-freq10Hz-2000Hz-fSamp4000Hz-GPS1126259462s+-4s-psd_v2-lineCleaningOff-spectrum}.pdf}
+\includegraphics[width=0.5\textwidth]{{../extractTS-Results/L-1_L1_1800SFT_ER8-C01-1126258841-1800-freq10Hz-2000Hz-fSamp4000Hz-GPS1126259462s+-4s-psd_v2-lineCleaningOff-spectrum}.pdf}
 
 \subsection{Numerical results}
 \label{sec:numerical-results}
 
 We search the $\{f,\tau\}$ range with uniform priors in $f\in[200,\,300]\,\Hz$ and $\tau\in[0.5,\,20]\,\ms$.
-The following plots show snapshots of evidence and parameter-estimation at various fixed start-times $\tStart$, using a data frequency range of $[30,\,1000],\Hz$.
+The following plots show snapshots of evidence and parameter-estimation at various fixed start-times $\tStart$, using a data frequency range of $[10,\,2000],\Hz$.
 The offset from merger assumes a merger time $t_{\mathrm{merger}} = 1126259462.42285$ (in H1 arrival time), as taken from
 \href{https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence}{Ian's wiki}. We show results for QNM start-times
 $\tStart - t_{\mathrm{merger}} \in \{1,\,3,\,5,\,7\}\,\ms$ (always referring to H1 arrival times).
 
 \newpage
 \parbox{\textwidth}{
-\includegraphics[width=0.9\textwidth]{{../Results/Results-160323-15h28-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.423850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff}.pdf}\\
-\includegraphics[width=0.9\textwidth]{{../Results/Results-160323-15h28-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.425850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff}.pdf}
+\includegraphics[width=0.9\textwidth]{{../Results/Results-160324-10h30-onSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.423850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=0.9\textwidth]{{../Results/Results-160324-10h30-onSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.425850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff}.pdf}
 }
 
 %%
 \newpage
 \vspace*{-2cm}\parbox{\textwidth}{
-\includegraphics[width=0.9\textwidth]{{../Results/Results-160323-15h28-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.427850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff}.pdf}\\
-\includegraphics[width=0.9\textwidth]{{../Results/Results-160323-15h28-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.429850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff}.pdf}
+\includegraphics[width=0.9\textwidth]{{../Results/Results-160324-10h30-onSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.427850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff}.pdf}\\
+\includegraphics[width=0.9\textwidth]{{../Results/Results-160324-10h30-onSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.429850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff}.pdf}
 }
 
 \newpage
 \subsection{Summary plots}
 \parbox{\textwidth}{
-\includegraphics[width=0.9\textwidth]{{../Results/Results-160323-15h28-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.423850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff-summary}.pdf}\\
-\includegraphics[width=0.9\textwidth]{{../Results/Results-160323-15h28-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.423850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff-contours}.pdf}
+\includegraphics[width=0.9\textwidth]{{../Results/Results-160324-10h30-onSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.423850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff-summary}.pdf}\\
+\includegraphics[width=0.9\textwidth]{{../Results/Results-160324-10h30-onSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.423850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff-contours}.pdf}
 }
 
 \newpage
 \subsection{H-scale posteriors}
 
-\includegraphics[width=0.9\textwidth]{{../Results/Results-160323-15h28-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.423850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff-post_H}.pdf}\\
+\includegraphics[width=0.9\textwidth]{{../Results/Results-160324-10h30-onSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462.423850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff-post_H}.pdf}\\
 It seems the previous choice of a fixed scale $H = 4\times10^{-22}$ was not quite what the data favors, but also not too bad.
 
-\newpage
-\subsection{Robustness of posterior $90\%$ contours}
-
-\parbox{\textwidth}{
-\parbox{0.5\textwidth}{
-\centering $H = 4\times10^{-22}$, data $\in [30,1000]\,$Hz:\\
-\includegraphics[width=0.5\textwidth]{{../Results/Results-160123-21h50-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f200Hz-300Hz-tau0.5ms-20.0ms-H4e-22-tOffs0.42285s-psd_v2-lineCleaningOff-contours}.pdf}}
-\parbox{0.5\textwidth}{
-\centering $H = 4\times10^{-22}$, data $\in [30,1984]\,$Hz:\\
-\includegraphics[width=0.5\textwidth]{{../Results/Results-160123-20h42-onSource-data30Hz-1984Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f200Hz-300Hz-tau0.5ms-20.0ms-H4e-22-tOffs0.42285s-psd_v2-lineCleaningOff-contours}.pdf}}\\
-\parbox{0.5\textwidth}{
-\centering marginalized-$H$, data $\in [30,1000]\,$Hz:\\
-\includegraphics[width=0.5\textwidth]{{../Results/Results-160123-20h16-onSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-tOffs0.42285s-psd_v2-lineCleaningOff-contours}.pdf}}
-\parbox{0.5\textwidth}{
-\centering marginalized-$H$, data $\in [30,1984]\,$Hz:\\
-\includegraphics[width=0.5\textwidth]{{../Results/Results-160123-20h27-onSource-data30Hz-1984Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259462s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-tOffs0.42285s-psd_v2-lineCleaningOff-contours}.pdf}}\\[0.3cm]
-\parbox{1\textwidth}{
-  \centering ``old'' PSD, with line-cleaning, marginalized-$H$, data $\in [30,1000]\,$Hz:\\
-  \includegraphics[width=0.49\textwidth]{{../Results/Results-160124-16h12-onSource-data30Hz-1000Hz-psd_v1-lineCleaningOn/Ringdown-GPS1126259462s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-tOffs0.42385s-psd_v1-lineCleaningOn-contours}.pdf}
-  \includegraphics[width=0.49\textwidth]{{../Results/Results-160124-16h12-onSource-data30Hz-1000Hz-psd_v1-lineCleaningOn/Ringdown-GPS1126259462s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-tOffs0.42385s-psd_v1-lineCleaningOn-summary}.pdf}}
-}
 
 \newpage
 \section{"Off Source"}
 
 Analysing a data-segment that lies 10s past the event, going in steps of $50\,$ms for uncorrelated templates, 120 trials:\\
 \parbox{\textwidth}{
-\includegraphics[width=\textwidth]{{../Results/Results-160123-20h51-offSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259472s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-tOffs-3.00000s-psd_v2-lineCleaningOff-summary}.pdf}\\
-\includegraphics[width=0.8\textwidth]{{../Results/Results-160123-20h51-offSource-data30Hz-1000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259472s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-tOffs-3.00000s-psd_v2-lineCleaningOff-hist}.pdf}
+\includegraphics[width=\textwidth]{{../Results/Results-160324-10h46-offSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259469.422850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff-summary}.pdf}
+\includegraphics[width=0.8\textwidth]{{../Results/Results-160324-10h46-offSource-data10Hz-2000Hz-psd_v2-lineCleaningOff/Ringdown-GPS1126259469.422850s-f200Hz-300Hz-tau0.5ms-20.0ms-HJeffreys-psd_v2-lineCleaningOff-hist}.pdf}
 }
-
 
 \newpage
 \appendix
