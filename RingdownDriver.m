@@ -42,7 +42,7 @@ if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
 if ( !exist("psd_version") )    global psd_version = 2; endif
 if ( !exist("cleanLines") )     global cleanLines = false; endif
-if ( !exist("data_FreqRange") ) data_FreqRange  = [ 30, 1e3 ]; endif
+if ( !exist("data_FreqRange") ) data_FreqRange  = [ 10, 2e3 ]; endif
 if ( !exist("iFig0") )          global iFig0 = 0; endif
 if ( !exist("injectionSources") ) injectionSources = []; endif
 
