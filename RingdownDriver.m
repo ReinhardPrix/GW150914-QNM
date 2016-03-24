@@ -45,6 +45,7 @@ if ( !exist("cleanLines") )     global cleanLines = false; endif
 if ( !exist("data_FreqRange") ) data_FreqRange  = [ 10, 2e3 ]; endif
 if ( !exist("iFig0") )          global iFig0 = 0; endif
 if ( !exist("injectionSources") ) injectionSources = []; endif
+if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = []; endif
 
 %% ----- 'GR predictions/values on GW150914 ----------
 tMergerGW150914 = 1126259462.42285;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
@@ -97,18 +98,21 @@ switch ( searchType )
     tOffsV = [ -3 : 0.05 : 3 ];
     plotMarkers = [];
 
-    doPlotSnapshots = true;
+    doPlotSnapshots = false;
     doPlotContours  = false;
     doPlotSummary   = true;
     doPlotSpectra   = false;
     doPlotBSGHist   = true;
+    doPlotH         = false;
 
   case "injection"
     %% ---------- add QNM signal to test parameter-estimation accuracy ----------
-    tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
-    tOffsV = [10e-3];
-    injectionSources = struct ( "name", "Inj", "t0", tMerger + 10e-3, "A", 5e-22, "phi0", 0.5, "f0", 251, "tau", 4e-3, "shiftL1", shiftL1 );
+    tMerger = tMergerGW150914 + 3;;	%% go to some 'off source' time-stretch
+    tOffsV = [10 ] * 1e-3;
+    injectionSources = struct ( "name", "Inj", "t0", tMerger + 10e-3, "A", 10e-22, "phi0", 1.5, "f0", 251, "tau", 4e-3, "shiftL1", shiftL1 );
+    assumeSqrtSX = [ 8e-24, 8e-24 ];
     plotMarkers = injectionSources;
+    prior_H = injectionSources.A;	%% testing
 
     doPlotContours  = true;
     doPlotSummary   = false;
@@ -125,10 +129,19 @@ endswitch
 
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
-  [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, "fMin", min(data_FreqRange), "fMax", max(data_FreqRange), "fSamp", fSamp, ...
-                                       "tCenter", fix(tMerger), "Twindow", 4, ...
+  assumeSqrtSn = [];
+  if ( !isempty ( assumeSqrtSX ) )
+    assumeSqrtSn = assumeSqrtSX(X);
+  endif
+  [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, ...
+                                       "fMin", min(data_FreqRange), ...
+                                       "fMax", max(data_FreqRange), ...
+                                       "fSamp", fSamp, ...
+                                       "tCenter", fix(tMerger), ...
+                                       "Twindow", 4, ...
                                        "plotSpectrum", doPlotSpectra, ...
-                                       "injectionSources", injectionSources
+                                       "injectionSources", injectionSources, ...
+                                       "assumeSqrtSn", assumeSqrtSn ...
                                      );
   %% for plotting OW-timeseries: store noise-values at 'GR frequency f0GR'
   [val, freqInd] = min ( abs ( psd{X}.fk - f0GR.val ) );

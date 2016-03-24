@@ -50,8 +50,8 @@ function [TS, FT] = freqBand2TS ( ft, fMin, fMax, fSamp )
   Nsamp = length(TS.xi);	%% == Nfreq
   TS.ti = dt * [ 0 : (Nsamp-1) ];
   %% check that we constructed a real-valued timeseries
-  err = max ( abs(imag( TS.xi)) ./ abs(real(TS.xi) ) );
-  assert ( err < 1e-6 );
+  %%err = max ( abs(imag( TS.xi)) ./ abs(real(TS.xi) ) );
+  %%assert ( err < 1e-6 );
   TS.xi = real ( TS.xi );
   TS.epoch = ft.epoch;
   TS.IFO = ft.IFO;
