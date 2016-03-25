@@ -37,13 +37,13 @@ doPlotSummary   = false;
 doPlotSpectra   = false;
 doPlotBSGHist   = false;
 doPlotH         = false;
+doPlotPErecovery= false;
 
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
 if ( !exist("psd_version") )    global psd_version = 2; endif
 if ( !exist("cleanLines") )     global cleanLines = false; endif
 if ( !exist("data_FreqRange") ) data_FreqRange  = [ 10, 2e3 ]; endif
-if ( !exist("iFig0") )          global iFig0 = 0; endif
 if ( !exist("injectionSources") ) injectionSources = []; endif
 if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = []; endif
 
@@ -105,20 +105,30 @@ switch ( searchType )
     doPlotBSGHist   = true;
     doPlotH         = false;
 
-  case "injection"
+  case "injections-SignalOnly"
     %% ---------- add QNM signal to test parameter-estimation accuracy ----------
-    tMerger = tMergerGW150914 + 3;;	%% go to some 'off source' time-stretch
-    tOffsV = [10 ] * 1e-3;
-    injectionSources = struct ( "name", "Inj", "t0", tMerger + 10e-3, "A", 10e-22, "phi0", 1.5, "f0", 251, "tau", 4e-3, "shiftL1", shiftL1 );
+    tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
+    tOffsV = [ -0.5 : 0.05 : 0 ];
+    clear("injectionSources");
+    for i = 1 : length(tOffsV)
+      injectionSources(i) = struct ( "name", 	sprintf("Inj-%d", i), ...
+                                     "t0", 	tMerger + tOffsV(i), ...
+                                     "A", 	unifrnd ( 1e-22, 10e-22 ), ...
+                                     "phi0", 	unifrnd ( 0, 2*pi ), ...
+                                     "f0", 	unifrnd ( 200, 300 ), ...
+                                     "tau", 	unifrnd ( 0.5e-3, 15e-3 ), ...
+                                     "shiftL1", shiftL1 ...
+                                   );
+    endfor %% i = 1:numInjections
     assumeSqrtSX = [ 8e-24, 8e-24 ];
-    plotMarkers = injectionSources;
-    prior_H = injectionSources.A;	%% testing
+    plotMarkers = [];
 
-    doPlotContours  = true;
+    doPlotContours  = false;
     doPlotSummary   = false;
-    doPlotSnapshots = true;
+    doPlotSnapshots = false;
     doPlotSpectra   = false;
     doPlotH         = false;
+    doPlotPErecovery= true;
 
   otherwise
     error ("Unknown searchType = '%s' specified\n", searchType );
@@ -163,114 +173,139 @@ cd ( resDir );
 
 %%try
 %% ----- run search
-Nsteps = length(tOffsV);
+Nsearches = length(tOffsV);
+PErecovery = [];
+clear ("res" );
+[resV, resCommon] = searchRingdown ( "ts", ts, "psd", psd, ...
+                                     "t0V", tMerger + tOffsV, ...
+                                     "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
+                                     "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
+                                     "prior_H", prior_H, ...
+                                     "shiftL1", shiftL1
+                                   );
+assert ( length(resV) == Nsearches );
+resCommon.tMerger = tMerger;
 
-ret = cell ( 1, Nsteps );
-for i = 1:Nsteps
-  DebugPrintf ( 1, "t0GPS = tMerger + tOffs = %.6f s + %.1f ms\n", tMerger, tOffsV(i) * 1e3 );
-
-  ret{i} = searchRingdown ( "ts", ts, "psd", psd, ...
-                            "t0GPS", tMerger + tOffsV(i), ...
-                            "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
-                            "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
-                            "prior_H", prior_H, ...
-                            "shiftL1", shiftL1
-                          );
-  ret{i}.tMerger = tMerger;
-  ret{i}.tOffs   = tOffsV(i);
+for l = 1 : Nsearches
+  DebugPrintf ( 1, "t0GPS = tMerger + tOffs = %.6f s + %.1f ms\n", tMerger, tOffsV(l) * 1e3 );
+  resV(l).tOffs = resV(l).t0 - resCommon.tMerger;
 
   %% ----- save posterior in matrix format ----------
-  fname = sprintf ( "%s-BSG.dat", ret{i}.bname );
-  tmp = ret{i}.BSG_f0_tau;
+  fname = sprintf ( "%s-BSG.dat", resV(l).bname );
+  tmp = resV(l).BSG_f0_tau;
   save ( "-ascii", fname, "tmp" );
 
-  fname = sprintf ( "%s-SNR.dat", ret{i}.bname );
-  tmp = ret{i}.SNR;
+  fname = sprintf ( "%s-SNR.dat", resV(l).bname );
+  tmp = resV(l).SNR;
   save ( "-ascii", fname, "tmp" );
 
   %% ----- compute derived quantities
   %% 2D and 1D marginalized posteriors on {f,tau} ----------
-  tmp = ret{i}.BSG_f0_tau;
-  ret{i}.posterior2D = tmp / sum ( tmp(:) );
+  tmp = resV(l).BSG_f0_tau;
+  resV(l).posterior2D = tmp / sum ( tmp(:) );
 
-  tmp = sum ( ret{i}.posterior2D, 1 );
-  ret{i}.posterior_f0   = tmp / sum ( tmp(:) );
+  tmp = sum ( resV(l).posterior2D, 1 );
+  resV(l).posterior_f0   = tmp / sum ( tmp(:) );
 
-  tmp = sum ( ret{i}.posterior2D, 2 );
-  ret{i}.posterior_tau   = tmp / sum ( tmp(:) );
+  tmp = sum ( resV(l).posterior2D, 2 );
+  resV(l).posterior_tau   = tmp / sum ( tmp(:) );
 
-  f0  = unique ( ret{i}.ff0 );
-  tau = unique ( ret{i}.ttau );
-  ret{i}.f0_est   = credibleInterval ( f0,   ret{i}.posterior_f0,   confidence );
-  ret{i}.tau_est  = credibleInterval ( tau,  ret{i}.posterior_tau,  confidence );
-  ret{i}.isoConf2 = credibleContourLevel ( ret{i}.posterior2D, confidence );
+  ff0 = resCommon.ff0;
+  ttau = resCommon.ttau;
+  f0  = unique ( ff0 );
+  tau = unique ( ttau );
+  resV(l).f0_est   = credibleInterval ( f0,   resV(l).posterior_f0,   confidence );
+  resV(l).tau_est  = credibleInterval ( tau,  resV(l).posterior_tau,  confidence );
+  resV(l).isoConf2 = credibleContourLevel ( resV(l).posterior2D, confidence );
 
   %% MPE values
-  ret{i}.posteriorMax = max ( ret{i}.posterior2D(:) );
-  ret{i}.l_MPE2    = l_MPE2 = ( find ( ret{i}.posterior2D(:) == ret{i}.posteriorMax ) )(1);
-  ret{i}.f0_MPE2   = ret{i}.ff0 ( l_MPE2 );
-  ret{i}.tau_MPE2  = ret{i}.ttau ( l_MPE2 );
+  resV(l).posteriorMax = max ( resV(l).posterior2D(:) );
+  resV(l).k_MP2D    = k_MP2D = ( find ( resV(l).posterior2D(:) == resV(l).posteriorMax ) )(1);
+  resV(l).f0_MP2D   = ff0 ( k_MP2D );
+  resV(l).tau_MP2D  = ttau ( k_MP2D );
 
-  ret{i}.A_MPE2    = ret{i}.A_est( l_MPE2 );
-  ret{i}.phi0_MPE2 = ret{i}.phi0_est ( l_MPE2 );
-  ret{i}.SNR_MPE2  = ret{i}.SNR ( l_MPE2 );
+  resV(l).A_MP2D    = resV(l).A_est( k_MP2D );
+  resV(l).phi0_MP2D = resV(l).phi0_est ( k_MP2D );
+  resV(l).SNR_MP2D  = resV(l).SNR ( k_MP2D );
   %% ---------- plot results summary page
-  %%fname = sprintf ( "%s.png", ret{i}.bname );
+  %%fname = sprintf ( "%s.png", resV(l).bname );
   %%ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
   if ( doPlotSnapshots )
-    plotSnapshot ( ret{i}, [], plotMarkers );
+    plotSnapshot ( resV(l), resCommon, plotMarkers );
   endif
 
-  DebugPrintSummary ( 1, ret{i} );
+  %% ----- if injection: quantify PE recovery quality ----------
+  if ( !isempty ( injectionSources ) )
+    %% single-QNM search: compare to i'th injection only, assuming we're targeting one injection per 'step'
+    A_inj = injectionSources(l).A;
+    phi0_inj = injectionSources(l).phi0;
+    f0_inj = injectionSources(l).f0;
+    tau_inj = injectionSources(l).tau;
+    PErecovery(end+1).t0_offs  = (resV(l).t0GPS - injectionSources(1).t0);
+    PErecovery(end).A_relerr   = (resV(l).A_MP2D - A_inj) / A_inj;
+    PErecovery(end).phi0_err   = (resV(l).phi0_MP2D - phi0_inj);
+    PErecovery(end).f0_relerr  = (resV(l).f0_MP2D - f0_inj) / f0_inj;
+    PErecovery(end).tau_relerr = (resV(l).tau_MP2D - tau_inj) / tau_inj;
 
-endfor %% i = 1:Nsteps
+    A_s = -A_inj * sin(phi0_inj);
+    A_c =  A_inj * cos(phi0_inj);
+    [x, i_f0]  = min ( abs ( f0_inj - f0(:) ) );
+    [x, i_tau] = min ( abs ( tau_inj - tau(:) ) );
+    M_ss = resCommon.Mxy.ss ( i_tau, i_f0 );
+    M_sc = resCommon.Mxy.sc ( i_tau, i_f0 );
+    M_cc = resCommon.Mxy.cc ( i_tau, i_f0 );
+    SNR2_inj = A_s^2 * M_ss + 2 * A_s * M_sc * A_c + A_c^2 * M_cc;
+    PErecovery(end).SNR_inj    = sqrt ( SNR2_inj );
+    PErecovery(end).SNR_rec    = resV(l).SNR_MP2D;
+
+    PErecovery(end).f0_tau_percentile = get_f0_tau_percentile ( f0_inj, tau_inj, resV(l).ff0, resV(l).ttau, resV(l).BSG_f0_tau );
+
+    plotSnapshot ( resV(l), resCommon, injectionSources(l) );
+  endif %% if injectionSources
+
+  DebugPrintSummary ( 1, resV(l), resCommon );
+endfor %% i = 1:Nsearches
 
 %% ----- save axis {f0, tau} in matrix format ----------
-tmp = ret{i}.ff0;
-save ( "-ascii", "f0s.dat", "tmp" );
-tmp = ret{i}.ttau;
-save ( "-ascii", "taus.dat", "tmp" );
+save ( "-ascii", "f0s.dat", "ff0" );
+save ( "-ascii", "taus.dat", "ttau" );
 
 %% ----- store complete results dump ----------
 versioning.octave = version();
 versioning.octapps = octapps_gitID();
 versioning.scripts = octapps_gitID(".", "QNM-scripts");
 
-fname = sprintf ( "RingdownDriver-%s.hd5", ret{1}.bname );
+fname = sprintf ( "RingdownDriver-%s.hd5", resCommon.bname );
 save ("-hdf5", fname )
 
 %% ----- plot quantities vs tOffs ----------
 if ( doPlotSummary )
-  plotSummary ( ret );
+  plotSummary ( resV, resCommon );
 endif
 
 if ( doPlotContours )
-  plotContours ( ret, [], plotMarkers )
+  plotContours ( resV, resCommon, [], plotMarkers )
 endif
 
 if ( doPlotH )
   figure(); clf; hold on;
   plot ( prior_H(:,1), prior_H(:,2), "-xg;prior;", "linestyle", "--", "linewidth", 2 );
-  for i = 1 : Nsteps
-    plot ( prior_H(:,1), ret{i}.post_H, "-b" );
-    leg = sprintf ( "+%.1fms", ret{i}.tOffs * 1e3 );
-    text ( prior_H(end,1), ret{i}.post_H(end), leg );
+  for i = 1 : Nsearches
+    plot ( prior_H(:,1), resV(l).post_H, "-b" );
+    leg = sprintf ( "+%.1fms", resV(l).tOffs * 1e3 );
+    text ( prior_H(end,1), resV(l).post_H(end), leg );
   endfor
   xlabel ( "H" ); ylabel ("pdf");
   grid on; hold off;
-  fname = sprintf ( "%s-post_H.pdf", ret{1}.bname );
+  fname = sprintf ( "%s-post_H.pdf", resCommon.bname );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotBSGHist )
-  figure ( iFig0  + 6 ); clf;
-  BSG = zeros ( 1, Nsteps );
-  for i = 1 : Nsteps
-    BSG(i) = ret{i}.BSG;
-  endfor
-  hist ( BSG, 20 );
+  figure (); clf;
+  hist ( [resV.BSG], 100 );
   xlabel ( "<BSG>" );
-  fname = sprintf ( "%s-hist.pdf", ret{1}.bname );
+  fname = sprintf ( "%s-hist.pdf", resCommon.bname );
   ezprint ( fname, "width", 512 );
 endif
 

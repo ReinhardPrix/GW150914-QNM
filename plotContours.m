@@ -14,23 +14,22 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotContours ( in, select = [], plotMarkers = [] )
-  global iFig0 = 0;
+function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
 
-  Nsteps = length ( in );
+  Nsearches = length ( resV );
   if ( isempty ( select ) )
-    select = [ 1 : Nsteps ];
+    select = [ 1 : Nsearches ];
   endif
 
   maxlog10B = 0;
-  for i = select
-    log10Bi = log10 ( in{i}.BSG );
-    if ( log10Bi > maxlog10B )
-      maxlog10B = log10Bi;
+  for l = select
+    log10B_l = log10 ( resV(l).BSG );
+    if ( log10B_l > maxlog10B )
+      maxlog10B = log10B_l;
     endif
   endfor
 
-  figure ( iFig0 + 5 ); clf;
+  figure (); clf;
   hold on;
   if ( !isempty(plotMarkers) )
     for i = 1 : length ( plotMarkers )
@@ -39,26 +38,26 @@ function plotContours ( in, select = [], plotMarkers = [] )
     endfor
   endif
 
-  for i = select
-    log10Bi = log10 ( in{i}.BSG );
-    color_i = "black"; %% (1 - log10Bi / maxlog10B) * [ 1, 1, 1];
-    if ( !isempty ( in{i}.isoConf2 ) )
-      [C, H] = contour ( in{i}.ff0, in{i}.ttau * 1e3, in{i}.posterior2D, in{i}.isoConf2 * [ 1, 1 ] );
+  for l = select
+    log10B_l = log10 ( resV(l).BSG );
+    color_l = "black"; %% (1 - log10B_l / maxlog10B) * [ 1, 1, 1];
+    if ( !isempty ( resV(l).isoConf2 ) )
+      [C, H] = contour ( resCommon.ff0, resCommon.ttau * 1e3, resV(l).posterior2D, resV(l).isoConf2 * [ 1, 1 ] );
     endif
-    set ( H, "linecolor", color_i, "linewidth", 2 );
-    leg = sprintf ( "tM + %.1fms", in{i}.tOffs * 1e3 );
-    cl = clabel ( C, H, "FontSize", 12, "Color", color_i);
+    set ( H, "linecolor", color_l, "linewidth", 2 );
+    leg = sprintf ( "tM + %.1fms", resV(l).tOffs * 1e3 );
+    cl = clabel ( C, H, "FontSize", 12, "Color", color_l);
     set ( cl, "string", "" );
     %%set ( cl(1), "string", leg );
     set ( cl(end), "string", leg );
-    plot ( in{i}.f0_MPE2, in{i}.tau_MPE2 * 1e3, "x;MPE;", 'markeredgecolor', color_i, "markersize", 5 );
+    plot ( resV(l).f0_MP2D, resV(l).tau_MP2D * 1e3, "x;MPE;", 'markeredgecolor', color_l, "markersize", 5 );
   endfor
   xlabel ( "Freq [Hz]" );
   ylabel ( "tau [ms]" );
   hold off;
   grid on;
 
-  fname = sprintf ( "%s-contours.pdf", in{1}.bname );
+  fname = sprintf ( "%s-contours.pdf", resCommon.bname );
   ezprint ( fname, "width", 512 );
 
   return;

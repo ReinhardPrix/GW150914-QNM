@@ -14,16 +14,15 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function ret = searchRingdown ( varargin )
+function [ resV, resCommon ] = searchRingdown ( varargin )
   global debugLevel = 1;
   global psd_version = 1;
-  global iFig0 = 0;
   global cleanLines = false;
 
   uvar = parseOptions ( varargin,
                         {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
                         {"psd", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
-                        {"t0GPS", "real,strictpos,scalar", 1126259462.43 },	%% ringdown start-time in GPS s
+                        {"t0V", "real,strictpos,vector", 1126259462.43 },	%% ringdown start-time in GPS s
                         {"prior_f0Range", "real,strictpos,vector", [220,  270] },
                         {"step_f0", "real,strictpos,scalar", 0.1 },
                         {"prior_tauRange", "real,vector", [1e-3, 30e-3] },
@@ -46,23 +45,16 @@ function ret = searchRingdown ( varargin )
     priorH ( :, 2) /= normH;
   endif
 
-  bname = sprintf ( "Ringdown-GPS%.6fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%s-psd_v%d-lineCleaning%s",
-                    uvar.t0GPS, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
-                    1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
-                    priorHname,
-                    psd_version, ifelse ( cleanLines, "On", "Off" )
-                  );
-
-  ts = uvar.ts;
   psd = uvar.psd;
-  Ndet = length(ts);
+  Ndet = length(uvar.ts);
+  assert ( Ndet == 2, "Currently only 2 detectors supported, must be 'H1' and 'L1'\n");
   fk = psd{1}.fk;
 
   %% ---------- total noise-floor (=harm. mean) in search-band of ringdown frequencies ----------
   SinvSum = zeros ( size ( psd{1}.Sn ) );
   for X = 1:Ndet
     SinvSum += 1 ./ psd{X}.Sn;
-    dt{X} = mean( diff ( ts{X}.ti ) );
+    dt{X} = mean( diff ( uvar.ts{X}.ti ) );
     df{X} = mean ( diff ( psd{X}.fk ) );
     fMin{X} = min ( psd{X}.fk );
   endfor
@@ -97,81 +89,97 @@ function ret = searchRingdown ( varargin )
   %%Mxy{3} = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet );
   %%DebugPrintf ( 1, "done.\n");
 
-  %% ----- prepare time-series stretch to analyze
-  inds_MaxRange = find ( (ts{1}.ti >= (uvar.t0GPS - ts{1}.epoch) ) & (ts{1}.ti <= (uvar.t0GPS - ts{1}.epoch + Tmax)) );
-  Dt_i = ts{1}.ti ( inds_MaxRange ) - (uvar.t0GPS - ts{1}.epoch);
-  assert ( min(Dt_i) >= 0 );
+  %% ---------- prepare time-shifted and antenna-pattern 'flipped' time-series
+  ts = uvar.ts;
+  assert ( strcmp ( ts{1}.IFO, "H1" ), "First detector must be 'H1', got '%s'\n", ts{1}.IFO );	%% FIXME, nasty
+  assert ( strcmp ( ts{2}.IFO, "L1" ), "Second detector must be 'L1', got '%s'\n", ts{2}.IFO );	%% FIXME, nasty
 
-  yiOW = zeros ( size ( inds_MaxRange ) );
-  ti   = ts{1}.ti ( inds_MaxRange );
-  match = zeros ( size ( lap_s ) );
-  for X = 1:Ndet
-    %% prepare per-detector timeseries for matching: adapt L1 data to be phase-coherent with H1
-    shiftBins = 0;
-    if ( strcmp ( ts{X}.IFO, "L1" ) )
-      shiftBins = round ( uvar.shiftL1 / dt );
-      shiftL1_eff = shiftBins * dt;
-      assert ( abs(shiftL1_eff - uvar.shiftL1) < 1e-6 );
-      ts{X}.ti += shiftL1_eff;
-      ts{X}.xi   *= -1;
-      ts{X}.xiW  *= -1;
-      ts{X}.xiOW *= -1;
-    endif
+  shiftBinsL1 = round ( uvar.shiftL1 / dt );
+  shiftL1_eff = shiftBinsL1 * dt;
+  assert ( abs(shiftL1_eff - uvar.shiftL1) < 1e-6 );
+  ts{2}.xi   = - circshift ( ts{2}.xi,   [0, shiftBinsL1] );
+  ts{2}.xiW  = - circshift ( ts{2}.xiW,  [0, shiftBinsL1] );
+  ts{2}.xiOW = - circshift ( ts{2}.xiOW, [0, shiftBinsL1] );
 
-    yiOW += ts{X}.xiOW ( inds_MaxRange - shiftBins );
-  endfor %% X
+  yiOW = ts{1}.xiOW + ts{2}.xiOW;
 
-  %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
-  DebugPrintf ( 1, "Computing match with ringdown templates ... " );
-  for l = 1 : Ntempl	%% loop over all templates
-    %% ----- (complex) time-domain template
-    %%lenMatch = ceil ( 3 * ttau(l) / dt );
-    hExp_i = exp ( - Dt_i * lap_s(l) );
-    match(l) = 2 * dt * sum ( yiOW .* hExp_i );
-  endfor
-  DebugPrintf ( 1, "done.\n");
+  %% ---------- loop over N start-times [input vector 't0V'] ----------
+  numSearches = length ( uvar.t0V );
+  clear ("resV");
+  for l = 1 : numSearches
+    t0_l = uvar.t0V(l);
 
-  DebugPrintf ( 1, "Computing BSG ... " );
-  BSG_f0_tau = zeros ( size ( match ) );
-  post_H = zeros ( 1, numH );
-  %% marginalize over unknown H scale
-  for i = 1 : numH
-    H_i      = priorH(i,1);
-    priorH_i = priorH(i,2);
-    DebugPrintf ( 1, "H = %.2g ...", H_i );
-    [ BSG_f0_tau_H, SNR_H{i}, A_H{i}, phi0_H{i} ] = compute_BSG_SNR ( H_i, match, Mxy );
-    BSG_f0_tau += priorH_i * BSG_f0_tau_H;	%% marginalize BSG(x;f0,tau,H) over H to get BSG(x;f0,tau)
-    post_H(i) = mean ( BSG_f0_tau_H(:) ); 	%% marginalize BSG(x;f0,tau,H) over {f0,tau} to get propto P(H|x)
-  endfor
-  post_H /= sum (post_H(:));			%% normalize posterior to be sure
-  BSG = mean ( BSG_f0_tau(:) );			%% marginalize BSG(x;f0,tau) over {f0,tau} with uniform prior --> BSG(x)
-  DebugPrintf ( 1, "done.\n");
+    %% ----- prepare time-series stresch to analyze
+    inds_MaxRange = find ( (ts{1}.ti >= (t0_l - ts{1}.epoch) ) & (ts{1}.ti <= (t0_l - ts{1}.epoch + Tmax)) );
+    Dt_i = ts{1}.ti ( inds_MaxRange ) - (t0_l - ts{1}.epoch);
+    assert ( min(Dt_i) >= 0 );
 
-  %% pick amplitude-estimates and SNR from H_MPE
-  [ val, iMPE ] = max ( post_H(:) );
-  H_MPE    = priorH(iMPE,1);
-  SNR_est  = SNR_H{iMPE};
-  A_est    = A_H{iMPE};
-  phi0_est = phi0_H{iMPE};
+    yiOW_l = yiOW ( inds_MaxRange );	%% truncated summed-OW time-series for faster matching
 
-  ret = struct ( "bname", bname, ...
-                 "t0GPS", uvar.t0GPS, ...
-                 "ff0", ff0, ...
-                 "ttau", ttau, ...
-                 "A_est", A_est, ...
-                 "phi0_est", phi0_est, ...
-                 "BSG", BSG, ...
-                 "BSG_f0_tau", BSG_f0_tau, ...
-                 "SNR", SNR_est, ...
-                 "post_H", post_H, ...
-                 "H_MPE", H_MPE
-               );
-  ret.ts = ts;
-  ret.Mxy = Mxy;
+    %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
+    DebugPrintf ( 1, "Computing match with ringdown templates ... " );
+    match = zeros ( size ( lap_s ) );
+    for k = 1 : Ntempl	%% loop over all templates
+      %% ----- (complex) time-domain template
+      hExp_i = exp ( - Dt_i * lap_s(k) );
+      match(k) = 2 * dt * sum ( yiOW_l .* hExp_i );
+    endfor %% k = 1 : Ntempl
+    DebugPrintf ( 1, "done.\n");
 
+    DebugPrintf ( 1, "Computing BSG ... " );
+    BSG_f0_tau = zeros ( size ( match ) );
+    post_H = zeros ( 1, numH );
+    %% marginalize over unknown H scale
+    for i = 1 : numH
+      H_i      = priorH(i,1);
+      priorH_i = priorH(i,2);
+      DebugPrintf ( 1, "H = %.2g ...", H_i );
+      [ BSG_f0_tau_H, SNR_H{i}, A_H{i}, phi0_H{i} ] = compute_BSG_SNR ( H_i, match, Mxy );
+      BSG_f0_tau += priorH_i * BSG_f0_tau_H;	%% marginalize BSG(x;f0,tau,H) over H to get BSG(x;f0,tau)
+      post_H(i) = mean ( BSG_f0_tau_H(:) ); 	%% marginalize BSG(x;f0,tau,H) over {f0,tau} to get propto P(H|x)
+    endfor
+    post_H /= sum (post_H(:));			%% normalize posterior to be sure
+    BSG = mean ( BSG_f0_tau(:) );			%% marginalize BSG(x;f0,tau) over {f0,tau} with uniform prior --> BSG(x)
+    DebugPrintf ( 1, "done.\n");
+
+    %% pick amplitude-estimates and SNR from H_MPE
+    [ val, iMPE ] = max ( post_H(:) );
+    H_MPE    = priorH(iMPE,1);
+    SNR_est  = SNR_H{iMPE};
+    A_est    = A_H{iMPE};
+    phi0_est = phi0_H{iMPE};
+
+    bname_l = sprintf ( "Ringdown-GPS%.6fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%s",
+                        t0_l, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
+                        1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
+                        priorHname
+                      );
+
+    resV(l) = struct ( "bname", bname_l, ...
+                       "t0", t0_l, ...
+                       "A_est", A_est, ...
+                       "phi0_est", phi0_est, ...
+                       "BSG", BSG, ...
+                       "BSG_f0_tau", {BSG_f0_tau}, ...
+                       "SNR", {SNR_est}, ...
+                       "post_H", {post_H}, ...
+                       "H_MPE", H_MPE ...
+                     );
+
+  endfor %% l = 1 : numSearches
+
+  resCommon.Mxy = Mxy;
+  resCommon.bname = sprintf ( "Ringdown-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%s",
+                              min(uvar.prior_f0Range), max(uvar.prior_f0Range),
+                              1e3 * min(uvar.prior_tauRange), 1e3 * max(uvar.prior_tauRange),
+                              priorHname
+                            );
+  resCommon.ff0  = ff0;
+  resCommon.ttau = ttau;
+  resCommon.ts   = ts;
   return
 
-endfunction
+endfunction %% searchRingdown()
 
 function Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
 

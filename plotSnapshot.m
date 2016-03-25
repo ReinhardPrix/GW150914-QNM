@@ -14,26 +14,29 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
-  global iFig0 = 0;
+function plotSnapshot ( res_l, resCommon, plotMarkers = [] )
 
-  f0 = unique ( in.ff0 );
+  ff0  = resCommon.ff0;
+  ttau = resCommon.ttau;
+  tMerger = resCommon.tMerger;
+
+  f0 = unique ( ff0(:) );
   f0Range = [ min(f0), max(f0) ];
 
-  tau = unique ( in.ttau );
+  tau = unique ( ttau(:) );
   tauRange = [ min(tau), max(tau) ];
 
-  f0_est  = in.f0_est;
-  tau_est = in.tau_est;
+  f0_est  = res_l.f0_est;
+  tau_est = res_l.tau_est;
 
-  figure ( iFig0 + 3 ); clf;
+  figure (); clf;
 
   %% ----- posterior (f0, tau)
   subplot ( 2, 2, 1 );
   hold on;
   colormap ("jet");
-  surf ( in.ff0, in.ttau * 1e3, in.posterior2D ); view(2); shading("interp"); %% colorbar("location", "NorthOutside");
-  plot3 ( in.f0_MPE2, in.tau_MPE2 * 1e3,  1.1 * in.posteriorMax, "marker", "x", "markersize", 2, "linewidth", 2, "color", "white" );
+  surf ( ff0, ttau * 1e3, res_l.posterior2D ); view(2); shading("interp"); %% colorbar("location", "NorthOutside");
+  plot3 ( res_l.f0_MP2D, res_l.tau_MP2D * 1e3,  1.1 * res_l.posteriorMax, "marker", "x", "markersize", 2, "linewidth", 2, "color", "white" );
   xlim ( f0Range );
   ylim ( tauRange * 1e3 );
   %%xlabel ("f0 [Hz]");
@@ -41,24 +44,24 @@ function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
 
   if ( !isempty(plotMarkers) )
     for i = 1 : length ( plotMarkers )
-      plot3 ( plotMarkers(i).f0, plotMarkers(i).tau * 1e3, 1.1 * in.posteriorMax, "marker", "o", "markersize", 3, "linewidth", 2, "color", "white" );
+      plot3 ( plotMarkers(i).f0, plotMarkers(i).tau * 1e3, 1.1 * res_l.posteriorMax, "marker", "o", "markersize", 3, "linewidth", 2, "color", "white" );
     endfor
   endif
 
-  if ( !isempty(in.isoConf2))
-    [C, H] = contour ( in.ff0, in.ttau * 1e3, in.posterior2D, in.isoConf2 * [ 1, 1 ] );
+  if ( !isempty(res_l.isoConf2))
+    [C, H] = contour ( ff0, ttau * 1e3, res_l.posterior2D, res_l.isoConf2 * [ 1, 1 ] );
     set ( H, "linecolor", "white", "linewidth", 1 );
   endif
   hold off;
 
   %% ----- posterior(f0)
   subplot ( 2, 2, 3 );
-  plot ( f0, in.posterior_f0, "linewidth", 2 );
+  plot ( f0, res_l.posterior_f0, "linewidth", 2 );
   grid on;
   yrange = ylim();
-  if ( !isempty ( in.f0_est ) )
-    line ( [in.f0_est.MPE, in.f0_est.MPE], yrange );
-    line ( [in.f0_est.MPE - in.f0_est.lerr, in.f0_est.MPE + in.f0_est.uerr], [in.f0_est.pIso, in.f0_est.pIso] );
+  if ( !isempty ( res_l.f0_est ) )
+    line ( [res_l.f0_est.MPE, res_l.f0_est.MPE], yrange );
+    line ( [res_l.f0_est.MPE - res_l.f0_est.lerr, res_l.f0_est.MPE + res_l.f0_est.uerr], [res_l.f0_est.pIso, res_l.f0_est.pIso] );
   endif
   xlim ( f0Range );
   ylim ( yrange );
@@ -68,11 +71,11 @@ function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
 
   %% ----- posterior (tau)
   subplot ( 2, 2, 2 );
-  plot ( in.posterior_tau, tau * 1e3, "linewidth", 2 );
+  plot ( res_l.posterior_tau, tau * 1e3, "linewidth", 2 );
   xrange = xlim();
-  if ( !isempty ( in.tau_est ) )
-    line ( xrange, [in.tau_est.MPE, in.tau_est.MPE]*1e3 );
-    line ( [in.tau_est.pIso, in.tau_est.pIso], [in.tau_est.MPE - in.tau_est.lerr, in.tau_est.MPE + in.tau_est.uerr]* 1e3 );
+  if ( !isempty ( res_l.tau_est ) )
+    line ( xrange, [res_l.tau_est.MPE, res_l.tau_est.MPE]*1e3 );
+    line ( [res_l.tau_est.pIso, res_l.tau_est.pIso], [res_l.tau_est.MPE - res_l.tau_est.lerr, res_l.tau_est.MPE + res_l.tau_est.uerr]* 1e3 );
   endif
   xlim ( xrange );
   ylim ( tauRange * 1e3 );
@@ -88,28 +91,29 @@ function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
   markers = {".", "o"};
   markersize = [ 5, 2 ];
   %% plot data timeseries:
-  for X = 1 : length ( in.ts )
-    sleg = sprintf (";OW[%s] ;", in.ts{X}.IFO );
-    Dti_ms = 1e3 * ( in.ts{X}.epoch + in.ts{X}.ti - in.tMerger );
-    plot ( Dti_ms, in.ts{X}.xiOW * in.ts{X}.SX_GR, sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X}, "markersize", markersize(X) );
+  ts = resCommon.ts;
+  for X = 1 : length ( ts )
+    sleg = sprintf (";OW[%s] ;", ts{X}.IFO );
+    Dti_ms = 1e3 * ( ts{X}.epoch + ts{X}.ti - tMerger );
+    plot ( Dti_ms, ts{X}.xiOW * ts{X}.SX_GR, sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X}, "markersize", markersize(X) );
   endfor
 
-  tOffs_ms = in.tOffs * 1e3;
-  tau_ms = in.tau_MPE2 * 1e3;
+  tOffs_ms = (res_l.t0 - resCommon.tMerger ) * 1e3;
+  tau_ms = res_l.tau_MP2D * 1e3;
   %% MPE template in H1
-  tmpl_MPE = QNMtemplate ( in.t0GPS, in.A_MPE2, in.phi0_MPE2, in.f0_MPE2, in.tau_MPE2, in.ts{1} );	%% refer to IFO 1, assumed H1
-  Dti_ms = (tmpl_MPE.epoch + tmpl_MPE.ti - in.tMerger) * 1e3;
+  tmpl_MPE = QNMtemplate ( res_l.t0, res_l.A_MP2D, res_l.phi0_MP2D, res_l.f0_MP2D, res_l.tau_MP2D, ts{1} );	%% refer to IFO 1, assumed H1
+  Dti_ms = (tmpl_MPE.epoch + tmpl_MPE.ti - tMerger) * 1e3;
   plot( Dti_ms, tmpl_MPE.xi, ";MPE ;", "linewidth", 4, "color", "black" );
   legend ( "location", "NorthEast");
   yrange = [-1.8e-21, 1.7e-21 ];
   xrange = [tOffs_ms - 15, tOffs_ms + 5 * tau_ms ];
   line ( [ 0, 0 ],   yrange, "linestyle", "-", "linewidth", 2 );
   line ( tOffs_ms * [1,1], yrange, "linestyle", "--", "linewidth", 3 );
-  xlabel ( sprintf ( "H1:%.6f s + tOffs [ms]", in.tMerger ) );
+  xlabel ( sprintf ( "H1:%.6f s + tOffs [ms]", tMerger ) );
   %%text ( min(xlim()) - 0.2 * abs(diff(xlim())), 0, "h(t)" );
   ylabel ( "h(t)");
 
-  textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g\ntM + %.1f ms", log10 ( in.BSG ), in.SNR_MPE2, tOffs_ms );
+  textB = sprintf ( "log10(BSG) = %.2g\nSNR0 = %.2g\ntM + %.1f ms", log10 ( res_l.BSG ), res_l.SNR_MP2D, tOffs_ms );
   x0 = tOffs_ms + 0.02 * abs(diff(xrange));
   y0 = min(yrange) + 0.2*abs(diff(yrange));
   text ( x0, y0, textB );
@@ -119,7 +123,7 @@ function plotSnapshot ( in, tRange = [0.41, 0.455], plotMarkers = [] )
   grid on;
   hold off;
 
-  fname = sprintf ( "%s.pdf", in.bname );
+  fname = sprintf ( "%s.pdf", res_l.bname );
   ezprint ( fname, "width", 512 );
 
 endfunction %% plotSnapshot()

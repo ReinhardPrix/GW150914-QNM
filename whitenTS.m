@@ -18,7 +18,6 @@
 %% including an automated line-nuking algorithm: 'lines' are identified as > lineSigma deviations in power
 function [ tsOut, psd ] = whitenTS ( varargin )
   global debugLevel = 1;
-  global iFig0 = 0;
 
   uvar = parseOptions ( varargin,
                         {"tsIn", "struct" },
@@ -97,7 +96,7 @@ function [ tsOut, psd ] = whitenTS ( varargin )
       psd0 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0L1-PSD.dat");
     endif
     iIFO = ifelse ( strcmp ( IFO, "H1" ), 0, 1 );
-    figure ( iFig0 + 1 + iIFO ); clf;
+    figure (); clf;
 
     subplot ( 3, 1, 1); hold on;
     plot ( fk_wide, abs ( xk_wide ) / sqrt(T), "+-", "color", "blue" ); legend ( IFO );
