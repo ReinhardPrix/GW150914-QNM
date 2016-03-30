@@ -1,4 +1,4 @@
-function tsQNM = QNMtemplate ( t0GPS, A, phi0, f0, tau, ts, symmetric = false )
+function tsQNM = QNMtemplate ( t0GPS, A, phi0, f0, tau, ts, smooth = false )
   ## return QNM template time-series of params {t0GPS, A, phi0, f0, tau} on given time-series 'ts'
 
   tsQNM = ts;
@@ -7,7 +7,7 @@ function tsQNM = QNMtemplate ( t0GPS, A, phi0, f0, tau, ts, symmetric = false )
   Dt_i = ts.ti - (t0GPS - ts.epoch);
   indsRingdown = find ( Dt_i >= 0 );
   indsRingup = [];
-  if ( symmetric )
+  if ( smooth )
     indsRingup = find ( Dt_i < 0 );
   endif
   if ( isempty ( indsRingdown ) && isempty ( indsRingup ) )
@@ -18,9 +18,10 @@ function tsQNM = QNMtemplate ( t0GPS, A, phi0, f0, tau, ts, symmetric = false )
     Dt_pos = Dt_i ( indsRingdown );
     tsQNM.xi ( indsRingdown )  = A * e.^(- Dt_pos / tau ) .* cos ( 2*pi * f0 * Dt_pos + phi0 );
   endif
+  %% if 'smooth' option given: include a 10x faster 'ringup' to avoid discontinuous start-up
   if ( !isempty ( indsRingup ) )
     Dt_neg = Dt_i ( indsRingup );
-    tsQNM.xi ( indsRingup )  = A * e.^( Dt_neg / tau ) .* cos ( 2*pi * f0 * Dt_neg + phi0 );
+    tsQNM.xi ( indsRingup )  = A * e.^( Dt_neg / (tau/10) ) .* cos ( 2*pi * f0 * Dt_neg + phi0 );
   endif
 
   return;
