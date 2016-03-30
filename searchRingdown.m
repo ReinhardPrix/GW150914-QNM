@@ -82,12 +82,6 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
   DebugPrintf ( 1, "Computing M_xy matrix using frequency-domain integral ... ");
   Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
   DebugPrintf (1, "done.\n");
-  %%DebugPrintf ( 1, "Computing M_xy matrix using time-domain domain integral, const Sn ... ");
-  ## Mxy{2} = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet );
-  ## DebugPrintf (1, "done.\n");
-  %%DebugPrintf ( 1, "Computing M_xy matrix using time-domain domain integral, const Sn, Q>>1 ... ");
-  %%Mxy{3} = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet );
-  %%DebugPrintf ( 1, "done.\n");
 
   %% ---------- prepare time-shifted and antenna-pattern 'flipped' time-series
   ts = uvar.ts;
@@ -206,77 +200,6 @@ function Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
   return;
 
 endfunction %% compute_Mxy()
-
-function Mxy = compute_Mxy_approx1 ( fk, ttau, ff0, Stot, Ndet )
-
-  f0 = unique ( ff0 );
-  tau = unique ( ttau );
-  Ntau = length(tau);
-
-  fMin = min ( fk );
-  df = mean ( diff ( fk ) );
-
-  %% ----- determine ~const noise-estimate in f0 +- NoiseBand around each signal frequency f0
-  NoiseBand = 20;
-  assert ( min(fk) <= min(f0) - NoiseBand );
-  assert ( max(fk) >= max(f0) + NoiseBand );
-
-  inds_f0   = round ( (f0 - fMin)/df );
-  inds_Band = round( NoiseBand / df);
-  offs = [-inds_Band : inds_Band ];
-  [xx, yy] = meshgrid ( inds_f0, offs );
-  inds_mat = xx + yy;
-  Stot_k  = mean ( Stot ( inds_mat ), 1 );
-  Stot_mat = meshgrid ( Stot_k, ones(1,Ntau) );
-
-  QQ = pi * ff0 .* ttau;
-  prefact = (2*Ndet ./ Stot_mat);
-  M_ss = prefact .* ttau ./ ( 4 + QQ.^(-2) );
-  M_cc = prefact .* (ttau/4) .* ( 2 + QQ.^(-2) ) ./ ( 2 + 0.5 * QQ.^(-2) );
-  M_sc = M_ss ./ (2 * QQ );
-
-  Mxy.ss = M_ss;
-  Mxy.cc = M_cc;
-  Mxy.sc = M_sc;
-
-  return;
-
-endfunction %% compute_Mxy_approx1()
-
-
-function Mxy = compute_Mxy_approx0 ( fk, ttau, ff0, Stot, Ndet )
-
-  f0 = unique ( ff0 );
-  tau = unique ( ttau );
-  Ntau = length(tau);
-
-  fMin = min ( fk );
-  df = mean ( diff ( fk ) );
-
-  %% ----- determine ~const noise-estimate in f0 +- NoiseBand around each signal frequency f0
-  NoiseBand = 20;
-  assert ( min(fk) <= min(f0) - NoiseBand );
-  assert ( max(fk) >= max(f0) + NoiseBand );
-
-  inds_f0   = round ( (f0 - fMin)/df );
-  inds_Band = round( NoiseBand / df);
-  offs = [-inds_Band : inds_Band ];
-  [xx, yy] = meshgrid ( inds_f0, offs );
-  inds_mat = xx + yy;
-  Stot_k  = mean ( Stot ( inds_mat ), 1 );
-  Stot_mat = meshgrid ( Stot_k, ones(1,Ntau) );
-  I0 = ttau ./ Stot_mat;
-  M_ss = I0;
-  M_cc = I0;
-  M_sc = 0;
-
-  Mxy.ss = M_ss;
-  Mxy.cc = M_cc;
-  Mxy.sc = M_sc;
-
-  return;
-
-endfunction %% compute_Mxy_approx0()
 
 function [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( H, match, Mxy )
 
