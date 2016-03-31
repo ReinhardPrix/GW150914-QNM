@@ -45,29 +45,7 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
     priorH ( :, 2) /= normH;
   endif
 
-  psd = uvar.psd;
-  Ndet = length(uvar.ts);
-  assert ( Ndet == 2, "Currently only 2 detectors supported, must be 'H1' and 'L1'\n");
-  fk = psd{1}.fk;
-
-  %% ---------- total noise-floor (=harm. mean) in search-band of ringdown frequencies ----------
-  SinvSum = zeros ( size ( psd{1}.Sn ) );
-  for X = 1:Ndet
-    SinvSum += 1 ./ psd{X}.Sn;
-    dt{X} = mean( diff ( uvar.ts{X}.ti ) );
-    df{X} = mean ( diff ( psd{X}.fk ) );
-    fMin{X} = min ( psd{X}.fk );
-  endfor
-  StotInv = (1/Ndet) * SinvSum;
-  Stot = 1./ StotInv;
-
-  assert ( max ( abs ( diff ( [dt{:}] ) )) < 1e-6 );
-  assert ( max ( abs ( diff ( [df{:}] ) )) < 1e-6 );
-  assert ( max ( abs ( diff ( [fMin{:}] ) )) < 1e-6 );
-  dt = dt{1};
-  df = df{1};
-  fMin = fMin{1};
-
+  dt = mean ( diff ( uvar.ts{1}.ti ) );
   Tmax = 5 * max(uvar.prior_tauRange);	%% max time range considered = 5 * tauMax
 
   %% ---------- templated search over {f0, tau} space ----------
@@ -80,7 +58,7 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
 
   %% ---------- compute 'M_xy = <h_x|h_y>' matrix for SNR term <s|s> ----------
   DebugPrintf ( 1, "Computing M_xy matrix using frequency-domain integral ... ");
-  Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet );
+  Mxy = compute_Mxy ( ff0, ttau, uvar.psd );
   DebugPrintf (1, "done.\n");
 
   %% ---------- prepare time-shifted and antenna-pattern 'flipped' time-series

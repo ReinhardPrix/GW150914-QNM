@@ -14,13 +14,59 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
+function Mxy = compute_Mxy ( ff0, ttau, psd )
 
-  assert ( length ( fk ) == length ( Stot ) );
+  Ndet = length(psd);
   assert ( size(ttau) == size ( ff0 ) );
-  Ntempl = length ( ttau(:) );
-  df = mean ( diff ( fk ) );
 
+  %% ---------- handle buffering of Mxy ----------
+  persistent buffer;
+  canReuse = false;
+  if ( !isempty ( buffer ) )
+    same_size_ttau = all((size(ttau) == size(buffer.ttau))(:));
+    same_size_ff0  = all((size(ff0) == size(buffer.ff0))(:));
+    same_ttau = all((ttau == buffer.ttau)(:));
+    same_ff0  = all((ff0 == buffer.ff0)(:));
+    same_Ndet = (Ndet == length(buffer.psd));
+    if ( same_size_ttau && same_size_ff0 && same_ttau && same_ff0 && same_Ndet );
+      trueFor = 0
+      for X = 1 : Ndet
+        same_IFO = strcmp ( psd{X}.IFO, buffer.psd{X}.IFO );
+        same_epoch = (psd{X}.epoch == buffer.psd{X}.epoch);
+        same_size_PSD = all ( (size(psd{X}.fk) == size(buffer.psd{X}.fk))(:));
+        same_fk = all ( (psd{X}.fk == buffer.psd{X}.fk)(:) );
+        same_Sn = all ( (psd{X}.Sn == buffer.psd{X}.Sn)(:) );
+        if ( same_IFO && same_epoch && same_size_PSD && same_fk && same_Sn )
+          trueFor ++;
+        endif %% if equal psd{X}
+      endfor %% for X = 1:Ndet
+      if ( trueFor == Ndet )
+        canReuse = true;
+      endif
+    endif %% if equal ttau, ff0, Ndet
+  endif %% if have buffer
+
+  if ( canReuse )
+    DebugPrintf ( 1, "[CAN re-use previous Mxy] ");
+    Mxy = buffer.Mxy;
+    return;
+  else
+    DebugPrintf ( 1, "[can NOT re-use a previous Mxy] " );
+  endif
+  %% ----------
+
+  %% ---------- total noise-floor (=harm. mean) ----------
+  fk = psd{1}.fk;
+  df = mean ( diff ( fk ) );
+  SinvSum = zeros ( size ( psd{1}.Sn ) );
+  for X = 1:Ndet
+    SinvSum += 1 ./ psd{X}.Sn;
+  endfor
+  StotInv = (1/Ndet) * SinvSum;
+  Stot = 1./ StotInv;
+
+  %% ---------- compute M_xy
+  Ntempl = length ( ttau(:) );
   M_ss = M_cc = M_sc = zeros ( size ( ttau ) );
   for l = 1 : Ntempl
     %% ----- whitened frequency-domain template basis functions ----------
@@ -36,6 +82,14 @@ function Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
   Mxy.ss = M_ss;
   Mxy.cc = M_cc;
   Mxy.sc = M_sc;
+
+  %% store results in buffer for potential re-use
+  buffer = struct();
+  buffer.ff0 = ff0;
+  buffer.ttau = ttau;
+  buffer.psd = psd;
+  buffer.Mxy = Mxy;
+
   return;
 
 endfunction %% compute_Mxy()
