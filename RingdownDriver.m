@@ -48,6 +48,7 @@ if ( !exist("data_FreqRange") ) data_FreqRange  = [ 30, 1e3 ]; endif
 if ( !exist("injectionSources") ) injectionSources = []; endif
 if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = cell(1,numIFOs); endif	%% empty by default
 if ( !exist("injectSqrtSX") ) 	injectSqrtSX = cell(1,numIFOs); endif	%% empty by default
+if ( !exist("noMismatchInj") )  noMismatchInj = false; endif		%% inject at exact {f0,tau} grid-points for zero mismatch
 
 %% ----- 'GR predictions/values on GW150914 ----------
 tMergerGW150914 = 1126259462.42285;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
@@ -107,23 +108,23 @@ switch ( searchType )
     doPlotBSGHist   = true;
     doPlotH         = false;
 
-  case "injections-pure"
-    %% ---------- search for 'pure' QNM signals without noise to test parameter-estimation accuracy ----------
+  case "injections"
+    %% NOTE: injections defaults to injections into real-data, but override with 'injectSqrtSX' and 'assumeSqrtSX' settings
     tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
     tOffsV = [ -3.0 : 0.2 : 3.0 ];
     clear("injectionSources");
     for l = 1 : length(tOffsV)
-      %% pick perfect-match injections on (f0,tau) grid to avoid mismatch
-      %% here we want to see the ideal noise-free perfect-match behaviour
-      %% as a sanity-check to catch bugs
-      f0Range = [ min(prior_f0Range)+10, max(prior_f0Range)-10];
-      tauRange = [ min(prior_tauRange)+1e-3, max(prior_tauRange)-1e-3];
-      Nf0  = floor ( diff(f0Range) / step_f0 ) + 1;
-      Ntau = floor ( diff(tauRange) / step_tau ) + 1;
-      i_f0 = unidrnd ( Nf0 );
-      i_tau = unidrnd ( Ntau );
-      f0_inj  = min(f0Range) + (i_f0 - 1) * step_f0;
-      tau_inj = min(tauRange) + (i_tau - 1) * step_tau;
+      if ( noMismatchInj )
+        Nf0  = floor ( diff(prior_f0Range) / step_f0 ) + 1;
+        Ntau = floor ( diff(prior_tauRange) / step_tau ) + 1;
+        i_f0 = unidrnd ( Nf0 );
+        i_tau = unidrnd ( Ntau );
+        f0_inj  = min(prior_f0Range) + (i_f0 - 1) * step_f0;
+        tau_inj = min(prior_tauRange) + (i_tau - 1) * step_tau;
+      else
+        f0_inj = unifrnd ( prior_f0Range(1), prior_f0Range(2) );
+        tau_inj = unifrnd ( prior_tauRange(1), prior_tauRange(2) );
+      endif
       injectionSources(l) = struct ( "name", 	sprintf("Inj-%d", l), ...
                                      "t0", 	tMerger + tOffsV(l), ...
                                      "A", 	unifrnd ( 3e-22, 8e-22 ), ...
@@ -133,38 +134,8 @@ switch ( searchType )
                                      "shiftL1", shiftL1 ...
                                    );
     endfor %% i = l:numInjections
-    assumeSqrtSX = { 8e-24, 6e-24 };
-    injectSqrtSX = { 0, 0 };	%% no actual noise
-    plotMarkers = [];
 
-    doPlotContours  = false;
-    doPlotSummary   = false;
-    doPlotSnapshots = false;
-    doPlotSpectra   = false;
-    doPlotH         = false;
-    doPlotPErecovery= true;
-
-  case "injections-Gauss"
-    %% ---------- search for 'pure' QNM signals without noise to test parameter-estimation accuracy ----------
-    tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
-    tOffsV = [ -3.0 : 0.2 : 3.0 ];
-    clear("injectionSources");
-    for l = 1 : length(tOffsV)
-      injectionSources(l) = struct ( "name", 	sprintf("Inj-%d", l), ...
-                                     "t0", 	tMerger + tOffsV(l), ...
-                                     "A", 	unifrnd ( 3e-22, 8e-22 ), ...
-                                     "phi0", 	unifrnd ( 0, 2*pi ), ...
-                                     "f0", 	unifrnd ( prior_f0Range(1), prior_f0Range(2) ), ...
-                                     "tau", 	unifrnd ( prior_tauRange(1), prior_tauRange(2) ), ...
-                                     "shiftL1", shiftL1 ...
-                                   );
-    endfor %% i = l:numInjections
-    injectSqrtSX = { 8.3e-24, 8.5e-24 };
-    %%assumeSqrtSX = injectSqrtSX;	%% step one: test with perfect PSD knowledge
-    extraLabel = "estimateSqrtSX";
-    data_FreqRange  = [ 10, 2e3 ];
-    plotMarkers = [];
-
+    data_FreqRange  = [ 30, 1e3 ];	%% full data-range, better PE-recovery at low SNR(?)
     doPlotContours  = false;
     doPlotSummary   = false;
     doPlotSnapshots = false;
@@ -207,6 +178,16 @@ resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz-
                    gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, data_FreqRange,
                    psd_version, ifelse ( cleanLines, "On", "Off" ),
                    extraLabel );
+if ( noMismatchInj )
+  resDir = strcat ( resDir, "-noMismatchInj" );
+endif
+if ( !isempty ( injectSqrtSX{1} ) )
+  resDir = strcat ( resDir, "-injectSqrtSX", sprintf("_%.2g", cell2mat(injectSqrtSX) ) );
+endif
+if ( !isempty ( assumeSqrtSX{1} ) )
+  resDir = strcat ( resDir, "-assumeSqrtSX", sprintf("_%.2g", cell2mat(assumeSqrtSX) ) );
+endif
+
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 addpath ( pwd() );
 cd ( resDir );
@@ -265,7 +246,9 @@ for l = 1 : Nsearches
     f0_inj = injectionSources(l).f0;
     tau_inj = injectionSources(l).tau;
     AmpEst = resV(l).AmpMP;
+
     PErecovery(end+1).t0_offs  = (resV(l).t0 - injectionSources(l).t0);
+
     PErecovery(end).A_relerr   = (AmpEst.A - A_inj) / A_inj;
     Dphi0   = (AmpEst.phi0 - phi0_inj);
     PErecovery(end).phi0_relerr = min ( abs ( rem ( [Dphi0, Dphi0 + 2*pi], 2*pi ) ) ) / (2*pi);
@@ -285,7 +268,7 @@ for l = 1 : Nsearches
     PErecovery(end).SNR_ML    = resV(l).AmpML.SNR;
     PErecovery(end).SNR_MP    = resV(l).AmpMP.SNR;
     PErecovery(end).f0_tau_percentile = get_f0_tau_percentile ( f0_inj, tau_inj, ff0, ttau, posterior2D );
-
+    PErecovery(end).BSG       = resV(l).BSG;
     plotSnapshot ( resV(l), resCommon, injectionSources(l) );
   endif %% if injectionSources
 
@@ -335,42 +318,7 @@ if ( doPlotBSGHist )
 endif
 
 if ( doPlotPErecovery )
-
-  SNR_inj = [ PErecovery.SNR_inj ];
-  figure(); clf;
-  subplot ( 3, 2, 1 );
-  plot ( SNR_inj, [PErecovery.A_relerr], "x" );
-  xlabel ( "SNR-inj"); ylabel ( "relerr(A)" ); grid on;
-  subplot ( 3, 2, 2 );
-  plot ( SNR_inj, [PErecovery.phi0_relerr], "x" );
-  xlabel ( "SNR-inj"); ylabel ( "err(phi0)/2pi" ); grid on;
-  subplot ( 3, 2, 3 );
-  plot ( SNR_inj, [ PErecovery.f0_relerr], "x" );
-  xlabel ( "SNR-inj"); ylabel ( "relerr(f0)" ); grid on;
-  subplot ( 3, 2, 4 );
-  plot ( SNR_inj, [ PErecovery.tau_relerr ], "x" );
-  xlabel ( "SNR-inj"); ylabel ( "relerr(tau)" ); grid on;
-
-  subplot ( 3, 2, 5 ); hold on;
-  plot ( SNR_inj, SNR_inj, "-o;SNR-inj;", "markersize", 4, "color", "green" );
-  plot ( SNR_inj, [ PErecovery.SNR_MP ], "+;SNR-MP;" );
-  plot ( SNR_inj, [ PErecovery.SNR_ML ], "x;SNR-ML;" );
-  xlabel ( "SNR-inj" );
-  legend ( "location", "northwest" );
-
-  subplot ( 3, 2, 6 );
-  perc = sort ( [ PErecovery.f0_tau_percentile ] );
-  Nn = length(perc);
-  cdf = [1:Nn] / Nn;
-  hold on;
-  stairs ( perc, cdf );
-  plot ( [0,1], [0,1], "-;exact;", "color", "green" );
-  xlabel ( "posterior-coverage" );
-  legend ( "location", "northwest" );
-
-  fname = sprintf ( "%s-PE.pdf", resCommon.bname );
-  ezprint ( fname, "width", 512 );
-
+  plotPErecovery ( PErecovery, resCommon.bname );
 endif %% doPlotPErecovery()
 
 cd ("../..");
