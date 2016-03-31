@@ -20,7 +20,7 @@ function zConf = credibleContourLevel ( posterior2D, confidence = 0.9 )
   assert  ( ismatrix ( posterior2D ) );
   assert ( (confidence > 0) && (confidence <1 ) );
 
-  normC = sum ( posterior2D (:) );
+  normC = sum ( posterior2D (:) );	%% not assumed to be normalized
   posterior2D ./= normC;
   try
     [zConf0, delta, INFO, OUTPUT] = fzero ( @(zIso)  sum ( posterior2D ( find ( posterior2D >= zIso ) )(:) ) - confidence, ...

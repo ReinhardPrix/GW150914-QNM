@@ -109,8 +109,8 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
     assert ( min(Dt_i) >= 0 );
 
     yiOW_l = yiOW ( inds_MaxRange );	%% truncated summed-OW time-series for faster matching
-
     %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
+    DebugPrintf ( 1, "----- t0 = %.6f s ----------\n", t0_l );
     DebugPrintf ( 1, "Computing match with ringdown templates ... " );
     match = zeros ( size ( lap_s ) );
     for k = 1 : Ntempl	%% loop over all templates
@@ -120,28 +120,56 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
     endfor %% k = 1 : Ntempl
     DebugPrintf ( 1, "done.\n");
 
-    DebugPrintf ( 1, "Computing BSG ... " );
+    DebugPrintf ( 1, "Computing BSG(f0,tau) ... " );
     BSG_f0_tau = zeros ( size ( match ) );
     post_H = zeros ( 1, numH );
     %% marginalize over unknown H scale
     for i = 1 : numH
       H_i      = priorH(i,1);
       priorH_i = priorH(i,2);
-      DebugPrintf ( 1, "H = %.2g ...", H_i );
-      [ BSG_f0_tau_H, SNR_H{i}, A_H{i}, phi0_H{i} ] = compute_BSG_SNR ( H_i, match, Mxy );
+      [ BSG_f0_tau_H, AmpV_ML{i} ] = compute_BSG ( H_i, match, Mxy );
       BSG_f0_tau += priorH_i * BSG_f0_tau_H;	%% marginalize BSG(x;f0,tau,H) over H to get BSG(x;f0,tau)
       post_H(i) = mean ( BSG_f0_tau_H(:) ); 	%% marginalize BSG(x;f0,tau,H) over {f0,tau} to get propto P(H|x)
-    endfor
+    endfor %% i = 1:numH
     post_H /= sum (post_H(:));			%% normalize posterior to be sure
     BSG = mean ( BSG_f0_tau(:) );			%% marginalize BSG(x;f0,tau) over {f0,tau} with uniform prior --> BSG(x)
     DebugPrintf ( 1, "done.\n");
 
-    %% pick amplitude-estimates and SNR from H_MPE
-    [ val, iMPE ] = max ( post_H(:) );
-    H_MPE    = priorH(iMPE,1);
-    SNR_est  = SNR_H{iMPE};
-    A_est    = A_H{iMPE};
-    phi0_est = phi0_H{iMPE};
+    [ BSG_MP, iMP ] = max ( BSG_f0_tau(:) );
+    lambdaMP = struct ( "iMP", iMP, "BSG_MP", BSG_MP, "f0", ff0(iMP), "tau", ttau(iMP) );
+    match_k = match(iMP);
+    Mxy_k = struct ( "ss", Mxy.ss(iMP), "cc", Mxy.cc(iMP), "sc", Mxy.sc(iMP) );
+
+    %% ---------- obsolete: SNR from naive maximum-likelihood amplitude estimate ----------
+    [ val, iH_MPE ] = max ( post_H(:) );	%% pick amplitude-estimates and SNR from H_MPE
+    A_s_ML  = AmpV_ML{iH_MPE}.A_s(iMP);
+    A_c_ML  = AmpV_ML{iH_MPE}.A_c(iMP);
+    A_ML    = sqrt ( A_s_ML^2 + A_c_ML^2 );
+    phi0_ML = - atan2 ( A_s_ML, A_c_ML );
+    SNR_ML  = sqrt ( A_s_ML^2 * Mxy_k.ss + 2 * A_s_ML * Mxy_k.sc * A_c_ML + A_c_ML^2 * Mxy_k.cc );
+    AmpML = struct ( "A_s", A_s_ML, "A_c", A_c_ML, "A", A_ML, "phi0", phi0_ML, "SNR", SNR_ML );
+
+    %% ---------- maximum-posterior amplitude estimate in MPE-point {f0,tau} ----------
+    DebugPrintf ( 1, "Estimating MP amplitudes (A,phi0) and SNR in MP(f0,tau) ... ");
+    maxH = max ( priorH(:,1) );
+    vA = linspace ( -maxH, maxH, 100 );
+    [A_s, A_c] = meshgrid ( vA, vA );
+    post_vA = zeros ( size ( A_s ) );
+    for i = 1 : numH
+      H_i      = priorH(i,1);
+      priorH_i = priorH(i,2);
+      post_vA_H = posterior_A_at_lambda_H ( A_s, A_c, H_i, match_k, Mxy_k );
+      post_vA += priorH_i * post_vA_H;
+    endfor %% i = 1:numH
+    [maxPA, iMaxPA] = max ( post_vA(:) );
+    A_s_MP  = A_s(iMaxPA);
+    A_c_MP  = A_c(iMaxPA);
+    A_MP    = sqrt ( A_s_MP^2 + A_c_MP^2 );
+    phi0_MP = - atan2 ( A_s_MP, A_c_MP );
+    SNR_MP  = sqrt ( A_s_MP^2 * Mxy_k.ss + 2 * A_s_MP * Mxy_k.sc * A_c_MP + A_c_MP^2 * Mxy_k.cc );
+
+    AmpMP = struct ( "A_s", A_s_MP, "A_c", A_c_MP, "A", A_MP, "phi0", phi0_MP, "SNR", SNR_MP );
+    DebugPrintf ( 1, "done.\n");
 
     bname_l = sprintf ( "Ringdown-GPS%.6fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms-H%s",
                         t0_l, min(uvar.prior_f0Range), max(uvar.prior_f0Range),
@@ -151,13 +179,13 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
 
     resV(l) = struct ( "bname", bname_l, ...
                        "t0", t0_l, ...
-                       "A_est", A_est, ...
-                       "phi0_est", phi0_est, ...
                        "BSG", BSG, ...
                        "BSG_f0_tau", {BSG_f0_tau}, ...
-                       "SNR", {SNR_est}, ...
                        "post_H", {post_H}, ...
-                       "H_MPE", H_MPE ...
+                       "match", {match}, ...
+                       "lambdaMP", lambdaMP, ...
+                       "AmpMP", AmpMP, ...
+                       "AmpML", AmpML ...
                      );
 
   endfor %% l = 1 : numSearches
@@ -175,32 +203,48 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
 
 endfunction %% searchRingdown()
 
-function [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( H, match, Mxy )
+function [ BSG, AmpML ] = compute_BSG ( H, match, Mxy )
 
   Hm2 = H^(-2);
   x_s = - imag ( match );
   x_c =   real ( match );
 
   det_gamInv = ( Mxy.ss + Hm2 ) .* ( Mxy.cc + Hm2 ) - Mxy.sc.^2;
-  det_gam = 1./ det_gamInv;
-  normBSG = sqrt(det_gam) * Hm2;
+  det_gam = 1 ./ det_gamInv;
+  normBSG = sqrt ( det_gam ) * Hm2;
 
   gam_ss  = det_gam .* ( Mxy.cc + Hm2 );
   gam_cc  = det_gam .* ( Mxy.ss + Hm2 );
   gam_sc  = det_gam .* ( -Mxy.sc );
   x_gam_x = gam_ss .* x_s.^2 + 2 * gam_sc .* x_s .* x_c + gam_cc .* x_c.^2;
 
-  BSG = normBSG .* exp ( 0.5 .* x_gam_x );
+  ln_BSG = log(normBSG) + ( 0.5 .* x_gam_x );
+  BSG = exp ( ln_BSG );
 
-  %% ---------- estimate SNR for all templates ----------
-  A_s_est = gam_ss .* x_s + gam_sc .* x_c;
-  A_c_est = gam_sc .* x_s + gam_cc .* x_c;
-
-  A_est = sqrt ( A_s_est.^2 + A_c_est.^2 );
-  phi0_est = - atan2 ( A_s_est, A_c_est );
-
-  SNR2_est = A_s_est.^2 .* Mxy.ss + 2 * A_s_est .* Mxy.sc .* A_c_est + A_c_est.^2 .* Mxy.cc;
-  SNR_est = sqrt ( SNR2_est );
+  %% ---------- simple maximum-likelihood amplitude estimate over all templates ----------
+  AmpML.A_s = gam_ss .* x_s + gam_sc .* x_c;
+  AmpML.A_c = gam_sc .* x_s + gam_cc .* x_c;
 
   return;
 endfunction %% compute_BSG_SNR()
+
+
+function post_vA = posterior_A_at_lambda_H ( As, Ac, H, match_k, Mxy_k )
+  assert ( size ( As )  == size ( Ac ) );
+
+  Hm2 = H^(-2);
+  x_s = - imag ( match_k );
+  x_c =   real ( match_k );
+
+  gamInv.ss = Mxy_k.ss + Hm2;
+  gamInv.cc = Mxy_k.cc + Hm2;
+  gamInv.sc = Mxy_k.sc;
+
+  A_gamInv_A = As .* gamInv.ss .* As + 2 * As .* gamInv.sc .* Ac + Ac .* gamInv.cc .* Ac;
+  A_x = As * x_s + Ac * x_c;
+
+  ln_post_vA = - 0.5 * A_gamInv_A + A_x;
+  post_vA = exp ( ln_post_vA );
+  return;
+
+endfunction %% posterior_A_at_lambda_H

@@ -187,7 +187,6 @@ assert ( length(resV) == Nsearches );
 resCommon.tMerger = tMerger;
 
 for l = 1 : Nsearches
-  DebugPrintf ( 1, "t0GPS = tMerger + tOffs = %.6f s + %.1f ms\n", tMerger, tOffsV(l) * 1e3 );
   resV(l).tOffs = resV(l).t0 - resCommon.tMerger;
 
   %% ----- save posterior in matrix format ----------
@@ -195,19 +194,12 @@ for l = 1 : Nsearches
   tmp = resV(l).BSG_f0_tau;
   save ( "-ascii", fname, "tmp" );
 
-  fname = sprintf ( "%s-SNR.dat", resV(l).bname );
-  tmp = resV(l).SNR;
-  save ( "-ascii", fname, "tmp" );
-
   %% ----- compute derived quantities
-  %% 2D and 1D marginalized posteriors on {f,tau} ----------
-  tmp = resV(l).BSG_f0_tau;
-  resV(l).posterior2D = tmp / sum ( tmp(:) );
-
-  tmp = sum ( resV(l).posterior2D, 1 );
+  %% 1D marginalized posteriors on {f,tau} ----------
+  posterior2D = resV(l).BSG_f0_tau;
+  tmp = sum ( posterior2D, 1 );
   resV(l).posterior_f0   = tmp / sum ( tmp(:) );
-
-  tmp = sum ( resV(l).posterior2D, 2 );
+  tmp = sum ( posterior2D, 2 );
   resV(l).posterior_tau   = tmp / sum ( tmp(:) );
 
   ff0 = resCommon.ff0;
@@ -216,55 +208,48 @@ for l = 1 : Nsearches
   tau = unique ( ttau );
   resV(l).f0_est   = credibleInterval ( f0,   resV(l).posterior_f0,   confidence );
   resV(l).tau_est  = credibleInterval ( tau,  resV(l).posterior_tau,  confidence );
-  resV(l).isoConf2 = credibleContourLevel ( resV(l).posterior2D, confidence );
+  resV(l).isoConf2 = credibleContourLevel ( posterior2D, confidence );
 
-  %% MPE values
-  resV(l).posteriorMax = max ( resV(l).posterior2D(:) );
-  resV(l).k_MP2D    = k_MP2D = ( find ( resV(l).posterior2D(:) == resV(l).posteriorMax ) )(1);
-  resV(l).f0_MP2D   = ff0 ( k_MP2D );
-  resV(l).tau_MP2D  = ttau ( k_MP2D );
-
-  resV(l).A_MP2D    = resV(l).A_est( k_MP2D );
-  resV(l).phi0_MP2D = resV(l).phi0_est ( k_MP2D );
-  resV(l).SNR_MP2D  = resV(l).SNR ( k_MP2D );
+  DebugPrintSummary ( 1, resV(l), resCommon );
   %% ---------- plot results summary page
-  %%fname = sprintf ( "%s.png", resV(l).bname );
-  %%ezprint ( fname, "width", 1024, "height", 786, "dpi", 72 );
   if ( doPlotSnapshots )
     plotSnapshot ( resV(l), resCommon, plotMarkers );
   endif
 
   %% ----- if injection: quantify PE recovery quality ----------
   if ( !isempty ( injectionSources ) )
-    %% single-QNM search: compare to i'th injection only, assuming we're targeting one injection per 'step'
+
+    %% single-QNM search: compare to l'th injection only, assuming we're targeting one injection per 'step'
     A_inj = injectionSources(l).A;
     phi0_inj = injectionSources(l).phi0;
     f0_inj = injectionSources(l).f0;
     tau_inj = injectionSources(l).tau;
-    PErecovery(end+1).t0_offs  = (resV(l).t0GPS - injectionSources(1).t0);
-    PErecovery(end).A_relerr   = (resV(l).A_MP2D - A_inj) / A_inj;
-    PErecovery(end).phi0_err   = (resV(l).phi0_MP2D - phi0_inj);
-    PErecovery(end).f0_relerr  = (resV(l).f0_MP2D - f0_inj) / f0_inj;
-    PErecovery(end).tau_relerr = (resV(l).tau_MP2D - tau_inj) / tau_inj;
+    AmpEst = resV(l).AmpMP;
+    PErecovery(end+1).t0_offs  = (resV(l).t0 - injectionSources(l).t0);
+    PErecovery(end).A_relerr   = (AmpEst.A - A_inj) / A_inj;
+    Dphi0   = (AmpEst.phi0 - phi0_inj);
+    PErecovery(end).phi0_relerr = min ( abs ( rem ( [Dphi0, Dphi0 + 2*pi], 2*pi ) ) ) / (2*pi);
+    PErecovery(end).f0_relerr  = (resV(l).lambdaMP.f0 - f0_inj) / f0_inj;
+    PErecovery(end).tau_relerr = (resV(l).lambdaMP.tau - tau_inj) / tau_inj;
 
     A_s = -A_inj * sin(phi0_inj);
     A_c =  A_inj * cos(phi0_inj);
     [x, i_f0]  = min ( abs ( f0_inj - f0(:) ) );
     [x, i_tau] = min ( abs ( tau_inj - tau(:) ) );
-    M_ss = resCommon.Mxy.ss ( i_tau, i_f0 );
-    M_sc = resCommon.Mxy.sc ( i_tau, i_f0 );
-    M_cc = resCommon.Mxy.cc ( i_tau, i_f0 );
-    SNR2_inj = A_s^2 * M_ss + 2 * A_s * M_sc * A_c + A_c^2 * M_cc;
-    PErecovery(end).SNR_inj    = sqrt ( SNR2_inj );
-    PErecovery(end).SNR_rec    = resV(l).SNR_MP2D;
+    M_ss = resCommon.Mxy.ss( i_tau, i_f0 );
+    M_sc = resCommon.Mxy.sc( i_tau, i_f0 );
+    M_cc = resCommon.Mxy.cc( i_tau, i_f0 );
+    SNR_inj = sqrt ( A_s^2 * M_ss + 2 * A_s * M_sc * A_c + A_c^2 * M_cc );
 
-    PErecovery(end).f0_tau_percentile = get_f0_tau_percentile ( f0_inj, tau_inj, resV(l).ff0, resV(l).ttau, resV(l).BSG_f0_tau );
+    PErecovery(end).SNR_inj   = SNR_inj;
+    PErecovery(end).SNR_ML    = resV(l).AmpML.SNR;
+    PErecovery(end).SNR_MP    = resV(l).AmpMP.SNR;
+    PErecovery(end).f0_tau_percentile = get_f0_tau_percentile ( f0_inj, tau_inj, ff0, ttau, posterior2D );
 
     plotSnapshot ( resV(l), resCommon, injectionSources(l) );
   endif %% if injectionSources
 
-  DebugPrintSummary ( 1, resV(l), resCommon );
-endfor %% i = 1:Nsearches
+endfor %% l = 1:Nsearches
 
 %% ----- save axis {f0, tau} in matrix format ----------
 save ( "-ascii", "f0s.dat", "ff0" );

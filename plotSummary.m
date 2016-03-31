@@ -19,11 +19,9 @@ function plotSummary ( resV, resCommon )
   %% ----- prepare quantities to be plotted versus QNM start-time
   tMerger = resCommon.tMerger;
   Nsteps = length ( resV );
-  tOffs = BSG = SNR_MP2D = f0_MPE = f0_lerr = f0_uerr = taums_MPE = taums_lerr = taums_uerr = zeros ( 1, Nsteps );
+  BSG = f0_MPE = f0_lerr = f0_uerr = taums_MPE = taums_lerr = taums_uerr = zeros ( 1, Nsteps );
   for i = 1 : Nsteps
-    tOffsVms(i)   = resV(i).tOffs * 1e3;
     BSG(i)        = resV(i).BSG;
-    SNR_MP2D(i)   = resV(i).SNR_MP2D;
 
     f0_MPE(i)     = resV(i).f0_est.MPE;
     f0_lerr(i)    = resV(i).f0_est.lerr;
@@ -34,6 +32,7 @@ function plotSummary ( resV, resCommon )
     taums_uerr(i) = resV(i).tau_est.uerr * 1e3;
   endfor
 
+  tOffsVms = [resV.tOffs] * 1e3;
   tOffs_Range = [ (min ( tOffsVms(:) )), (max ( tOffsVms(:) )) + 0.1 ];
   taums_Range = [ (min ( resCommon.ttau(:) )), (max ( resCommon.ttau(:))) + 1e-4 ] * 1e3;
   f0_Range    = [ (min ( resCommon.ff0(:) )),  (max ( resCommon.ff0(:) )) + 0.1 ];
@@ -44,8 +43,8 @@ function plotSummary ( resV, resCommon )
   %% ----- plot log10BSG(tOffs)
   subplot ( 2, 2, 1, "align" );
   xrange = tOffs_Range;
-  yrange = [ -1, 10 ];
-  plot ( tOffsVms, log10(BSG), "-o" );
+  yrange = [ -1, 20 ];
+  plot ( tOffsVms, log10([resV.BSG]), "-o" );
   xlim ( xrange );
   ylim ( yrange );
   line ( xrange, 0, "linestyle", "-", "linewidth", 3 );
@@ -63,10 +62,12 @@ function plotSummary ( resV, resCommon )
   ylabel ("f0 [Hz]");
 
   %% ----- plot SNR(tOffs)
-  subplot ( 2, 2, 3, "align" );
-  plot ( tOffsVms, SNR_MP2D, "-o" ); grid on;
+  subplot ( 2, 2, 3, "align" ); hold on;
+  plot ( tOffsVms, [[resV.AmpMP].SNR], "-o;MP;" );
+  plot ( tOffsVms, [[resV.AmpML].SNR], "-x;ML;" );
+  grid on;
   xlim ( xrange );
-  ylabel ("SNR(MPE)");
+  ylabel ("SNR");
   xlabel ( sprintf ( "%.6f s + tOffs [ms]", tMerger) );
 
   %% ----- plot tau_MPE(tOffs)

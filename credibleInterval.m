@@ -37,7 +37,8 @@ function x_est = credibleInterval ( x, posterior_x, confidence = 0.9 )
     return;
   end_try_catch
 
-  x_MP = x ( find ( posterior1D == max(posterior1D) ) );
+  [val, iMax1D ] = max ( posterior1D(:) );
+  x_MP = x ( iMax1D );
 
   inds0 = find ( posterior1D >= pIso );
   i_min = min(inds0);

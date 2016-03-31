@@ -42,7 +42,7 @@ function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
     log10B_l = log10 ( resV(l).BSG );
     color_l = "black"; %% (1 - log10B_l / maxlog10B) * [ 1, 1, 1];
     if ( !isempty ( resV(l).isoConf2 ) )
-      [C, H] = contour ( resCommon.ff0, resCommon.ttau * 1e3, resV(l).posterior2D, resV(l).isoConf2 * [ 1, 1 ] );
+      [C, H] = contour ( resCommon.ff0, resCommon.ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );
     endif
     set ( H, "linecolor", color_l, "linewidth", 2 );
     leg = sprintf ( "tM + %.1fms", resV(l).tOffs * 1e3 );
@@ -50,7 +50,7 @@ function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
     set ( cl, "string", "" );
     %%set ( cl(1), "string", leg );
     set ( cl(end), "string", leg );
-    plot ( resV(l).f0_MP2D, resV(l).tau_MP2D * 1e3, "x;MPE;", 'markeredgecolor', color_l, "markersize", 5 );
+    plot ( resV(l).lambdaMP.f0, resV(l).lambdaMP.tau * 1e3, "x;MPE;", 'markeredgecolor', color_l, "markersize", 5 );
   endfor
   xlabel ( "Freq [Hz]" );
   ylabel ( "tau [ms]" );
