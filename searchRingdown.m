@@ -68,7 +68,7 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
   df = df{1};
   fMin = fMin{1};
 
-  Tmax = 3 * max(uvar.prior_tauRange);	%% max time range considered = 5 * tauMax
+  Tmax = 5 * max(uvar.prior_tauRange);	%% max time range considered = 5 * tauMax
 
   %% ---------- templated search over {f0, tau} space ----------
   f0 = [min(uvar.prior_f0Range): uvar.step_f0 : max(uvar.prior_f0Range)];
