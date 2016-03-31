@@ -175,32 +175,6 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
 
 endfunction %% searchRingdown()
 
-function Mxy = compute_Mxy ( fk, ttau, ff0, Stot, Ndet )
-
-  assert ( length ( fk ) == length ( Stot ) );
-  assert ( size(ttau) == size ( ff0 ) );
-  Ntempl = length ( ttau(:) );
-  df = mean ( diff ( fk ) );
-
-  M_ss = M_cc = M_sc = zeros ( size ( ttau ) );
-  for l = 1 : Ntempl
-    %% ----- whitened frequency-domain template basis functions ----------
-    denom_k = ( 1 + I * 4*pi * fk * ttau(l) - 4*pi^2 * ( fk.^2 - ff0(l)^2 ) * ttau(l)^2 );
-    hsFT_k  = ttau(l) * ( 2*pi * ff0(l) * ttau(l) ) ./ denom_k;
-    hcFT_k  = ttau(l) * ( 1 + I * 2*pi*fk * ttau(l) ) ./ denom_k;
-    %% ----- compute M-matrix from template self-match integrals in frequency-domain ----------
-    M_ss(l) = 4 * Ndet * df * sum ( abs(hsFT_k).^2 ./ Stot );
-    M_cc(l) = 4 * Ndet * df * sum ( abs(hcFT_k).^2 ./ Stot );
-    M_sc(l) = 4 * Ndet * df * real ( sum ( hsFT_k .* conj(hcFT_k) ./ Stot ) );
-  endfor %% l
-
-  Mxy.ss = M_ss;
-  Mxy.cc = M_cc;
-  Mxy.sc = M_sc;
-  return;
-
-endfunction %% compute_Mxy()
-
 function [ BSG, SNR_est, A_est, phi0_est ] = compute_BSG_SNR ( H, match, Mxy )
 
   Hm2 = H^(-2);
