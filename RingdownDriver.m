@@ -57,7 +57,7 @@ plotMarkers = struct ( "name", "IMR", "f0", f0GR.val, "tau", taumsGR.val * 1e-3 
 prior_f0Range   = [ 200, 300 ];
 prior_tauRange  = [ 0.5e-3, 20e-3 ];
 if ( !exist ( "prior_H" ) )
-  H_i = [ 2e-22, 3e-22, 4e-22, 5e-22, 6e-22, 7e-22, 8e-22, 9e-22, 10e-22 ];
+  H_i = [ 2 : 10 ] * 1e-22;
   p_i = 1 ./ H_i;
   p_i /= sum ( p_i(:) );
   prior_H = [ H_i', p_i' ];
@@ -105,22 +105,33 @@ switch ( searchType )
     doPlotBSGHist   = true;
     doPlotH         = false;
 
-  case "injections-SignalOnly"
+  case "injections-pure"
     %% ---------- add QNM signal to test parameter-estimation accuracy ----------
     tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
-    tOffsV = [ -0.5 : 0.05 : 0 ];
+    tOffsV = [ -3.0 : 0.2 : 3.0 ];
     clear("injectionSources");
-    for i = 1 : length(tOffsV)
-      injectionSources(i) = struct ( "name", 	sprintf("Inj-%d", i), ...
-                                     "t0", 	tMerger + tOffsV(i), ...
-                                     "A", 	unifrnd ( 1e-22, 10e-22 ), ...
+    for l = 1 : length(tOffsV)
+      %% pick perfect-match injections on (f0,tau) grid to avoid mismatch
+      %% here we want to see the ideal noise-free perfect-match behaviour
+      %% as a sanity-check to catch bugs
+      f0Range = [ min(prior_f0Range)+10, max(prior_f0Range)-10];
+      tauRange = [ min(prior_tauRange)+1e-3, max(prior_tauRange)-1e-3];
+      Nf0  = floor ( diff(f0Range) / step_f0 ) + 1;
+      Ntau = floor ( diff(tauRange) / step_tau ) + 1;
+      i_f0 = unidrnd ( Nf0 );
+      i_tau = unidrnd ( Ntau );
+      f0_inj  = min(f0Range) + (i_f0 - 1) * step_f0;
+      tau_inj = min(tauRange) + (i_tau - 1) * step_tau;
+      injectionSources(l) = struct ( "name", 	sprintf("Inj-%d", l), ...
+                                     "t0", 	tMerger + tOffsV(l), ...
+                                     "A", 	unifrnd ( 3e-22, 8e-22 ), ...
                                      "phi0", 	unifrnd ( 0, 2*pi ), ...
-                                     "f0", 	unifrnd ( 200, 300 ), ...
-                                     "tau", 	unifrnd ( 0.5e-3, 15e-3 ), ...
+                                     "f0", 	f0_inj, ...
+                                     "tau", 	tau_inj, ...
                                      "shiftL1", shiftL1 ...
                                    );
-    endfor %% i = 1:numInjections
-    assumeSqrtSX = [ 8e-24, 8e-24 ];
+    endfor %% i = l:numInjections
+    assumeSqrtSX = [ 8e-24, 6e-24 ];
     plotMarkers = [];
 
     doPlotContours  = false;
@@ -293,6 +304,45 @@ if ( doPlotBSGHist )
   fname = sprintf ( "%s-hist.pdf", resCommon.bname );
   ezprint ( fname, "width", 512 );
 endif
+
+if ( doPlotPErecovery )
+
+  SNR_inj = [ PErecovery.SNR_inj ];
+  figure(); clf;
+  subplot ( 3, 2, 1 );
+  plot ( SNR_inj, [PErecovery.A_relerr], "x" );
+  xlabel ( "SNR-inj"); ylabel ( "relerr(A)" ); grid on;
+  subplot ( 3, 2, 2 );
+  plot ( SNR_inj, [PErecovery.phi0_relerr], "x" );
+  xlabel ( "SNR-inj"); ylabel ( "err(phi0)/2pi" ); grid on;
+  subplot ( 3, 2, 3 );
+  plot ( SNR_inj, [ PErecovery.f0_relerr], "x" );
+  xlabel ( "SNR-inj"); ylabel ( "relerr(f0)" ); grid on;
+  subplot ( 3, 2, 4 );
+  plot ( SNR_inj, [ PErecovery.tau_relerr ], "x" );
+  xlabel ( "SNR-inj"); ylabel ( "relerr(tau)" ); grid on;
+
+  subplot ( 3, 2, 5 ); hold on;
+  plot ( SNR_inj, SNR_inj, "-o;SNR-inj;", "markersize", 4, "color", "green" );
+  plot ( SNR_inj, [ PErecovery.SNR_MP ], "+;SNR-MP;" );
+  plot ( SNR_inj, [ PErecovery.SNR_ML ], "x;SNR-ML;" );
+  xlabel ( "SNR-inj" );
+  legend ( "location", "northwest" );
+
+  subplot ( 3, 2, 6 );
+  perc = sort ( [ PErecovery.f0_tau_percentile ] );
+  Nn = length(perc);
+  cdf = [1:Nn] / Nn;
+  hold on;
+  stairs ( perc, cdf );
+  plot ( [0,1], [0,1], "-;exact;", "color", "green" );
+  xlabel ( "posterior-coverage" );
+  legend ( "location", "northwest" );
+
+  fname = sprintf ( "%s-PE.pdf", resCommon.bname );
+  ezprint ( fname, "width", 512 );
+
+endif %% doPlotPErecovery()
 
 cd ("../..");
 

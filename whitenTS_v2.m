@@ -74,7 +74,7 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
       else
         DebugPrintf ( 1, "Starting injection %d in %s at t_i(%d) = %.6f s, for t0 = %.6f s: {A = %g, phi0 = %g, f0 = %g Hz, tau = %g ms ... ",
                       l, IFO, iStart_l, tsTrunc.epoch + tsTrunc.ti(iStart_l), tsTrunc.epoch + t0InjOffs, inj_l.A, inj_l.phi0, inj_l.f0, inj_l.tau  * 1e3 );
-        tsQNM_l = QNMtemplate ( t0, ampFact * inj_l.A, inj_l.phi0, inj_l.f0, inj_l.tau, tsTrunc, (symmetric = true) );
+        tsQNM_l = QNMtemplate ( t0, ampFact * inj_l.A, inj_l.phi0, inj_l.f0, inj_l.tau, tsTrunc, (smooth = true) );
         xiInj += tsQNM_l.xi;
         DebugPrintf ( 1, "done.\n");
       endif
