@@ -28,7 +28,8 @@ function [ts, psd] = extractTSfromSFT ( varargin )
                         {"plotSpectrum", "bool", false },
                         {"fSamp", "real,positive,scalar", 2000*2 },	%% sampling rate of output timeseries
                         {"injectionSources", "struct", []},
-                        {"assumeSqrtSn", "real,strictpos,scalar", [] }
+                        {"assumeSqrtSn", "real,strictpos,scalar", [] },
+                        {"injectSqrtSn", "real,positive,scalar", [] }
                       );
   assert ( uvar.fMax > uvar.fMin );
 
@@ -84,6 +85,7 @@ function [ts, psd] = extractTSfromSFT ( varargin )
                              "plotSpectrum", uvar.plotSpectrum );
       assert ( isempty ( uvar.injectionSources ), "Sorry, QNM injections only supported with 'psd_version=2'\n");
       assert ( isempty ( uvar.assumeSqrtSn ), "Sorry, 'signal-only' simulation only supported with 'psd_version=2'\n");
+      assert ( isempty ( uvar.injectSqrtSn ), "Sorry, Gaussian noise-simulation only supported with 'psd_version=2'\n");
 
     case 2
       [ts, psd] = whitenTS_v2 ( "ftIn", ft0, ...
@@ -92,7 +94,8 @@ function [ts, psd] = extractTSfromSFT ( varargin )
                                 "fMin", uvar.fMin, "fMax", uvar.fMax, ...
                                 "plotSpectrum", uvar.plotSpectrum, ...
                                 "injectionSources", uvar.injectionSources, ...
-                                "assumeSqrtSn", uvar.assumeSqrtSn
+                                "assumeSqrtSn", uvar.assumeSqrtSn, ...
+                                "injectSqrtSn", uvar.injectSqrtSn ...
                               );
     otherwise
       error ("psd_version = %d not supported\n", psd_version );

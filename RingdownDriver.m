@@ -25,6 +25,7 @@ global debugLevel = 1;
 
 %% ========== driver parameters ==========
 SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C01-1126258841-1800.sft" };
+numIFOs = length ( SFTs );
 fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such that 7.0ms timeshift between IFOs
                 %% can be represented by exactly by an integer bin-shift: 7e-3 s * 4e3 Hz =  28.0 bins
 shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
@@ -45,7 +46,8 @@ if ( !exist("psd_version") )    global psd_version = 2; endif
 if ( !exist("cleanLines") )     global cleanLines = false; endif
 if ( !exist("data_FreqRange") ) data_FreqRange  = [ 30, 1e3 ]; endif
 if ( !exist("injectionSources") ) injectionSources = []; endif
-if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = []; endif
+if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = cell(1,numIFOs); endif	%% empty by default
+if ( !exist("injectSqrtSX") ) 	injectSqrtSX = cell(1,numIFOs); endif	%% empty by default
 
 %% ----- 'GR predictions/values on GW150914 ----------
 tMergerGW150914 = 1126259462.42285;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
@@ -106,7 +108,7 @@ switch ( searchType )
     doPlotH         = false;
 
   case "injections-pure"
-    %% ---------- add QNM signal to test parameter-estimation accuracy ----------
+    %% ---------- search for 'pure' QNM signals without noise to test parameter-estimation accuracy ----------
     tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
     tOffsV = [ -3.0 : 0.2 : 3.0 ];
     clear("injectionSources");
@@ -131,7 +133,36 @@ switch ( searchType )
                                      "shiftL1", shiftL1 ...
                                    );
     endfor %% i = l:numInjections
-    assumeSqrtSX = [ 8e-24, 6e-24 ];
+    assumeSqrtSX = { 8e-24, 6e-24 };
+    injectSqrtSX = { 0, 0 };	%% no actual noise
+    plotMarkers = [];
+
+    doPlotContours  = false;
+    doPlotSummary   = false;
+    doPlotSnapshots = false;
+    doPlotSpectra   = false;
+    doPlotH         = false;
+    doPlotPErecovery= true;
+
+  case "injections-Gauss"
+    %% ---------- search for 'pure' QNM signals without noise to test parameter-estimation accuracy ----------
+    tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
+    tOffsV = [ -3.0 : 0.2 : 3.0 ];
+    clear("injectionSources");
+    for l = 1 : length(tOffsV)
+      injectionSources(l) = struct ( "name", 	sprintf("Inj-%d", l), ...
+                                     "t0", 	tMerger + tOffsV(l), ...
+                                     "A", 	unifrnd ( 3e-22, 8e-22 ), ...
+                                     "phi0", 	unifrnd ( 0, 2*pi ), ...
+                                     "f0", 	unifrnd ( prior_f0Range(1), prior_f0Range(2) ), ...
+                                     "tau", 	unifrnd ( prior_tauRange(1), prior_tauRange(2) ), ...
+                                     "shiftL1", shiftL1 ...
+                                   );
+    endfor %% i = l:numInjections
+    injectSqrtSX = { 8.3e-24, 8.5e-24 };
+    %%assumeSqrtSX = injectSqrtSX;	%% step one: test with perfect PSD knowledge
+    extraLabel = "estimateSqrtSX";
+    data_FreqRange  = [ 10, 2e3 ];
     plotMarkers = [];
 
     doPlotContours  = false;
@@ -150,10 +181,6 @@ endswitch
 
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
-  assumeSqrtSn = [];
-  if ( !isempty ( assumeSqrtSX ) )
-    assumeSqrtSn = assumeSqrtSX(X);
-  endif
   [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, ...
                                        "fMin", min(data_FreqRange), ...
                                        "fMax", max(data_FreqRange), ...
@@ -162,11 +189,13 @@ for X = 1:length(SFTs)
                                        "Twindow", 4, ...
                                        "plotSpectrum", doPlotSpectra, ...
                                        "injectionSources", injectionSources, ...
-                                       "assumeSqrtSn", assumeSqrtSn ...
+                                       "assumeSqrtSn", assumeSqrtSX{X}, ...
+                                       "injectSqrtSn", injectSqrtSX{X} ...
                                      );
   %% for plotting OW-timeseries: store noise-values at 'GR frequency f0GR'
   [val, freqInd] = min ( abs ( psd{X}.fk - f0GR.val ) );
   ts{X}.SX_GR = psd{X}.Sn ( freqInd );
+  DebugPrintf ( 1, "X = %d: sqrt(SX) = %g /sqrt(Hz)\n", X, sqrt ( ts{X}.SX_GR ) );
 endfor
 
 

@@ -29,7 +29,8 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
                         {"fSamp", "real,positive,scalar", 2000*2 },	%% sampling rate of output timeseries
                         {"plotSpectrum", "bool", false },
                         {"injectionSources", "struct", [] },
-                        {"assumeSqrtSn", "real,strictpos,scalar", [] }	%% set noise=0 and assume given noise-PSD (for "signal-only" injections)
+                        {"assumeSqrtSn", "real,strictpos,scalar", [] },	%% assume given noise-PSD instead of estimating it from data
+                        {"injectSqrtSn", "real,positive,scalar", [] }	%% replace real data by Gaussian noise of given (white) PSD
                       );
 
   %% handy shortcuts
@@ -39,6 +40,17 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
   fMinSFT = min ( uvar.ftIn.fk );
   fMaxSFT = max ( uvar.ftIn.fk );
   ts0 = freqBand2TS ( uvar.ftIn, fMinSFT, fMaxSFT, uvar.fSamp );
+  dt = mean ( diff ( ts0.ti ) );
+
+  %% replace TS data by Gaussian noise if 'injectSqrtSn' given:
+  if ( !isempty ( uvar.injectSqrtSn ) )
+    sigma = uvar.injectSqrtSn / sqrt(2 * dt);		%% convert PSD into Gaussian std-dev
+    if ( sigma > 0 )
+      ts0.xi = normrnd ( 0, sigma, size(ts0.xi) );	%% replace data by Gaussian noise
+    else
+      ts0.xi = zeros ( size(ts0.xi) );	%% normrnd() returns NANs for sigma=0 ...
+    endif
+  endif %% if injectSqrtSn
 
   %% identify time indices of truncated time-segement [tCenter - Twindow, tCenter + Twindow]
   samplesTrunc = find ( (ts0.ti >= (uvar.tCenter - uvar.ftIn.epoch - uvar.Twindow)) & (ts0.ti <= (uvar.tCenter - uvar.ftIn.epoch + uvar.Twindow )) );
@@ -51,7 +63,6 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
   tsTrunc.ti    -= offs0;
 
   Nsamples = length ( samplesTrunc );
-  dt = mean ( diff ( tsTrunc.ti ) );
   T = Nsamples * dt;
 
   %% ----- inject QNM signal(s) into 'tsTrunc' if requested
@@ -80,12 +91,7 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
       endif
     endfor %% for l = 1 : numInjections
   endif
-
-  if ( !isempty ( uvar.assumeSqrtSn ) )
-    tsTrunc.xi = xiInj;		%% 'signal-only' injection, getting rid of noise
-  else
-    tsTrunc.xi += xiInj;	%% add signals to noise
-  endif
+  tsTrunc.xi += xiInj;	%% add signals to noise data
 
   %% ---------- estimate PSD on full-length (1800s) timeseries using pwelch() using segments of length 'samplesTrunc' ----------
   window = length ( samplesTrunc );
