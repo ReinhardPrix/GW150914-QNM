@@ -23,9 +23,8 @@ function zConf = credibleContourLevel ( posterior2D, confidence = 0.9 )
   normC = sum ( posterior2D (:) );	%% not assumed to be normalized
   posterior2D ./= normC;
   try
-    [zConf0, delta, INFO, OUTPUT] = fzero ( @(zIso)  sum ( posterior2D ( find ( posterior2D >= zIso ) )(:) ) - confidence, ...
-                                            [ min(posterior2D(:)), max(posterior2D(:)) ], ...
-                                            optimset ( "TolX", 1e-4 )
+    [zConf0, delta, INFO, OUTPUT] = fzero ( @(zIso)  sum ( posterior2D ( posterior2D >= zIso )(:) ) - confidence, ...
+                                            [ min(posterior2D(:)), max(posterior2D(:)) ]
                                           );
     assert ( INFO == 1 );
     zConf = [];
