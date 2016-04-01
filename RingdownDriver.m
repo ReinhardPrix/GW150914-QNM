@@ -28,6 +28,7 @@ SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800
 numIFOs = length ( SFTs );
 fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such that 7.0ms timeshift between IFOs
                 %% can be represented by exactly by an integer bin-shift: 7e-3 s * 4e3 Hz =  28.0 bins
+FreqRange  = [ 30, 1900 ]; %% SFT data spans [10,2e3]Hz, but avoid PSD 'ramp up/down' at boundaries
 
 %% collect time-delay and antenna-pattern factors into one object
 skyCorr = struct ( "IFO", {"H1", "L1"}, "timeShift", { 0, 7e-3 }, "ampFact", { 1, -1 } );	%% values specific to GW150914
@@ -44,7 +45,7 @@ doPlotPErecovery= false;
 
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
-if ( !exist("data_FreqRange") ) data_FreqRange  = [ 30, 1e3 ]; endif
+if ( !exist("Tseg") )		Tseg = 8; endif				%% length of data segment (in s) to analyse, centered on 'tMerger'
 if ( !exist("injectionSources") ) injectionSources = []; endif
 if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = cell(1,numIFOs); endif	%% empty by default
 if ( !exist("injectSqrtSX") ) 	injectSqrtSX = cell(1,numIFOs); endif	%% empty by default
@@ -77,7 +78,7 @@ switch ( searchType )
     tMerger = tMergerGW150914;
     tOffsV = [7e-3];
 
-    doPlotContours  = true;
+    doPlotContours  = false;
     doPlotSummary   = false;
     doPlotSnapshots = true;
     doPlotSpectra   = false;
@@ -135,7 +136,6 @@ switch ( searchType )
                                    );
     endfor %% i = l:numInjections
 
-    data_FreqRange  = [ 30, 1e3 ];	%% full data-range, better PE-recovery at low SNR(?)
     doPlotContours  = false;
     doPlotSummary   = false;
     doPlotSnapshots = false;
@@ -148,35 +148,33 @@ switch ( searchType )
 
 endswitch
 
-%% ----- data preparation -----
-
-%% load frequency-domain data from SFTs:
+%% ----- data reading + preparation -----
 for X = 1:length(SFTs)
 
   [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, ...
-                                       "fMin", min(data_FreqRange), ...
-                                       "fMax", max(data_FreqRange), ...
+                                       "fMin", min(FreqRange), ...
+                                       "fMax", max(FreqRange), ...
                                        "fSamp", fSamp, ...
                                        "tCenter", fix(tMerger), ...
-                                       "Twindow", 4, ...
+                                       "Twindow", Tseg/2, ...
                                        "plotSpectrum", doPlotSpectra, ...
                                        "injectionSources", injectionSources, ...
                                        "assumeSqrtSn", assumeSqrtSX{X}, ...
                                        "injectSqrtSn", injectSqrtSX{X} ...
                                      );
+
   %% for plotting OW-timeseries: store noise-values at 'GR frequency f0GR'
   [val, freqInd] = min ( abs ( psd{X}.fk - f0GR.val ) );
   ts{X}.SX_GR = psd{X}.Sn ( freqInd );
   DebugPrintf ( 1, "X = %d: sqrt(SX) = %g /sqrt(Hz)\n", X, sqrt ( ts{X}.SX_GR ) );
+
 endfor
-
-
 
 
 %% create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
 resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz%s",
-                   gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, data_FreqRange,
+                   gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, FreqRange,
                    extraLabel );
 if ( noMismatchInj )
   resDir = strcat ( resDir, "-noMismatchInj" );
