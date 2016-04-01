@@ -25,6 +25,8 @@ function [TS, FT] = freqBand2TS ( ft, fMin, fMax, fSamp )
 
   %% extract frequency-band
   bins0 = binRange ( fMin, fMax, fk );
+  fMin0 = fk(min(bins0));
+  fMax0 = fk(max(bins0));
 
   %% window FT bins before inv-FFTing:
   win = tukeywin ( length ( bins0 ), 0.1 );
@@ -37,11 +39,11 @@ function [TS, FT] = freqBand2TS ( ft, fMin, fMax, fSamp )
   assert ( Nfreq == length(fk1) );
   %% ----- positive frequencies ----------
   xk1 = zeros ( size(fk1) );
-  bins1P = binRange ( fMin, fMax, fk1 );
+  bins1P = binRange ( fMin0, fMax0, fk1 );
   assert ( length(bins0) == length(bins1P) );
   xk1(bins1P) = xkWin;
   %% ----- negative frequencies ----------
-  bins1N = binRange ( -fMax, -fMin, fk1 );
+  bins1N = binRange ( -fMax0, -fMin0, fk1 );
   assert ( length(bins0) == length(bins1N) );
   xk1(bins1N) = conj ( flipdim ( xkWin ) );	%% mirror-image and complex-conjugate
   %% ----- inv-FFT back into time-domain ----------
@@ -55,6 +57,8 @@ function [TS, FT] = freqBand2TS ( ft, fMin, fMax, fSamp )
   TS.xi = real ( TS.xi );
   TS.epoch = ft.epoch;
   TS.IFO = ft.IFO;
+  TS.fMax = fMax0;
+  TS.fMin = fMin0;
 
   %% window final TS to avoid switch on/off artifacts:
   win = tukeywin ( Nsamp, 0.1 );
@@ -66,6 +70,8 @@ function [TS, FT] = freqBand2TS ( ft, fMin, fMax, fSamp )
   FT.xk = xk ( bins0 );
   FT.IFO = IFO;
   FT.epoch = epoch;
+  FT.fMax = fMax0;
+  FT.fMin0 = fMin0;
 
   return;
 
