@@ -43,11 +43,11 @@ function Mxy = compute_Mxy ( ff0, ttau, psd )
             endif %% if equal psd{X}
           endif %% if same IFO & epoch & size-PSD
         endfor %% for X = 1:Ndet
+        if ( trueFor == Ndet )
+          canReuse = true;
+        endif %% if true for all X
       endif %% same ttau & ff0
     endif %% same size-ttau&ff0
-    if ( trueFor == Ndet )
-      canReuse = true;
-    endif %% if true for all X
   endif %% if have buffer
 
   if ( canReuse )
