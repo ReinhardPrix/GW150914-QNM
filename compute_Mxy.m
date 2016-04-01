@@ -25,25 +25,29 @@ function Mxy = compute_Mxy ( ff0, ttau, psd )
   if ( !isempty ( buffer ) )
     same_size_ttau = all((size(ttau) == size(buffer.ttau))(:));
     same_size_ff0  = all((size(ff0) == size(buffer.ff0))(:));
-    same_ttau = all((ttau == buffer.ttau)(:));
-    same_ff0  = all((ff0 == buffer.ff0)(:));
     same_Ndet = (Ndet == length(buffer.psd));
-    if ( same_size_ttau && same_size_ff0 && same_ttau && same_ff0 && same_Ndet );
-      trueFor = 0
-      for X = 1 : Ndet
-        same_IFO = strcmp ( psd{X}.IFO, buffer.psd{X}.IFO );
-        same_epoch = (psd{X}.epoch == buffer.psd{X}.epoch);
-        same_size_PSD = all ( (size(psd{X}.fk) == size(buffer.psd{X}.fk))(:));
-        same_fk = all ( (psd{X}.fk == buffer.psd{X}.fk)(:) );
-        same_Sn = all ( (psd{X}.Sn == buffer.psd{X}.Sn)(:) );
-        if ( same_IFO && same_epoch && same_size_PSD && same_fk && same_Sn )
-          trueFor ++;
-        endif %% if equal psd{X}
-      endfor %% for X = 1:Ndet
-      if ( trueFor == Ndet )
-        canReuse = true;
-      endif
-    endif %% if equal ttau, ff0, Ndet
+    if ( same_size_ttau && same_size_ff0 && same_Ndet )
+      same_ttau = all((ttau == buffer.ttau)(:));
+      same_ff0  = all((ff0 == buffer.ff0)(:));
+      if (  same_ttau && same_ff0 );
+        trueFor = 0;
+        for X = 1 : Ndet
+          same_IFO = strcmp ( psd{X}.IFO, buffer.psd{X}.IFO );
+          same_epoch = (psd{X}.epoch == buffer.psd{X}.epoch);
+          same_size_PSD = all ( (size(psd{X}.fk) == size(buffer.psd{X}.fk))(:));
+          if ( same_IFO && same_epoch && same_size_PSD )
+            same_fk = all ( (psd{X}.fk == buffer.psd{X}.fk)(:) );
+            same_Sn = all ( (psd{X}.Sn == buffer.psd{X}.Sn)(:) );
+            if (  same_fk && same_Sn )
+              trueFor ++;
+            endif %% if equal psd{X}
+          endif %% if same IFO & epoch & size-PSD
+        endfor %% for X = 1:Ndet
+      endif %% same ttau & ff0
+    endif %% same size-ttau&ff0
+    if ( trueFor == Ndet )
+      canReuse = true;
+    endif %% if true for all X
   endif %% if have buffer
 
   if ( canReuse )
