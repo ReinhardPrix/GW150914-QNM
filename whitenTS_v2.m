@@ -126,6 +126,8 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
   ftOut.xkU  = ftTrunc.xkU ( bins_out );	%% normalized by rms=> unit variance
   ftOut.xkOW = ftTrunc.xkOW ( bins_out );
 
+  psd.fk     = psd.fk ( bins_out );
+  psd.Sn     = psd.Sn ( bins_out );
   %% ---------- plot spectra over narrow-banded output frequency range ----------
   if ( uvar.plotSpectrum )
     if ( strcmp ( IFO, "H1" ) )
