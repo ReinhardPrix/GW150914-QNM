@@ -42,8 +42,6 @@ doPlotPErecovery= false;
 
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
-if ( !exist("psd_version") )    global psd_version = 2; endif
-if ( !exist("cleanLines") )     global cleanLines = false; endif
 if ( !exist("data_FreqRange") ) data_FreqRange  = [ 30, 1e3 ]; endif
 if ( !exist("injectionSources") ) injectionSources = []; endif
 if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = cell(1,numIFOs); endif	%% empty by default
@@ -80,8 +78,8 @@ switch ( searchType )
     doPlotContours  = true;
     doPlotSummary   = false;
     doPlotSnapshots = true;
-    doPlotSpectra   = true;
-    doPlotH         = true;
+    doPlotSpectra   = false;
+    doPlotH         = false;
 
   case "onSource"
     %% ---------- "ON-SOURCE ----------
@@ -174,9 +172,8 @@ endfor
 
 %% create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
-resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz-psd_v%d-lineCleaning%s%s",
+resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz%s",
                    gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, data_FreqRange,
-                   psd_version, ifelse ( cleanLines, "On", "Off" ),
                    extraLabel );
 if ( noMismatchInj )
   resDir = strcat ( resDir, "-noMismatchInj" );

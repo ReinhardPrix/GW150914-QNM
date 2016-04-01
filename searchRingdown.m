@@ -16,8 +16,6 @@
 
 function [ resV, resCommon ] = searchRingdown ( varargin )
   global debugLevel = 1;
-  global psd_version = 1;
-  global cleanLines = false;
 
   uvar = parseOptions ( varargin,
                         {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries

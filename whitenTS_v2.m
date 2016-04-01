@@ -18,7 +18,6 @@
 %% including an automated line-nuking algorithm: 'lines' are identified as > lineSigma deviations in power
 function [ tsOut, psd ] = whitenTS_v2 ( varargin )
   global debugLevel = 1;
-  global cleanLines = false;
 
   uvar = parseOptions ( varargin,
                         {"ftIn", "struct" },
@@ -127,25 +126,6 @@ function [ tsOut, psd ] = whitenTS_v2 ( varargin )
   ftTrunc.xkW  = ftTrunc.xk ./ sqrt ( psd.Sn );
   ftTrunc.xkOW = ftTrunc.xk ./ psd.Sn;
   ftTrunc.xkU  = ftTrunc.xkW / sqrt(T/2);	%% normalized by rms=> unit variance
-
-  %% ---------- identify and nuke 'lines' > sigma +- lineWidth Hz ----------
-  if ( cleanLines )
-    Nbins = length ( ftTrunc.fk );
-    sigma = 3; lineWidth = 2;
-    inds_lines = find ( abs ( ftTrunc.xkU ) > sigma );
-    iNukeWidth = round ( lineWidth * T );
-    sides = -iNukeWidth : iNukeWidth;
-    [xx, yy] = meshgrid ( inds_lines, sides );
-    nuke_lines = xx + yy;
-    nuke = [ nuke_lines(:) ];
-    indsNuke = unique ( nuke(:) );
-    indsNuke = indsNuke ( (indsNuke >= 1) & (indsNuke <= Nbins ) );
-    Nnuke = length ( indsNuke );
-    indsOK = setdiff ( [1:Nbins], indsNuke );
-    sigLocal = sqrt ( var ( ftTrunc.xkOW (indsOK) ) / 2 );
-    ftTrunc.xkOW ( indsNuke ) = normrnd ( 0, sigLocal, size(indsNuke) ) + I * normrnd ( 0, sigLocal, size(indsNuke) );
-    psd.Sn ( indsNuke ) = inf;
-  endif
 
   %% ----- turn spectra back into narrow-banded timeseries ----------
   ft0    = ftTrunc;

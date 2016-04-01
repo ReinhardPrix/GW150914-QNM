@@ -16,8 +16,6 @@
 
 function [ts, psd] = extractTSfromSFT ( varargin )
   global debugLevel = 1;
-  global psd_version = 1;
-  global cleanLines = false;
 
   uvar = parseOptions ( varargin,
                         {"SFTpath", "char,vector" },
@@ -36,8 +34,8 @@ function [ts, psd] = extractTSfromSFT ( varargin )
   pieces = strsplit ( uvar.SFTpath, "/" );
   sftfname = pieces { end };
   sftbname = strrep ( sftfname, ".sft", "");
-  bname = sprintf ( "%s-freq%.0fHz-%.0fHz-fSamp%.0fHz-GPS%.0fs+-%.0fs-psd_v%d-lineCleaning%s",
-                    sftbname, uvar.fMin, uvar.fMax, uvar.fSamp, uvar.tCenter, uvar.Twindow, psd_version, ifelse ( cleanLines, "On", "Off" ) );
+  bname = sprintf ( "%s-freq%.0fHz-%.0fHz-fSamp%.0fHz-GPS%.0fs+-%.0fs",
+                    sftbname, uvar.fMin, uvar.fMax, uvar.fSamp, uvar.tCenter, uvar.Twindow );
 
   resDir = "extractTS-Results";
   [status, msg] = mkdir ( resDir );
@@ -69,37 +67,15 @@ function [ts, psd] = extractTSfromSFT ( varargin )
   ft0.epoch = epoch;
 
   %% ---------- compute PSD on short timeseries, nuke lines, extract 'physical' frequency band, and whiten + overwhitened TS ----------
-  switch ( psd_version )
-    case 1
-      %% ---------- extract frequency band of interest [fMin,fMax] as a timeseries ----------
-      tsBand0 = freqBand2TS ( ft0, uvar.fMin, uvar.fMax, uvar.fSamp );
-      %%figure(); clf; plot ( tsBand0.ti + (epoch - uvar.tCenter), tsBand0.xi, "-" );
-      indsTrunc = find ( (tsBand0.ti >= (uvar.tCenter - tsBand0.epoch - uvar.Twindow)) & (tsBand0.ti <= (uvar.tCenter - tsBand0.epoch + uvar.Twindow )) );
-      %% ---------- truncate timeseries to [ tCenter - dT, tCenter + dT ] ----------
-      tsBand.ti    = tsBand0.ti ( indsTrunc );
-      tsBand.xi    = tsBand0.xi ( indsTrunc );
-      tsBand.IFO   = IFO;
-      tsBand.epoch = epoch;
-      [ts, psd] = whitenTS ( "tsIn", tsBand,
-                             "fMin", uvar.fMin, "fMax", uvar.fMax,
-                             "plotSpectrum", uvar.plotSpectrum );
-      assert ( isempty ( uvar.injectionSources ), "Sorry, QNM injections only supported with 'psd_version=2'\n");
-      assert ( isempty ( uvar.assumeSqrtSn ), "Sorry, 'signal-only' simulation only supported with 'psd_version=2'\n");
-      assert ( isempty ( uvar.injectSqrtSn ), "Sorry, Gaussian noise-simulation only supported with 'psd_version=2'\n");
-
-    case 2
-      [ts, psd] = whitenTS_v2 ( "ftIn", ft0, ...
-                                "fSamp", uvar.fSamp, ...
-                                "tCenter", uvar.tCenter, "Twindow", uvar.Twindow, ...
-                                "fMin", uvar.fMin, "fMax", uvar.fMax, ...
-                                "plotSpectrum", uvar.plotSpectrum, ...
-                                "injectionSources", uvar.injectionSources, ...
-                                "assumeSqrtSn", uvar.assumeSqrtSn, ...
-                                "injectSqrtSn", uvar.injectSqrtSn ...
-                              );
-    otherwise
-      error ("psd_version = %d not supported\n", psd_version );
-  endswitch
+  [ts, psd] = whitenTS_v2 ( "ftIn", ft0, ...
+                            "fSamp", uvar.fSamp, ...
+                            "tCenter", uvar.tCenter, "Twindow", uvar.Twindow, ...
+                            "fMin", uvar.fMin, "fMax", uvar.fMax, ...
+                            "plotSpectrum", uvar.plotSpectrum, ...
+                            "injectionSources", uvar.injectionSources, ...
+                            "assumeSqrtSn", uvar.assumeSqrtSn, ...
+                            "injectSqrtSn", uvar.injectSqrtSn ...
+                          );
 
   if ( uvar.plotSpectrum )
     fname = sprintf ( "%s/%s-spectrum.pdf", resDir, bname);
