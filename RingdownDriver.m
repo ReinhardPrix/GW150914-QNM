@@ -28,7 +28,9 @@ SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800
 numIFOs = length ( SFTs );
 fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such that 7.0ms timeshift between IFOs
                 %% can be represented by exactly by an integer bin-shift: 7e-3 s * 4e3 Hz =  28.0 bins
-shiftL1 = 7.0e-3;	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
+
+%% collect time-delay and antenna-pattern factors into one object
+skyCorr = struct ( "IFO", {"H1", "L1"}, "timeShift", { 0, 7e-3 }, "ampFact", { 1, -1 } );	%% values specific to GW150914
 
 confidence = 0.90;
 
@@ -129,7 +131,7 @@ switch ( searchType )
                                      "phi0", 	unifrnd ( 0, 2*pi ), ...
                                      "f0", 	f0_inj, ...
                                      "tau", 	tau_inj, ...
-                                     "shiftL1", shiftL1 ...
+                                     "skyCorr", skyCorr ...
                                    );
     endfor %% i = l:numInjections
 
@@ -150,6 +152,7 @@ endswitch
 
 %% load frequency-domain data from SFTs:
 for X = 1:length(SFTs)
+
   [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, ...
                                        "fMin", min(data_FreqRange), ...
                                        "fMax", max(data_FreqRange), ...
@@ -199,7 +202,7 @@ clear ("res" );
                                      "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
                                      "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
                                      "prior_H", prior_H, ...
-                                     "shiftL1", shiftL1
+                                     "skyCorr", skyCorr
                                    );
 assert ( length(resV) == Nsearches );
 resCommon.tMerger = tMerger;

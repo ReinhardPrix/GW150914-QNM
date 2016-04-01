@@ -27,8 +27,11 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
                         {"step_tau", "real,strictpos,scalar", 0.2e-3 },
                         {"prior_H", "real,strictpos,matrix", [4e-22, 1]},
                         {"plotResults", "bool", false },
-                        {"shiftL1", "real,scalar", 7.0e-3}	%% time-shift to apply to L1 data-stream: currently 'official' value (v8)
+                        {"skyCorr", "struct"}		%% detector-dependent time-shift and antenna-pattern infos
                       );
+
+  Ndet = length ( uvar.ts );
+  assert ( (Ndet == length(uvar.psd)) && (Ndet == length(uvar.skyCorr)) );
 
   if ( isscalar ( uvar.prior_H ) )
     numH = 1;
@@ -59,19 +62,21 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
   Mxy = compute_Mxy ( ff0, ttau, uvar.psd );
   DebugPrintf (1, "done.\n");
 
-  %% ---------- prepare time-shifted and antenna-pattern 'flipped' time-series
+  %% ---------- prepare time-shifted and antenna-pattern corrected *summed* time-series
   ts = uvar.ts;
-  assert ( strcmp ( ts{1}.IFO, "H1" ), "First detector must be 'H1', got '%s'\n", ts{1}.IFO );	%% FIXME, nasty
-  assert ( strcmp ( ts{2}.IFO, "L1" ), "Second detector must be 'L1', got '%s'\n", ts{2}.IFO );	%% FIXME, nasty
+  yiOW = zeros ( size ( ts{1}.xi ) );
+  for X = 1 : Ndet
+    X1 = find ( strcmp ( ts{X}.IFO, {uvar.skyCorr.IFO} ) ); assert ( !isempty(X1) && (length(X1) == 1) );
+    shiftBins = round ( uvar.skyCorr(X1).timeShift / dt );
+    ampFact   = uvar.skyCorr(X1).ampFact;
+    shift_eff = shiftBins * dt; assert ( abs(shift_eff - uvar.skyCorr(X1).timeShift) < 1e-6 );	%% check we're within 0.001ms
 
-  shiftBinsL1 = round ( uvar.shiftL1 / dt );
-  shiftL1_eff = shiftBinsL1 * dt;
-  assert ( abs(shiftL1_eff - uvar.shiftL1) < 1e-6 );
-  ts{2}.xi   = - circshift ( ts{2}.xi,   [0, shiftBinsL1] );
-  ts{2}.xiW  = - circshift ( ts{2}.xiW,  [0, shiftBinsL1] );
-  ts{2}.xiOW = - circshift ( ts{2}.xiOW, [0, shiftBinsL1] );
+    ts{X}.xi   = ampFact * circshift ( ts{X}.xi,   [0, shiftBins] );
+    ts{X}.xiW  = ampFact * circshift ( ts{X}.xiW,  [0, shiftBins] );
+    ts{X}.xiOW = ampFact * circshift ( ts{X}.xiOW, [0, shiftBins] );
 
-  yiOW = ts{1}.xiOW + ts{2}.xiOW;
+    yiOW += ts{X}.xiOW;
+  endfor %% X = 1 : Net
 
   %% ---------- loop over N start-times [input vector 't0V'] ----------
   numSearches = length ( uvar.t0V );
