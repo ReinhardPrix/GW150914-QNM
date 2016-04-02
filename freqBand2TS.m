@@ -14,7 +14,7 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function [TS, FT] = freqBand2TS ( ft, fMin, fMax, fSamp )
+function TS = freqBand2TS ( ft, fMin, fMax, fSamp )
 
   %% handy shortcuts
   fk = ft.fk(:);
@@ -52,26 +52,19 @@ function [TS, FT] = freqBand2TS ( ft, fMin, fMax, fSamp )
   Nsamp = length(TS.xi);	%% == Nfreq
   TS.ti = dt * [ 0 : (Nsamp-1) ];
   %% check that we constructed a real-valued timeseries
-  %%err = max ( abs(imag( TS.xi)) ./ abs(real(TS.xi) ) );
-  %%assert ( err < 1e-6 );
+  err = mean ( abs(imag( TS.xi)) )  / mean ( abs(real(TS.xi) ) );
+  assert ( err < 1e-6 );
   TS.xi = real ( TS.xi );
   TS.epoch = ft.epoch;
   TS.IFO = ft.IFO;
   TS.fMax = fMax0;
   TS.fMin = fMin0;
+  TS.fSamp = fSamp;
 
   %% window final TS to avoid switch on/off artifacts:
   win = tukeywin ( Nsamp, 0.1 );
   xiWin = TS.xi(:) .* win(:);
   TS.xi = xiWin';
-
-  %% ===== also return narrow-banded original Fourier spectrum in [fMin, fMax] =====
-  FT.fk = fk ( bins0 );
-  FT.xk = xk ( bins0 );
-  FT.IFO = IFO;
-  FT.epoch = epoch;
-  FT.fMax = fMax0;
-  FT.fMin0 = fMin0;
 
   return;
 
