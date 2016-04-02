@@ -149,19 +149,79 @@ switch ( searchType )
 endswitch
 
 %% ----- data reading + preparation -----
+tCenter = tMerger;
+TimeRange = [ tCenter - 0.5 * Tseg, tCenter + 0.5 * Tseg ];
+
 for X = 1:length(SFTs)
 
-  [ts{X}, psd{X}] = extractTSfromSFT ( "SFTpath", SFTs{X}, ...
-                                       "fMin", min(FreqRange), ...
-                                       "fMax", max(FreqRange), ...
-                                       "fSamp", fSamp, ...
-                                       "tCenter", fix(tMerger), ...
-                                       "Twindow", Tseg/2, ...
-                                       "plotSpectrum", doPlotSpectra, ...
-                                       "injectionSources", injectionSources, ...
-                                       "assumeSqrtSn", assumeSqrtSX{X}, ...
-                                       "injectSqrtSn", injectSqrtSX{X} ...
-                                     );
+  %% ----- load time-series (TS) data from SFT
+  ts0 = loadTSfromSFT ( SFTs{X}, -1, -1, fSamp );	%% load full-frequency-band TS from SFT
+  dt = 1 / ts0.fSamp;
+
+  %% ----- replace TS data by Gaussian noise if 'injectSqrtSn' given:
+  if ( !isempty ( injectSqrtSX{X} ) )
+    sigma = injectSqrtSX{X} / sqrt(2 * dt);		%% convert PSD into Gaussian std-dev
+    if ( sigma > 0 )
+      ts0.xi = normrnd ( 0, sigma, size(ts0.xi) );	%% replace data by Gaussian noise
+    else
+      ts0.xi = zeros ( size(ts0.xi) );	%% normrnd() returns NANs for sigma=0 ...
+    endif
+  endif %% if injectSqrtSn
+
+  %% ----- time-samples corresponding to analysis segment 'TimeRange'
+  samplesSeg = find ( (ts0.ti >= (TimeRange(1) - ts0.epoch)) & (ts0.ti <= (TimeRange(2) - ts0.epoch)) );
+
+  %% ----- estimate PSD (*excluding* analysis segment 'TimeRange')
+  psd{X} = estimatePSD ( ts0, [samplesSeg(1), samplesSeg(end)] );
+
+  if ( !isempty ( assumeSqrtSX{X} ) )
+    psd{X}.Sn(:) = assumeSqrtSX{X}^2 ;	%% assume this PSD value instead of the measured estimate
+  endif
+
+  %% ----- extract TS of analysis segment 'TimeRange'
+  tiStart = ts0.ti ( samplesSeg(1) );	%% exact start-time sample
+
+  tsSeg0{X}        = ts0;
+  tsSeg0{X}.ti     = ts0.ti ( samplesSeg ) - tiStart;	%% shift 'ti' to start from 0
+  tsSeg0{X}.epoch += tiStart;
+  tsSeg0{X}.xi     = ts0.xi ( samplesSeg );
+
+  %% ----- inject QNM signals into analysis segment (woulnd't change PSD estimate, which excluded Tseg)
+  tsSeg0{X} = injectQNMs ( tsSeg0{X}, injectionSources );
+
+  %% ----- compute normal, whitened and over-whitened spectra of analysis segment, over analysis frequency range
+  fMin = min(FreqRange); fMax = max(FreqRange);
+  binsFreqRange = binRange ( fMin, fMax, psd{X}.fk );   %% actual freq-band of non-zero data support
+
+  %% truncate psd to analysis frequency band
+  psd{X}.fk = psd{X}.fk ( binsFreqRange );
+  psd{X}.Sn = psd{X}.Sn ( binsFreqRange );
+
+  xSegFFT = dt * fft ( tsSeg0{X}.xi );
+
+  ftSeg.IFO   = tsSeg0{X}.IFO;
+  ftSeg.epoch = tsSeg0{X}.epoch;
+
+  ftSeg.fk    = psd{X}.fk;
+  xk   = xSegFFT ( binsFreqRange );
+  xkW  = xk ./ sqrt ( psd{X}.Sn );
+  xkOW = xk ./ psd{X}.Sn;
+
+  %% ----- turn spectra back into narrow-banded timeseries ----------
+  ftSeg.xk = xk;
+  tsSeg = freqBand2TS ( ftSeg, fMin, fMax, tsSeg0{X}.fSamp );
+
+  ftSeg.xk = xkW;
+  tsSegW   = freqBand2TS ( ftSeg, fMin, fMax, tsSeg0{X}.fSamp );
+
+  ftSeg.xk = xkOW;
+  tsSegOW  = freqBand2TS ( ftSeg, fMin, fMax, tsSeg0{X}.fSamp );
+  assert ( all((tsSeg.ti == tsSegW.ti)(:)) && all((tsSeg.ti == tsSegOW.ti)(:)) );
+
+  ts{X}      = struct();
+  ts{X}      = tsSeg;
+  ts{X}.xiW  = tsSegW.xi;
+  ts{X}.xiOW = tsSegOW.xi;
 
   %% for plotting OW-timeseries: store noise-values at 'GR frequency f0GR'
   [val, freqInd] = min ( abs ( psd{X}.fk - f0GR.val ) );
