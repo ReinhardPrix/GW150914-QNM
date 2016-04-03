@@ -18,17 +18,16 @@
 %% ie: maximum-posterior estimate x_est.MPE
 %% 'confidence'-credible interval [x_est.lower, x_est.upper], and
 %% corresponding iso-posterior value x_est.pIso
-function x_est = credibleInterval ( x, posterior_x, confidence = 0.9 )
+function x_est = credibleInterval ( posterior, confidence = 0.9 )
 
-  assert ( isvector ( x ) && isvector(posterior_x) && (length ( x ) == length ( posterior_x )) );
+  assert ( isstruct ( posterior ) && isvector([posterior.x]) && isvector ([posterior.px]) && (length([posterior.x]) == length([posterior.px])) );
+  assert ( sum ( posterior.px(:) ), 1, 1e-6 );
 
-  normx = sum ( posterior_x(:) );
-  posterior1D = posterior_x / normx;
-
+  x      = posterior.x;
+  prob_x = posterior.px;
   try
-    [pIso, delta, INFO, OUTPUT] = fzero ( @(pIso)  sum ( posterior1D ( find ( posterior1D >= pIso ) ) ) - confidence, ...
-                                          [ min(posterior1D), max(posterior1D) ], ...
-                                          optimset ( "TolX", 1e-4 )
+    [pIso, delta, INFO, OUTPUT] = fzero ( @(pIso)  sum ( prob_x ( find ( prob_x >= pIso ) ) ) - confidence, ...
+                                          [ min(prob_x), max(prob_x) ]
                                         );
     assert ( INFO == 1 );
   catch
@@ -37,20 +36,20 @@ function x_est = credibleInterval ( x, posterior_x, confidence = 0.9 )
     return;
   end_try_catch
 
-  [val, iMax1D ] = max ( posterior1D(:) );
-  x_MP = x ( iMax1D );
+  [val, iMaxP ] = max ( prob_x(:) );
+  x_MP = [posterior.x] ( iMaxP );
 
-  inds0 = find ( posterior1D >= pIso );
+  inds0 = find ( prob_x >= pIso );
   i_min = min(inds0);
   i_max = max(inds0);
   %% check if these are respective closest to p_iso
-  if ( (i_min > 1) && abs(posterior1D(i_min-1) - pIso) < abs(posterior1D(i_min) - pIso) )
+  if ( (i_min > 1) && abs(prob_x(i_min-1) - pIso) < abs(prob_x(i_min) - pIso) )
     i_min --;
   endif
-  if ( (i_max < length(posterior1D)) && abs(posterior1D(i_max+1) - pIso) < abs(posterior1D(i_max) - pIso) )
+  if ( (i_max < length(prob_x)) && abs(prob_x(i_max+1) - pIso) < abs(prob_x(i_max) - pIso) )
     i_max ++;
   endif
 
-  x_est = struct ( "MPE", x_MP, "lerr", x_MP - x(i_min), "uerr", x(i_max) - x_MP, "pIso", pIso * normx );
+  x_est = struct ( "MPE", x_MP, "lerr", x_MP - x(i_min), "uerr", x(i_max) - x_MP, "pIso", pIso );
   return;
 endfunction

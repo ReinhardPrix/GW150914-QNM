@@ -64,7 +64,7 @@ if ( !exist ( "prior_H" ) )
   H_i = [ 2 : 10 ] * 1e-22;
   p_i = 1 ./ H_i;
   p_i /= sum ( p_i(:) );
-  prior_H = [ H_i', p_i' ];
+  prior_H = struct ( "x", H_i, "px", p_i );
 endif
 step_f0         = 0.5;
 step_tau        = 0.5e-3;
@@ -76,7 +76,7 @@ switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tMerger = tMergerGW150914;
-    tOffsV = [7e-3];
+    t0V = tMerger + [7] * 1e-3;
 
     doPlotContours  = false;
     doPlotSummary   = false;
@@ -87,7 +87,7 @@ switch ( searchType )
   case "onSource"
     %% ---------- "ON-SOURCE ----------
     tMerger = tMergerGW150914;
-    tOffsV = [ 1, 3, 5, 7 ] * 1e-3;
+    t0V = tMerger + [ 1, 3, 5, 7 ] * 1e-3;
 
     doPlotSnapshots = true;
     doPlotContours  = true;
@@ -99,7 +99,8 @@ switch ( searchType )
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
     tMerger = tMergerGW150914 + 10;
-    tOffsV = [ -3 : 0.05 : 3 ];
+    numTrials = 100;
+    t0V = tMerger + unifrnd ( -3, 3, 1, numTrials );
     plotMarkers = [];
 
     doPlotSnapshots = false;
@@ -111,30 +112,24 @@ switch ( searchType )
 
   case "injections"
     %% NOTE: injections defaults to injections into real-data, but override with 'injectSqrtSX' and 'assumeSqrtSX' settings
-    tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
-    tOffsV = [ -3.0 : 0.2 : -2.8 ];
-    clear("injectionSources");
-    for l = 1 : length(tOffsV)
-      if ( noMismatchInj )
-        Nf0  = floor ( diff(prior_f0Range) / step_f0 ) + 1;
-        Ntau = floor ( diff(prior_tauRange) / step_tau ) + 1;
-        i_f0 = unidrnd ( Nf0 );
-        i_tau = unidrnd ( Ntau );
-        f0_inj  = min(prior_f0Range) + (i_f0 - 1) * step_f0;
-        tau_inj = min(prior_tauRange) + (i_tau - 1) * step_tau;
-      else
-        f0_inj = unifrnd ( prior_f0Range(1), prior_f0Range(2) );
-        tau_inj = unifrnd ( prior_tauRange(1), prior_tauRange(2) );
-      endif
-      injectionSources(l) = struct ( "name", 	sprintf("Inj-%d", l), ...
-                                     "t0", 	tMerger + tOffsV(l), ...
+    tMerger = tMergerGW150914 + 10;	%% go to some 'off source' time-stretch
+    numTrials = 10;
+    t0V = tMerger + unifrnd ( -3, 3, 1, numTrials );
+    injectionSources = struct();
+    for m = 1 : numTrials
+      injectionSources(m) = struct ( "name", 	sprintf("QNM-%d", m), ...
+                                     "t0", 	t0V(m), ...
                                      "A", 	unifrnd ( 3e-22, 8e-22 ), ...
                                      "phi0", 	unifrnd ( 0, 2*pi ), ...
-                                     "f0", 	f0_inj, ...
-                                     "tau", 	tau_inj, ...
+                                     "f0",	unifrnd ( min(prior_f0Range), max(prior_f0Range) ), ...
+                                     "tau", 	unifrnd ( min(prior_tauRange), max(prior_tauRange) ), ...
                                      "skyCorr", skyCorr ...
                                    );
-    endfor %% i = l:numInjections
+      if ( noMismatchInj )	%% place signal-{f0,tau} on exact search grid point
+        injectionSources.f0  = min(prior_f0Range) + step_f0 * round ( (injectionSource.f0 - min(prior_f0Range)) / step_f0 );
+        injectionSources.tau = min(prior_tauRange) + step_tau * round ( (injectionSource.tau - min(prior_tauRange)) / step_tau);
+      endif
+    endfor
 
     doPlotContours  = false;
     doPlotSummary   = false;
@@ -142,18 +137,18 @@ switch ( searchType )
     doPlotSpectra   = false;
     doPlotH         = false;
     doPlotPErecovery= true;
+    PErecovery = struct();
 
   otherwise
     error ("Unknown searchType = '%s' specified\n", searchType );
 
-endswitch
+endswitch %% searchType
 
 
 %% ========== create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
 resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz%s",
-                   gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, FreqRange,
-                   extraLabel );
+                   gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, FreqRange, extraLabel );
 if ( noMismatchInj )
   resDir = strcat ( resDir, "-noMismatchInj" );
 endif
@@ -165,8 +160,12 @@ if ( !isempty ( assumeSqrtSX ) )
 endif
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 
+bname = sprintf ( "Ringdown-f%.0fHz-%.0fHz-tau%.1fms-%.1fms",
+                  min(prior_f0Range), max(prior_f0Range),
+                  1e3 * min(prior_tauRange), 1e3 * max(prior_tauRange)
+                );
+
 %% ========== start actual analysis ====================
-PErecovery = [];
 
 %% ----- data reading + preparation -----
 TimeRange = [ tMerger - 0.5 * Tseg, tMerger + 0.5 * Tseg ];
@@ -174,133 +173,97 @@ DebugPrintf ( 1, "Loading SFT data + PSD-estimation ... ");
 [multiTS0, multiPSD0] = loadData ( "SFTpaths", SFTs, "TimeRange", TimeRange, "fSamp", fSamp, "assumeSqrtSX", assumeSqrtSX, "injectSqrtSX", injectSqrtSX );
 DebugPrintf ( 1, "done.\n");
 
-%% ----- inject QNM signals into analysis segment (wouldn't have changed PSD estimate, which excluded TimeRange)
-multiTS0Inj = injectQNMs ( multiTS0, injectionSources );
+%% ----- template search-grid in {f0, tau} ----------
+f0Grid  = [min(prior_f0Range):  step_f0 : max(prior_f0Range)];
+tauGrid = [min(prior_tauRange): step_tau : max(prior_tauRange)];
 
-%% ----- narrow-band and whiten/overwhiten data ----------
-[multiTS, multiPSD] = whitenNarrowBandTS ( multiTS0Inj, multiPSD0, FreqRange );
+%% ----- run 'numSearches' searches
+resV = struct();
+numSearches = length ( t0V );
+for m = 1 : numSearches
 
-%% ----- run QNM search(es) over different start-times 't0V'
-Nsearches = length(tOffsV);
+  if ( !isempty ( injectionSources ) )
+    %% ----- inject QNM signal(s) into analysis segment (wouldn't have changed PSD estimate, which excluded TimeRange)
+    multiTS0Inj = injectQNMs ( multiTS0, injectionSources(m) );
+  else
+    multiTS0Inj = multiTS0;
+  endif
 
-[resV, resCommon] = searchRingdown ( "multiTS", multiTS, ...
-                                     "multiPSD", multiPSD, ...
-                                     "t0V", tMerger + tOffsV, ...
-                                     "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
-                                     "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
-                                     "prior_H", prior_H, ...
-                                     "skyCorr", skyCorr
-                                   );
-assert ( length(resV) == Nsearches );
-resCommon.tMerger = tMerger;
+  %% ----- narrow-band and whiten/overwhiten data ----------
+  [multiTS, multiPSD] = whitenNarrowBandTS ( multiTS0Inj, multiPSD0, FreqRange );
 
-for l = 1 : Nsearches
-  resV(l).tOffs = resV(l).t0 - resCommon.tMerger;
+  %% ----- run QNM search(es) over vector of start-times 't0V'
+  res_m = searchRingdown ( "multiTS", multiTS, ...
+                             "multiPSD", multiPSD, ...
+                             "t0", t0V(m), ...
+                             "f0Grid", f0Grid, ...
+                             "tauGrid", tauGrid, ...
+                             "prior_H", prior_H, ...
+                             "skyCorr", skyCorr
+                           );
+  %% 'augment' with derived results for easier plotting
+  res_m.f0_est   = credibleInterval ( res_m.posterior_f0, confidence );
+  res_m.tau_est  = credibleInterval ( res_m.posterior_tau, confidence );
+  res_m.isoConf2 = credibleContourLevel ( res_m.BSG_f0_tau, confidence );
 
+  res_m.tMerger  = tMerger;
+  res_m.tOffs    = t0V(m) - tMerger;
+  res_m.bname    = sprintf ( "Ringdown-search%04d-GPS%.6fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms",
+                               m, t0V(m), min(prior_f0Range), max(prior_f0Range),
+                               1e3 * min(prior_tauRange), 1e3 * max(prior_tauRange)
+                             );
+
+  resV(m) = res_m;
   %% ----- save posterior in matrix format ----------
-  fname = sprintf ( "%s/%s-BSG.dat", resDir, resV(l).bname );
-  tmp = resV(l).BSG_f0_tau;
+  fname = sprintf ( "%s/%s-BSG.dat", resDir, resV(m).bname );
+  tmp = resV(m).BSG_f0_tau;
   save ( "-ascii", fname, "tmp" );
 
-  %% ----- compute derived quantities
-  %% 1D marginalized posteriors on {f,tau} ----------
-  posterior2D = resV(l).BSG_f0_tau;
-  tmp = sum ( posterior2D, 1 );
-  resV(l).posterior_f0   = tmp / sum ( tmp(:) );
-  tmp = sum ( posterior2D, 2 );
-  resV(l).posterior_tau   = tmp / sum ( tmp(:) );
-
-  ff0 = resCommon.ff0;
-  ttau = resCommon.ttau;
-  f0  = unique ( ff0 );
-  tau = unique ( ttau );
-  resV(l).f0_est   = credibleInterval ( f0,   resV(l).posterior_f0,   confidence );
-  resV(l).tau_est  = credibleInterval ( tau,  resV(l).posterior_tau,  confidence );
-  resV(l).isoConf2 = credibleContourLevel ( posterior2D, confidence );
-
-  DebugPrintSummary ( 1, resV(l), resCommon );
+  DebugPrintSummary ( 1, resV(m) );
   %% ---------- plot results summary page
   if ( doPlotSnapshots )
-    plotSnapshot ( resV(l), resCommon, plotMarkers );
-    fname = sprintf ( "%s/%s.pdf", resDir, resV(l).bname );
+    plotSnapshot ( resV(m), plotMarkers );
+    fname = sprintf ( "%s/%s.pdf", resDir, resV(m).bname );
     ezprint ( fname, "width", 512 );
   endif
 
   %% ----- if injection: quantify PE recovery quality ----------
   if ( !isempty ( injectionSources ) )
-
-    %% single-QNM search: compare to l'th injection only, assuming we're targeting one injection per 'step'
-    A_inj = injectionSources(l).A;
-    phi0_inj = injectionSources(l).phi0;
-    f0_inj = injectionSources(l).f0;
-    tau_inj = injectionSources(l).tau;
-    AmpEst = resV(l).AmpMP;
-
-    PErecovery(end+1).t0_offs  = (resV(l).t0 - injectionSources(l).t0);
-
-    PErecovery(end).A_relerr   = (AmpEst.A - A_inj) / A_inj;
-    Dphi0   = (AmpEst.phi0 - phi0_inj);
-    PErecovery(end).phi0_relerr = min ( abs ( rem ( [Dphi0, Dphi0 + 2*pi], 2*pi ) ) ) / (2*pi);
-    PErecovery(end).f0_relerr  = (resV(l).lambdaMP.f0 - f0_inj) / f0_inj;
-    PErecovery(end).tau_relerr = (resV(l).lambdaMP.tau - tau_inj) / tau_inj;
-
-    A_s = -A_inj * sin(phi0_inj);
-    A_c =  A_inj * cos(phi0_inj);
-    [x, i_f0]  = min ( abs ( f0_inj - f0(:) ) );
-    [x, i_tau] = min ( abs ( tau_inj - tau(:) ) );
-    M_ss = resCommon.Mxy.ss( i_tau, i_f0 );
-    M_sc = resCommon.Mxy.sc( i_tau, i_f0 );
-    M_cc = resCommon.Mxy.cc( i_tau, i_f0 );
-    SNR_inj = sqrt ( A_s^2 * M_ss + 2 * A_s * M_sc * A_c + A_c^2 * M_cc );
-
-    PErecovery(end).SNR_inj   = SNR_inj;
-    PErecovery(end).SNR_ML    = resV(l).AmpML.SNR;
-    PErecovery(end).SNR_MP    = resV(l).AmpMP.SNR;
-    PErecovery(end).f0_tau_percentile = get_f0_tau_percentile ( f0_inj, tau_inj, ff0, ttau, posterior2D );
-    PErecovery(end).BSG       = resV(l).BSG;
-
-    plotSnapshot ( resV(l), resCommon, injectionSources(l) );
-
+    PErecovery(m) = testPErecovery ( resV(m), injectionSources(m) );
   endif %% if injectionSources
 
-endfor %% l = 1:Nsearches
+endfor %% m = 1 : numSearches
 
 %% ----- save axis {f0, tau} in matrix format ----------
+ff0 = resV(1).ff0;
+ttau = resV(1).ttau;
 save ( "-ascii", strcat(resDir, "/f0s.dat"), "ff0" );
 save ( "-ascii", strcat(resDir, "/taus.dat"), "ttau" );
 
-%% ----- store complete results dump ----------
-versioning.octave = version();
-versioning.octapps = octapps_gitID();
-versioning.scripts = octapps_gitID(".", "QNM-scripts");
-
-fname = sprintf ( "%s/RingdownDriver-%s.hd5", resDir, resCommon.bname );
-save ("-hdf5", fname )
-
 %% ----- plot quantities vs tOffs ----------
 if ( doPlotSummary )
-  plotSummary ( resV, resCommon );
-  fname = sprintf ( "%s/%s-summary.pdf", resDir, resCommon.bname );
+  plotSummary ( resV );
+  fname = sprintf ( "%s/%s-summary.pdf", resDir, bname );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotContours )
-  plotContours ( resV, resCommon, [], plotMarkers )
-  fname = sprintf ( "%s/%s-contours.pdf", resDir, resCommon.bname );
+  plotContours ( resV, [], plotMarkers )
+  fname = sprintf ( "%s/%s-contours.pdf", resDir, bname );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotH )
   figure(); clf; hold on;
-  plot ( prior_H(:,1), prior_H(:,2), "-xg;prior;", "linestyle", "--", "linewidth", 2 );
-  for i = 1 : Nsearches
-    plot ( prior_H(:,1), resV(l).post_H, "-b" );
-    leg = sprintf ( "+%.1fms", resV(l).tOffs * 1e3 );
-    text ( prior_H(end,1), resV(l).post_H(end), leg );
+  plot ( [prior_H.x], [prior_H.px], "-xg;prior;", "linestyle", "--", "linewidth", 2 );
+  for m = 1 : numSearches
+    plot ( [resV(m).posterior_H.x], [resV(m).posterior_H.px], "-b" );
+    leg = sprintf ( "+%.1fms", resV(m).tOffs * 1e3 );
+    text ( [resV(m).posterior_H.x](end), [resV(m).posterior_H.px](end), leg );
   endfor
   xlabel ( "H" ); ylabel ("pdf");
   grid on; hold off;
-  fname = sprintf ( "%s/%s-post_H.pdf", resDir, resCommon.bname );
+  fname = sprintf ( "%s/%s-posterior_H.pdf", resDir, bname );
   ezprint ( fname, "width", 512 );
 endif
 
@@ -308,29 +271,25 @@ if ( doPlotBSGHist )
   figure (); clf;
   hist ( [resV.BSG], 100 );
   xlabel ( "<BSG>" );
-  fname = sprintf ( "%s/%s-hist.pdf", resDir, resCommon.bname );
+  fname = sprintf ( "%s/%s-hist.pdf", resDir, bname );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotPErecovery )
   [H_err, H_coverage] = plotPErecovery ( PErecovery );
   set ( 0, "currentfigure", H_err )
-  fname = sprintf ( "%s/%s-PE-errors.pdf", resDir, resCommon.bname );
+  fname = sprintf ( "%s/%s-PE-errors.pdf", resDir, bname );
   ezprint ( fname, "width", 512 );
 
   set ( 0, "currentfigure", H_coverage )
-  fname = sprintf ( "%s/%s-PE-coverage.pdf", resDir, resCommon.bname );
+  fname = sprintf ( "%s/%s-PE-coverage.pdf", resDir, bname );
   ezprint ( fname, "width", 512 );
 endif %% doPlotPErecovery()
 
-## catch
-##   err = lasterror();
-##   warning(err.identifier, err.message);
-##   err.stack.file
-##   err.stack.name
-##   err.stack.line
+%% ----- store complete results dump ----------
+versioning.octave = version();
+versioning.octapps = octapps_gitID();
+versioning.scripts = octapps_gitID(".", "QNM-scripts");
 
-##   cd ("../..");	%% make sure we end up in main dir in case of failure
-## end_try_catch
-
-
+fname = sprintf ( "%s/RingdownDriver-%s.hd5", resDir, bname );
+save ("-hdf5", fname )

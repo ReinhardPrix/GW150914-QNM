@@ -14,7 +14,7 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
+function plotContours ( resV, select = [], plotMarkers = [] )
 
   Nsearches = length ( resV );
   if ( isempty ( select ) )
@@ -42,7 +42,7 @@ function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
     log10B_l = log10 ( resV(l).BSG );
     color_l = "black"; %% (1 - log10B_l / maxlog10B) * [ 1, 1, 1];
     if ( !isempty ( resV(l).isoConf2 ) )
-      [C, H] = contour ( resCommon.ff0, resCommon.ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );
+      [C, H] = contour ( resV(1).ff0, resV(1).ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );
     endif
     set ( H, "linecolor", color_l, "linewidth", 2 );
     leg = sprintf ( "tM + %.1fms", resV(l).tOffs * 1e3 );
