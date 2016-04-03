@@ -14,9 +14,9 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function Mxy = compute_Mxy ( ff0, ttau, psd )
+function Mxy = compute_Mxy ( ff0, ttau, multiPSD )
 
-  Ndet = length(psd);
+  numIFOs = length(multiPSD);
   assert ( size(ttau) == size ( ff0 ) );
 
   %% ---------- handle buffering of Mxy ----------
@@ -25,25 +25,25 @@ function Mxy = compute_Mxy ( ff0, ttau, psd )
   if ( !isempty ( buffer ) )
     same_size_ttau = all((size(ttau) == size(buffer.ttau))(:));
     same_size_ff0  = all((size(ff0) == size(buffer.ff0))(:));
-    same_Ndet = (Ndet == length(buffer.psd));
-    if ( same_size_ttau && same_size_ff0 && same_Ndet )
+    same_numIFOs = (numIFOs == length(buffer.multiPSD));
+    if ( same_size_ttau && same_size_ff0 && same_numIFOs )
       same_ttau = all((ttau == buffer.ttau)(:));
       same_ff0  = all((ff0 == buffer.ff0)(:));
       if (  same_ttau && same_ff0 );
         trueFor = 0;
-        for X = 1 : Ndet
-          same_IFO = strcmp ( psd{X}.IFO, buffer.psd{X}.IFO );
-          same_epoch = (psd{X}.epoch == buffer.psd{X}.epoch);
-          same_size_PSD = all ( (size(psd{X}.fk) == size(buffer.psd{X}.fk))(:));
-          if ( same_IFO && same_epoch && same_size_PSD )
-            same_fk = all ( (psd{X}.fk == buffer.psd{X}.fk)(:) );
-            same_Sn = all ( (psd{X}.Sn == buffer.psd{X}.Sn)(:) );
+        for X = 1 : numIFOs
+          same_IFO = strcmp ( multiPSD{X}.IFO, buffer.multiPSD{X}.IFO );
+          same_epoch = (multiPSD{X}.epoch == buffer.multiPSD{X}.epoch);
+          same_size_MULTIPSD = all ( (size(multiPSD{X}.fk) == size(buffer.multiPSD{X}.fk))(:));
+          if ( same_IFO && same_epoch && same_size_MULTIPSD )
+            same_fk = all ( (multiPSD{X}.fk == buffer.multiPSD{X}.fk)(:) );
+            same_Sn = all ( (multiPSD{X}.Sn == buffer.multiPSD{X}.Sn)(:) );
             if (  same_fk && same_Sn )
               trueFor ++;
-            endif %% if equal psd{X}
+            endif %% if equal multiPSD{X}
           endif %% if same IFO & epoch & size-PSD
-        endfor %% for X = 1:Ndet
-        if ( trueFor == Ndet )
+        endfor %% for X = 1:numIFOs
+        if ( trueFor == numIFOs )
           canReuse = true;
         endif %% if true for all X
       endif %% same ttau & ff0
@@ -60,13 +60,13 @@ function Mxy = compute_Mxy ( ff0, ttau, psd )
   %% ----------
 
   %% ---------- total noise-floor (=harm. mean) ----------
-  fk = psd{1}.fk;
+  fk = multiPSD{1}.fk;
   df = mean ( diff ( fk ) );
-  SinvSum = zeros ( size ( psd{1}.Sn ) );
-  for X = 1:Ndet
-    SinvSum += 1 ./ psd{X}.Sn;
+  SinvSum = zeros ( size ( multiPSD{1}.Sn ) );
+  for X = 1:numIFOs
+    SinvSum += 1 ./ multiPSD{X}.Sn;
   endfor
-  StotInv = (1/Ndet) * SinvSum;
+  StotInv = (1/numIFOs) * SinvSum;
   Stot = 1./ StotInv;
 
   %% ---------- compute M_xy
@@ -78,9 +78,9 @@ function Mxy = compute_Mxy ( ff0, ttau, psd )
     hsFT_k  = ttau(l) * ( 2*pi * ff0(l) * ttau(l) ) ./ denom_k;
     hcFT_k  = ttau(l) * ( 1 + I * 2*pi*fk * ttau(l) ) ./ denom_k;
     %% ----- compute M-matrix from template self-match integrals in frequency-domain ----------
-    M_ss(l) = 4 * Ndet * df * sum ( abs(hsFT_k).^2 ./ Stot );
-    M_cc(l) = 4 * Ndet * df * sum ( abs(hcFT_k).^2 ./ Stot );
-    M_sc(l) = 4 * Ndet * df * real ( sum ( hsFT_k .* conj(hcFT_k) ./ Stot ) );
+    M_ss(l) = 4 * numIFOs * df * sum ( abs(hsFT_k).^2 ./ Stot );
+    M_cc(l) = 4 * numIFOs * df * sum ( abs(hcFT_k).^2 ./ Stot );
+    M_sc(l) = 4 * numIFOs * df * real ( sum ( hsFT_k .* conj(hcFT_k) ./ Stot ) );
   endfor %% l
 
   Mxy.ss = M_ss;
@@ -91,7 +91,7 @@ function Mxy = compute_Mxy ( ff0, ttau, psd )
   buffer = struct();
   buffer.ff0 = ff0;
   buffer.ttau = ttau;
-  buffer.psd = psd;
+  buffer.multiPSD = multiPSD;
   buffer.Mxy = Mxy;
 
   return;

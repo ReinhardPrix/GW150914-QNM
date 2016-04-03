@@ -18,8 +18,8 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
   global debugLevel = 1;
 
   uvar = parseOptions ( varargin,
-                        {"ts", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
-                        {"psd", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
+                        {"multiTS", "cell" },	%% cell-array [over detectors]: normal, whitentend, and over-whitened timeseries
+                        {"multiPSD", "cell"},	%% cell-array [over detectors]: PSD estimate over frequency range, for each detector
                         {"t0V", "real,strictpos,vector", 1126259462.43 },	%% ringdown start-time in GPS s
                         {"prior_f0Range", "real,strictpos,vector", [220,  270] },
                         {"step_f0", "real,strictpos,scalar", 0.1 },
@@ -30,8 +30,8 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
                         {"skyCorr", "struct"}		%% detector-dependent time-shift and antenna-pattern infos
                       );
 
-  Ndet = length ( uvar.ts );
-  assert ( (Ndet == length(uvar.psd)) && (Ndet == length(uvar.skyCorr)) );
+  numIFOs = length ( uvar.multiTS );
+  assert ( (numIFOs == length(uvar.multiPSD)) && (numIFOs == length(uvar.skyCorr)) );
 
   if ( isscalar ( uvar.prior_H ) )
     numH = 1;
@@ -46,7 +46,7 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
     priorH ( :, 2) /= normH;
   endif
 
-  dt = mean ( diff ( uvar.ts{1}.ti ) );
+  dt = 1 / uvar.multiTS{1}.fSamp;
   Tmax = 5 * max(uvar.prior_tauRange);	%% max time range considered = 5 * tauMax
 
   %% ---------- templated search over {f0, tau} space ----------
@@ -59,24 +59,30 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
 
   %% ---------- compute 'M_xy = <h_x|h_y>' matrix for SNR term <s|s> ----------
   DebugPrintf ( 1, "Computing M_xy matrix using frequency-domain integral ... ");
-  Mxy = compute_Mxy ( ff0, ttau, uvar.psd );
+  Mxy = compute_Mxy ( ff0, ttau, uvar.multiPSD );
   DebugPrintf (1, "done.\n");
 
   %% ---------- prepare time-shifted and antenna-pattern corrected *summed* time-series
-  ts = uvar.ts;
-  yiOW = zeros ( size ( ts{1}.xi ) );
-  for X = 1 : Ndet
-    X1 = find ( strcmp ( ts{X}.IFO, {uvar.skyCorr.IFO} ) ); assert ( !isempty(X1) && (length(X1) == 1) );
+  tsSum.yiOW = zeros ( size ( uvar.multiTS{1}.xi ) );
+  multiTScorr = uvar.multiTS;
+  for X = 1 : numIFOs
+    IFO = uvar.multiTS{X}.IFO
+    X1 = find ( strcmp ( IFO, {uvar.skyCorr.IFO} ) ); assert ( !isempty(X1) && (length(X1) == 1) );
     shiftBins = round ( uvar.skyCorr(X1).timeShift / dt );
     ampFact   = uvar.skyCorr(X1).ampFact;
     shift_eff = shiftBins * dt; assert ( abs(shift_eff - uvar.skyCorr(X1).timeShift) < 1e-6 );	%% check we're within 0.001ms
 
-    ts{X}.xi   = ampFact * circshift ( ts{X}.xi,   [0, shiftBins] );
-    ts{X}.xiW  = ampFact * circshift ( ts{X}.xiW,  [0, shiftBins] );
-    ts{X}.xiOW = ampFact * circshift ( ts{X}.xiOW, [0, shiftBins] );
+    %% there's 2 ways to do the time-shifts: add shift-value to ti, or shift bins in xi
+    %% for now we use the second method, as we're going to sum the time-shifted ts{X} together and
+    %% compute a single Bayes-factor.
+    multiTScorr{X}.xi   = ampFact * circshift ( uvar.multiTS{X}.xi,   [0, shiftBins] );
+    multiTScorr{X}.xiW  = ampFact * circshift ( uvar.multiTS{X}.xiW,  [0, shiftBins] );
+    multiTScorr{X}.xiOW = ampFact * circshift ( uvar.multiTS{X}.xiOW, [0, shiftBins] );
 
-    yiOW += ts{X}.xiOW;
+    tsSum.yiOW += multiTScorr{X}.xiOW;
   endfor %% X = 1 : Net
+  tsSum.ti = multiTScorr{1}.ti;
+  tsSum.epoch = multiTScorr{1}.epoch;
 
   %% ---------- loop over N start-times [input vector 't0V'] ----------
   numSearches = length ( uvar.t0V );
@@ -85,11 +91,11 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
     t0_l = uvar.t0V(l);
 
     %% ----- prepare time-series stresch to analyze
-    inds_MaxRange = find ( (ts{1}.ti >= (t0_l - ts{1}.epoch) ) & (ts{1}.ti <= (t0_l - ts{1}.epoch + Tmax)) );
-    Dt_i = ts{1}.ti ( inds_MaxRange ) - (t0_l - ts{1}.epoch);
+    inds_MaxRange = find ( (tsSum.ti >= (t0_l - tsSum.epoch) ) & (tsSum.ti <= (t0_l - tsSum.epoch + Tmax)) );
+    Dt_i = tsSum.ti ( inds_MaxRange ) - (t0_l - tsSum.epoch);
     assert ( min(Dt_i) >= 0 );
 
-    yiOW_l = yiOW ( inds_MaxRange );	%% truncated summed-OW time-series for faster matching
+    yiOW_l = tsSum.yiOW ( inds_MaxRange );	%% truncated summed-OW time-series for faster matching
     %% ---------- search parameter-space in {f0, tau} and compute matched-filter in each template ----------
     DebugPrintf ( 1, "----- t0 = %.6f s ----------\n", t0_l );
     DebugPrintf ( 1, "Computing match with ringdown templates ... " );
@@ -117,7 +123,16 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
     DebugPrintf ( 1, "done.\n");
 
     [ BSG_MP, iMP ] = max ( BSG_f0_tau(:) );
-    lambdaMP = struct ( "iMP", iMP, "BSG_MP", BSG_MP, "f0", ff0(iMP), "tau", ttau(iMP) );
+    f0MP = ff0(iMP);
+    tauMP = ttau(iMP);
+    %% for plotting OW-timeseries re-scaled to MP template: store noise-values at MP frequency
+    SX_MP = zeros ( 1, numIFOs );
+    for X = 1 : numIFOs
+      [val, freqInd] = min ( abs ( uvar.multiPSD{X}.fk - f0MP ) );
+      SX_MP(X) = uvar.multiPSD{X}.Sn ( freqInd );
+      DebugPrintf ( 2, "X = %d: sqrt(SX)|_MP = %g /sqrt(Hz)\n", X, sqrt ( SX_MP(X) ) );
+    endfor
+    lambdaMP = struct ( "iMP", iMP, "BSG_MP", BSG_MP, "f0", f0MP, "tau", tauMP, "SX", SX_MP );
     match_k = match(iMP);
     Mxy_k = struct ( "ss", Mxy.ss(iMP), "cc", Mxy.cc(iMP), "sc", Mxy.sc(iMP) );
 
@@ -179,7 +194,7 @@ function [ resV, resCommon ] = searchRingdown ( varargin )
                             );
   resCommon.ff0  = ff0;
   resCommon.ttau = ttau;
-  resCommon.ts   = ts;
+  resCommon.multiTScorr = multiTScorr;
   return
 
 endfunction %% searchRingdown()

@@ -47,8 +47,8 @@ if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
 if ( !exist("Tseg") )		Tseg = 8; endif				%% length of data segment (in s) to analyse, centered on 'tMerger'
 if ( !exist("injectionSources") ) injectionSources = []; endif
-if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = cell(1,numIFOs); endif	%% empty by default
-if ( !exist("injectSqrtSX") ) 	injectSqrtSX = cell(1,numIFOs); endif	%% empty by default
+if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = []; endif
+if ( !exist("injectSqrtSX") ) 	injectSqrtSX = []; endif
 if ( !exist("noMismatchInj") )  noMismatchInj = false; endif		%% inject at exact {f0,tau} grid-points for zero mismatch
 
 %% ----- 'GR predictions/values on GW150914 ----------
@@ -112,7 +112,7 @@ switch ( searchType )
   case "injections"
     %% NOTE: injections defaults to injections into real-data, but override with 'injectSqrtSX' and 'assumeSqrtSX' settings
     tMerger = tMergerGW150914 + 10;;	%% go to some 'off source' time-stretch
-    tOffsV = [ -3.0 : 0.2 : 3.0 ];
+    tOffsV = [ -3.0 : 0.2 : -2.8 ];
     clear("injectionSources");
     for l = 1 : length(tOffsV)
       if ( noMismatchInj )
@@ -148,90 +148,8 @@ switch ( searchType )
 
 endswitch
 
-%% ----- data reading + preparation -----
-tCenter = tMerger;
-TimeRange = [ tCenter - 0.5 * Tseg, tCenter + 0.5 * Tseg ];
 
-for X = 1:length(SFTs)
-
-  %% ----- load time-series (TS) data from SFT
-  ts0 = loadTSfromSFT ( SFTs{X}, -1, -1, fSamp );	%% load full-frequency-band TS from SFT
-  dt = 1 / ts0.fSamp;
-
-  %% ----- replace TS data by Gaussian noise if 'injectSqrtSn' given:
-  if ( !isempty ( injectSqrtSX{X} ) )
-    sigma = injectSqrtSX{X} / sqrt(2 * dt);		%% convert PSD into Gaussian std-dev
-    if ( sigma > 0 )
-      ts0.xi = normrnd ( 0, sigma, size(ts0.xi) );	%% replace data by Gaussian noise
-    else
-      ts0.xi = zeros ( size(ts0.xi) );	%% normrnd() returns NANs for sigma=0 ...
-    endif
-  endif %% if injectSqrtSn
-
-  %% ----- time-samples corresponding to analysis segment 'TimeRange'
-  samplesSeg = find ( (ts0.ti >= (TimeRange(1) - ts0.epoch)) & (ts0.ti <= (TimeRange(2) - ts0.epoch)) );
-
-  %% ----- estimate PSD (*excluding* analysis segment 'TimeRange')
-  psd{X} = estimatePSD ( ts0, [samplesSeg(1), samplesSeg(end)] );
-
-  if ( !isempty ( assumeSqrtSX{X} ) )
-    psd{X}.Sn(:) = assumeSqrtSX{X}^2 ;	%% assume this PSD value instead of the measured estimate
-  endif
-
-  %% ----- extract TS of analysis segment 'TimeRange'
-  tiStart = ts0.ti ( samplesSeg(1) );	%% exact start-time sample
-
-  tsSeg0{X}        = ts0;
-  tsSeg0{X}.ti     = ts0.ti ( samplesSeg ) - tiStart;	%% shift 'ti' to start from 0
-  tsSeg0{X}.epoch += tiStart;
-  tsSeg0{X}.xi     = ts0.xi ( samplesSeg );
-
-  %% ----- inject QNM signals into analysis segment (woulnd't change PSD estimate, which excluded Tseg)
-  tsSeg0{X} = injectQNMs ( tsSeg0{X}, injectionSources );
-
-  %% ----- compute normal, whitened and over-whitened spectra of analysis segment, over analysis frequency range
-  fMin = min(FreqRange); fMax = max(FreqRange);
-  binsFreqRange = binRange ( fMin, fMax, psd{X}.fk );   %% actual freq-band of non-zero data support
-
-  %% truncate psd to analysis frequency band
-  psd{X}.fk = psd{X}.fk ( binsFreqRange );
-  psd{X}.Sn = psd{X}.Sn ( binsFreqRange );
-
-  xSegFFT = dt * fft ( tsSeg0{X}.xi );
-
-  ftSeg.IFO   = tsSeg0{X}.IFO;
-  ftSeg.epoch = tsSeg0{X}.epoch;
-
-  ftSeg.fk    = psd{X}.fk;
-  xk   = xSegFFT ( binsFreqRange );
-  xkW  = xk ./ sqrt ( psd{X}.Sn );
-  xkOW = xk ./ psd{X}.Sn;
-
-  %% ----- turn spectra back into narrow-banded timeseries ----------
-  ftSeg.xk = xk;
-  tsSeg = freqBand2TS ( ftSeg, fMin, fMax, tsSeg0{X}.fSamp );
-
-  ftSeg.xk = xkW;
-  tsSegW   = freqBand2TS ( ftSeg, fMin, fMax, tsSeg0{X}.fSamp );
-
-  ftSeg.xk = xkOW;
-  tsSegOW  = freqBand2TS ( ftSeg, fMin, fMax, tsSeg0{X}.fSamp );
-  assert ( all((tsSeg.ti == tsSegW.ti)(:)) && all((tsSeg.ti == tsSegOW.ti)(:)) );
-
-  ts{X}      = struct();
-  ts{X}      = tsSeg;
-  ts{X}.xiW  = tsSegW.xi;
-  ts{X}.xiOW = tsSegOW.xi;
-
-  %% for plotting OW-timeseries: store noise-values at 'GR frequency f0GR'
-  [val, freqInd] = min ( abs ( psd{X}.fk - f0GR.val ) );
-  ts{X}.SX_GR = psd{X}.Sn ( freqInd );
-  DebugPrintf ( 1, "X = %d: sqrt(SX) = %g /sqrt(Hz)\n", X, sqrt ( ts{X}.SX_GR ) );
-
-endfor
-
-
-%% create unique time-tagged 'ResultsDir' for each run:
+%% ========== create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
 resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz%s",
                    gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, FreqRange,
@@ -239,23 +157,34 @@ resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz%
 if ( noMismatchInj )
   resDir = strcat ( resDir, "-noMismatchInj" );
 endif
-if ( !isempty ( injectSqrtSX{1} ) )
-  resDir = strcat ( resDir, "-injectSqrtSX", sprintf("_%.2g", cell2mat(injectSqrtSX) ) );
+if ( !isempty ( injectSqrtSX ) )
+  resDir = strcat ( resDir, "-injectSqrtSX", sprintf("_%.2g", injectSqrtSX ) );
 endif
-if ( !isempty ( assumeSqrtSX{1} ) )
-  resDir = strcat ( resDir, "-assumeSqrtSX", sprintf("_%.2g", cell2mat(assumeSqrtSX) ) );
+if ( !isempty ( assumeSqrtSX ) )
+  resDir = strcat ( resDir, "-assumeSqrtSX", sprintf("_%.2g", assumeSqrtSX ) );
 endif
-
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
-addpath ( pwd() );
-cd ( resDir );
 
-%%try
-%% ----- run search
-Nsearches = length(tOffsV);
+%% ========== start actual analysis ====================
 PErecovery = [];
-clear ("res" );
-[resV, resCommon] = searchRingdown ( "ts", ts, "psd", psd, ...
+
+%% ----- data reading + preparation -----
+TimeRange = [ tMerger - 0.5 * Tseg, tMerger + 0.5 * Tseg ];
+DebugPrintf ( 1, "Loading SFT data + PSD-estimation ... ");
+[multiTS0, multiPSD0] = loadData ( "SFTpaths", SFTs, "TimeRange", TimeRange, "fSamp", fSamp, "assumeSqrtSX", assumeSqrtSX, "injectSqrtSX", injectSqrtSX );
+DebugPrintf ( 1, "done.\n");
+
+%% ----- inject QNM signals into analysis segment (wouldn't have changed PSD estimate, which excluded TimeRange)
+multiTS0Inj = injectQNMs ( multiTS0, injectionSources );
+
+%% ----- narrow-band and whiten/overwhiten data ----------
+[multiTS, multiPSD] = whitenNarrowBandTS ( multiTS0Inj, multiPSD0, FreqRange );
+
+%% ----- run QNM search(es) over different start-times 't0V'
+Nsearches = length(tOffsV);
+
+[resV, resCommon] = searchRingdown ( "multiTS", multiTS, ...
+                                     "multiPSD", multiPSD, ...
                                      "t0V", tMerger + tOffsV, ...
                                      "prior_f0Range", prior_f0Range, "step_f0", step_f0, ...
                                      "prior_tauRange", prior_tauRange, "step_tau", step_tau, ...
@@ -269,7 +198,7 @@ for l = 1 : Nsearches
   resV(l).tOffs = resV(l).t0 - resCommon.tMerger;
 
   %% ----- save posterior in matrix format ----------
-  fname = sprintf ( "%s-BSG.dat", resV(l).bname );
+  fname = sprintf ( "%s/%s-BSG.dat", resDir, resV(l).bname );
   tmp = resV(l).BSG_f0_tau;
   save ( "-ascii", fname, "tmp" );
 
@@ -293,6 +222,8 @@ for l = 1 : Nsearches
   %% ---------- plot results summary page
   if ( doPlotSnapshots )
     plotSnapshot ( resV(l), resCommon, plotMarkers );
+    fname = sprintf ( "%s/%s.pdf", resDir, resV(l).bname );
+    ezprint ( fname, "width", 512 );
   endif
 
   %% ----- if injection: quantify PE recovery quality ----------
@@ -327,30 +258,36 @@ for l = 1 : Nsearches
     PErecovery(end).SNR_MP    = resV(l).AmpMP.SNR;
     PErecovery(end).f0_tau_percentile = get_f0_tau_percentile ( f0_inj, tau_inj, ff0, ttau, posterior2D );
     PErecovery(end).BSG       = resV(l).BSG;
+
     plotSnapshot ( resV(l), resCommon, injectionSources(l) );
+
   endif %% if injectionSources
 
 endfor %% l = 1:Nsearches
 
 %% ----- save axis {f0, tau} in matrix format ----------
-save ( "-ascii", "f0s.dat", "ff0" );
-save ( "-ascii", "taus.dat", "ttau" );
+save ( "-ascii", strcat(resDir, "/f0s.dat"), "ff0" );
+save ( "-ascii", strcat(resDir, "/taus.dat"), "ttau" );
 
 %% ----- store complete results dump ----------
 versioning.octave = version();
 versioning.octapps = octapps_gitID();
 versioning.scripts = octapps_gitID(".", "QNM-scripts");
 
-fname = sprintf ( "RingdownDriver-%s.hd5", resCommon.bname );
+fname = sprintf ( "%s/RingdownDriver-%s.hd5", resDir, resCommon.bname );
 save ("-hdf5", fname )
 
 %% ----- plot quantities vs tOffs ----------
 if ( doPlotSummary )
   plotSummary ( resV, resCommon );
+  fname = sprintf ( "%s/%s-summary.pdf", resDir, resCommon.bname );
+  ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotContours )
   plotContours ( resV, resCommon, [], plotMarkers )
+  fname = sprintf ( "%s/%s-contours.pdf", resDir, resCommon.bname );
+  ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotH )
@@ -363,7 +300,7 @@ if ( doPlotH )
   endfor
   xlabel ( "H" ); ylabel ("pdf");
   grid on; hold off;
-  fname = sprintf ( "%s-post_H.pdf", resCommon.bname );
+  fname = sprintf ( "%s/%s-post_H.pdf", resDir, resCommon.bname );
   ezprint ( fname, "width", 512 );
 endif
 
@@ -371,15 +308,20 @@ if ( doPlotBSGHist )
   figure (); clf;
   hist ( [resV.BSG], 100 );
   xlabel ( "<BSG>" );
-  fname = sprintf ( "%s-hist.pdf", resCommon.bname );
+  fname = sprintf ( "%s/%s-hist.pdf", resDir, resCommon.bname );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotPErecovery )
-  plotPErecovery ( PErecovery, resCommon.bname );
-endif %% doPlotPErecovery()
+  [H_err, H_coverage] = plotPErecovery ( PErecovery );
+  set ( 0, "currentfigure", H_err )
+  fname = sprintf ( "%s/%s-PE-errors.pdf", resDir, resCommon.bname );
+  ezprint ( fname, "width", 512 );
 
-cd ("../..");
+  set ( 0, "currentfigure", H_coverage )
+  fname = sprintf ( "%s/%s-PE-coverage.pdf", resDir, resCommon.bname );
+  ezprint ( fname, "width", 512 );
+endif %% doPlotPErecovery()
 
 ## catch
 ##   err = lasterror();

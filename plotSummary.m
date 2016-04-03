@@ -78,10 +78,6 @@ function plotSummary ( resV, resCommon )
   ylabel ("tau [ms]");
   xlabel ( sprintf ( "%.6f s + tOffs [ms]", tMerger) );
 
-  fname = sprintf ( "%s-summary.pdf", resCommon.bname );
-  ezprint ( fname, "width", 512 );
-
-
   return;
 
 endfunction

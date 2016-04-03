@@ -57,9 +57,6 @@ function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
   hold off;
   grid on;
 
-  fname = sprintf ( "%s-contours.pdf", resCommon.bname );
-  ezprint ( fname, "width", 512 );
-
   return;
 
 endfunction

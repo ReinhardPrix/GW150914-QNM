@@ -91,11 +91,11 @@ function plotSnapshot ( res_l, resCommon, plotMarkers = [] )
   markers = {".", "o"};
   markersize = [ 5, 2 ];
   %% plot data timeseries:
-  ts = resCommon.ts;
+  ts = resCommon.multiTScorr;
   for X = 1 : length ( ts )
     sleg = sprintf (";OW[%s] ;", ts{X}.IFO );
     Dti_ms = 1e3 * ( ts{X}.epoch + ts{X}.ti - tMerger );
-    plot ( Dti_ms, ts{X}.xiOW * ts{X}.SX_GR, sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X}, "markersize", markersize(X) );
+    plot ( Dti_ms, ts{X}.xiOW * res_l.lambdaMP.SX(X), sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X}, "markersize", markersize(X) );
   endfor
 
   tOffs_ms = (res_l.t0 - resCommon.tMerger ) * 1e3;
@@ -122,8 +122,5 @@ function plotSnapshot ( res_l, resCommon, plotMarkers = [] )
   ylim ( yrange );
   grid on;
   hold off;
-
-  fname = sprintf ( "%s.pdf", res_l.bname );
-  ezprint ( fname, "width", 512 );
 
 endfunction %% plotSnapshot()
