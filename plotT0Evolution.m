@@ -16,21 +16,23 @@
 
 function plotSummary ( resV )
 
+  %% sort results by tOffs
+  [tOffs, iSort] = sort ( [resV.tOffs] );
+  resV = resV(iSort);
+
   %% ----- prepare quantities to be plotted versus QNM start-time
   tMerger = resV(1).tMerger;
   Nsteps = length ( resV );
-  BSG = f0_MPE = f0_lerr = f0_uerr = taums_MPE = taums_lerr = taums_uerr = zeros ( 1, Nsteps );
-  for i = 1 : Nsteps
-    BSG(i)        = resV(i).BSG;
 
-    f0_MPE(i)     = resV(i).f0_est.MPE;
-    f0_lerr(i)    = resV(i).f0_est.lerr;
-    f0_uerr(i)    = resV(i).f0_est.uerr;
+  f0_est    = [resV.f0_est];
+  f0_MPE    = [f0_est.MPE];;
+  f0_lerr   = [f0_est.lerr];
+  f0_uerr   = [f0_est.uerr];
 
-    taums_MPE(i)  = resV(i).tau_est.MPE * 1e3;
-    taums_lerr(i) = resV(i).tau_est.lerr * 1e3;
-    taums_uerr(i) = resV(i).tau_est.uerr * 1e3;
-  endfor
+  tau_est   = [resV.tau_est];
+  taums_MPE = [ tau_est.MPE ] * 1e3;
+  taums_lerr= [ tau_est.lerr ] * 1e3;
+  taums_uerr= [ tau_est.uerr ] * 1e3;
 
   ff0 = resV(1).ff0;
   ttau = resV(1).ttau;

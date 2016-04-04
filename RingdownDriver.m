@@ -37,7 +37,7 @@ confidence = 0.90;
 
 doPlotSnapshots = false;
 doPlotContours  = false;
-doPlotSummary   = false;
+doPlotT0Evolution = false;
 doPlotSpectra   = false;
 doPlotBSGHist   = false;
 doPlotH         = false;
@@ -50,6 +50,7 @@ if ( !exist("injectionSources") ) injectionSources = []; endif
 if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = []; endif
 if ( !exist("injectSqrtSX") ) 	injectSqrtSX = []; endif
 if ( !exist("noMismatchInj") )  noMismatchInj = false; endif		%% inject at exact {f0,tau} grid-points for zero mismatch
+if ( !exist("numTrials") )      numTrials = 10; endif			%% for 'MC-like' search types {offSource, injections}
 
 %% ----- 'GR predictions/values on GW150914 ----------
 tMergerGW150914 = 1126259462.42285;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
@@ -59,30 +60,28 @@ plotMarkers = struct ( "name", "IMR", "f0", f0GR.val, "tau", taumsGR.val * 1e-3 
 %% ---------- Prior range defaults ----------
 
 prior_f0Range   = [ 200, 300 ];
+df0  = 0.5;
 prior_tauRange  = [ 0.5e-3, 20e-3 ];
+dtau = 0.5e-3;
+prior_HRange    = [ 2, 10 ] * 1e-22;
+dH = 1e-22;
+
 if ( !exist ( "prior_H" ) )
-  H_i = [ 2 : 10 ] * 1e-22;
+  H_i = [ min(prior_HRange) : dH : max(prior_HRange) ];
   p_i = 1 ./ H_i;
   p_i /= sum ( p_i(:) );
   prior_H = struct ( "x", H_i, "px", p_i );
 endif
-step_f0         = 0.5;
-step_tau        = 0.5e-3;
 
-%% NR best-fit 'merger time'
-%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
+PErecovery = struct();
 
 switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tMerger = tMergerGW150914;
-    t0V = tMerger + [7] * 1e-3;
+    t0V = tMerger + [3] * 1e-3;
 
-    doPlotContours  = false;
-    doPlotSummary   = false;
     doPlotSnapshots = true;
-    doPlotSpectra   = false;
-    doPlotH         = false;
 
   case "onSource"
     %% ---------- "ON-SOURCE ----------
@@ -91,29 +90,21 @@ switch ( searchType )
 
     doPlotSnapshots = true;
     doPlotContours  = true;
-    doPlotSummary   = true;
-    doPlotSpectra   = false;
-    doPlotBSGHist   = false;
+    doPlotT0Evolution   = true;
     doPlotH         = true;
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
-    tMerger = tMergerGW150914 + 10;
-    numTrials = 100;
+    tMerger = tMergerGW150914 + 4;
     t0V = tMerger + unifrnd ( -3, 3, 1, numTrials );
     plotMarkers = [];
 
-    doPlotSnapshots = false;
-    doPlotContours  = false;
-    doPlotSummary   = true;
-    doPlotSpectra   = false;
+    doPlotT0Evolution   = true;
     doPlotBSGHist   = true;
-    doPlotH         = false;
 
   case "injections"
     %% NOTE: injections defaults to injections into real-data, but override with 'injectSqrtSX' and 'assumeSqrtSX' settings
-    tMerger = tMergerGW150914 + 10;	%% go to some 'off source' time-stretch
-    numTrials = 10;
+    tMerger = tMergerGW150914 + 4;	%% go to some 'off source' time-stretch
     t0V = tMerger + unifrnd ( -3, 3, 1, numTrials );
     injectionSources = struct();
     for m = 1 : numTrials
@@ -126,18 +117,12 @@ switch ( searchType )
                                      "skyCorr", skyCorr ...
                                    );
       if ( noMismatchInj )	%% place signal-{f0,tau} on exact search grid point
-        injectionSources.f0  = min(prior_f0Range) + step_f0 * round ( (injectionSource.f0 - min(prior_f0Range)) / step_f0 );
-        injectionSources.tau = min(prior_tauRange) + step_tau * round ( (injectionSource.tau - min(prior_tauRange)) / step_tau);
+        injectionSources.f0  = min(prior_f0Range) + df0 * round ( (injectionSource.f0 - min(prior_f0Range)) / df0 );
+        injectionSources.tau = min(prior_tauRange) + dtau * round ( (injectionSource.tau - min(prior_tauRange)) / dtau);
       endif
     endfor
 
-    doPlotContours  = false;
-    doPlotSummary   = false;
-    doPlotSnapshots = false;
-    doPlotSpectra   = false;
-    doPlotH         = false;
     doPlotPErecovery= true;
-    PErecovery = struct();
 
   otherwise
     error ("Unknown searchType = '%s' specified\n", searchType );
@@ -145,10 +130,13 @@ switch ( searchType )
 endswitch %% searchType
 
 
+numSearches = length ( t0V );
 %% ========== create unique time-tagged 'ResultsDir' for each run:
 gm = gmtime ( time () );
-resDir = sprintf ( "Results/Results-%02d%02d%02d-%02dh%02d-%s-data%.0fHz-%.0fHz%s",
-                   gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min, searchType, FreqRange, extraLabel );
+dateTag = sprintf ( "%02d%02d%02d-%02dh%02d", gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min );
+resDir = sprintf ( "Results/Results-%s-%s%d-data%.0fHz-%.0fHz", dateTag, searchType, numSearches, FreqRange );
+resDir = sprintf ( "%s-Prior-f%.0fHz-%.0fHz-df%.1fHz-tau%.1fms-%.1fms-dtau%.1fms-H%.1f-%.1f-dH%.1f", resDir, prior_f0Range, df0, 1e3 * prior_tauRange, 1e3*dtau, 1e22 * prior_HRange, 1e22 * dH );
+
 if ( noMismatchInj )
   resDir = strcat ( resDir, "-noMismatchInj" );
 endif
@@ -160,11 +148,6 @@ if ( !isempty ( assumeSqrtSX ) )
 endif
 [status, msg, id] = mkdir ( resDir ); assert ( status == 1, "Failed to created results dir '%s': %s\n", resDir, msg );
 
-bname = sprintf ( "Ringdown-f%.0fHz-%.0fHz-tau%.1fms-%.1fms",
-                  min(prior_f0Range), max(prior_f0Range),
-                  1e3 * min(prior_tauRange), 1e3 * max(prior_tauRange)
-                );
-
 %% ========== start actual analysis ====================
 
 %% ----- data reading + preparation -----
@@ -174,12 +157,11 @@ DebugPrintf ( 1, "Loading SFT data + PSD-estimation ... ");
 DebugPrintf ( 1, "done.\n");
 
 %% ----- template search-grid in {f0, tau} ----------
-f0Grid  = [min(prior_f0Range):  step_f0 : max(prior_f0Range)];
-tauGrid = [min(prior_tauRange): step_tau : max(prior_tauRange)];
+f0Grid  = [min(prior_f0Range):  df0 : max(prior_f0Range)];
+tauGrid = [min(prior_tauRange): dtau : max(prior_tauRange)];
 
 %% ----- run 'numSearches' searches
 resV = struct();
-numSearches = length ( t0V );
 for m = 1 : numSearches
 
   if ( !isempty ( injectionSources ) )
@@ -194,13 +176,13 @@ for m = 1 : numSearches
 
   %% ----- run QNM search(es) over vector of start-times 't0V'
   res_m = searchRingdown ( "multiTS", multiTS, ...
-                             "multiPSD", multiPSD, ...
-                             "t0", t0V(m), ...
-                             "f0Grid", f0Grid, ...
-                             "tauGrid", tauGrid, ...
-                             "prior_H", prior_H, ...
-                             "skyCorr", skyCorr
-                           );
+                           "multiPSD", multiPSD, ...
+                           "t0", t0V(m), ...
+                           "f0Grid", f0Grid, ...
+                           "tauGrid", tauGrid, ...
+                           "prior_H", prior_H, ...
+                           "skyCorr", skyCorr
+                         );
   %% 'augment' with derived results for easier plotting
   res_m.f0_est   = credibleInterval ( res_m.posterior_f0, confidence );
   res_m.tau_est  = credibleInterval ( res_m.posterior_tau, confidence );
@@ -208,22 +190,15 @@ for m = 1 : numSearches
 
   res_m.tMerger  = tMerger;
   res_m.tOffs    = t0V(m) - tMerger;
-  res_m.bname    = sprintf ( "Ringdown-search%04d-GPS%.6fs-f%.0fHz-%.0fHz-tau%.1fms-%.1fms",
-                               m, t0V(m), min(prior_f0Range), max(prior_f0Range),
-                               1e3 * min(prior_tauRange), 1e3 * max(prior_tauRange)
-                             );
+  res_m.bname    = sprintf ( "Search%04d-GPS%.6fs", m, t0V(m) );
 
   resV(m) = res_m;
-  %% ----- save posterior in matrix format ----------
-  fname = sprintf ( "%s/%s-BSG.dat", resDir, resV(m).bname );
-  tmp = resV(m).BSG_f0_tau;
-  save ( "-ascii", fname, "tmp" );
-
   DebugPrintSummary ( 1, resV(m) );
-  %% ---------- plot results summary page
+
+  %% ---------- plot snapshot for this t0Offs
   if ( doPlotSnapshots )
     plotSnapshot ( resV(m), plotMarkers );
-    fname = sprintf ( "%s/%s.pdf", resDir, resV(m).bname );
+    fname = sprintf ( "%s/%s-snapshot.pdf", resDir, resV(m).bname );
     ezprint ( fname, "width", 512 );
   endif
 
@@ -234,22 +209,16 @@ for m = 1 : numSearches
 
 endfor %% m = 1 : numSearches
 
-%% ----- save axis {f0, tau} in matrix format ----------
-ff0 = resV(1).ff0;
-ttau = resV(1).ttau;
-save ( "-ascii", strcat(resDir, "/f0s.dat"), "ff0" );
-save ( "-ascii", strcat(resDir, "/taus.dat"), "ttau" );
-
 %% ----- plot quantities vs tOffs ----------
-if ( doPlotSummary )
-  plotSummary ( resV );
-  fname = sprintf ( "%s/%s-summary.pdf", resDir, bname );
+if ( doPlotT0Evolution )
+  plotT0Evolution ( resV );
+  fname = sprintf ( "%s/t0Evolution.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotContours )
   plotContours ( resV, [], plotMarkers )
-  fname = sprintf ( "%s/%s-contours.pdf", resDir, bname );
+  fname = sprintf ( "%s/Posterior-Contours.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif
 
@@ -263,26 +232,46 @@ if ( doPlotH )
   endfor
   xlabel ( "H" ); ylabel ("pdf");
   grid on; hold off;
-  fname = sprintf ( "%s/%s-posterior_H.pdf", resDir, bname );
+  fname = sprintf ( "%s/Posterior_H.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotBSGHist )
   figure (); clf;
-  hist ( [resV.BSG], 100 );
-  xlabel ( "<BSG>" );
-  fname = sprintf ( "%s/%s-hist.pdf", resDir, bname );
+
+  subplot ( 2,2, 1);
+  hist ( log10 ( [resV.BSG] ), 100 );
+  grid on;
+  xlabel ( "log10<BSG>" );
+
+  subplot ( 2,2, 2); hold on;
+  hist ( [[resV.AmpML].SNR], 100 );
+  hist ( [[resV.AmpMP].SNR], 100 );
+  grid on;
+  legend ("SNR-ML", "SNR-MP");
+  xlabel ( "<SNR>" );
+
+  subplot ( 2,2, 3);
+  f0MP = [[resV.lambdaMP].f0]';
+  taumsMP = [[resV.lambdaMP].tau]' * 1e3;
+  hist3 ( [ f0MP, taumsMP ], 20 );
+  xlim ( prior_f0Range );
+  ylim ( prior_tauRange * 1e3 );
+  xlabel ("f0-MP2D [Hz]");
+  ylabel ("tau-MP2D [ms]");
+
+  fname = sprintf ( "%s/BSG-PE-hists.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( doPlotPErecovery )
   [H_err, H_coverage] = plotPErecovery ( PErecovery );
   set ( 0, "currentfigure", H_err )
-  fname = sprintf ( "%s/%s-PE-errors.pdf", resDir, bname );
+  fname = sprintf ( "%s/Injections-PE-errors.pdf", resDir );
   ezprint ( fname, "width", 512 );
 
   set ( 0, "currentfigure", H_coverage )
-  fname = sprintf ( "%s/%s-PE-coverage.pdf", resDir, bname );
+  fname = sprintf ( "%s/Injections-PE-coverage.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif %% doPlotPErecovery()
 
@@ -291,5 +280,5 @@ versioning.octave = version();
 versioning.octapps = octapps_gitID();
 versioning.scripts = octapps_gitID(".", "QNM-scripts");
 
-fname = sprintf ( "%s/RingdownDriver-%s.hd5", resDir, bname );
-save ("-hdf5", fname )
+fname = sprintf ( "%s/DataDump.bin", resDir );
+save ("-binary", fname )
