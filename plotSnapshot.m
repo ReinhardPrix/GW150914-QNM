@@ -14,10 +14,13 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotSnapshot ( res, plotMarkers = [] )
+function plotSnapshot ( res, resCommon, plotMarkers = [] )
 
-  ff0  = res.ff0;
-  ttau = res.ttau;
+  ff0  = resCommon.ff0;
+  ttau = resCommon.ttau;
+
+  ts = applySkyCorrections ( resCommon.multiTS, resCommon.skyCorr );
+
   tMerger = res.tMerger;
 
   f0 = unique ( ff0(:) );
@@ -91,7 +94,6 @@ function plotSnapshot ( res, plotMarkers = [] )
   markers = {".", "o"};
   markersize = [ 5, 2 ];
   %% plot data timeseries:
-  ts = res.multiTScorr;
   for X = 1 : length ( ts )
     sleg = sprintf (";OW[%s] ;", ts{X}.IFO );
     Dti_ms = 1e3 * ( ts{X}.epoch + ts{X}.ti - tMerger );

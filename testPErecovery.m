@@ -1,8 +1,10 @@
-function PErecovery = testPErecovery ( res, injectionSource )
+function PErecovery = testPErecovery ( res, resCommon, injectionSource )
   %% quantify PE recovery compared to actual injection
 
-  ff0  = res.ff0;
-  ttau = res.ttau;
+  ff0  = resCommon.ff0;
+  ttau = resCommon.ttau;
+  Mxy  = resCommon.Mxy;
+
   f0   = unique ( ff0 );
   tau  = unique ( ttau );
 
@@ -28,9 +30,9 @@ function PErecovery = testPErecovery ( res, injectionSource )
   A_c =  A_inj * cos(phi0_inj);
   [x, i_f0]  = min ( abs ( f0_inj - f0(:) ) );
   [x, i_tau] = min ( abs ( tau_inj - tau(:) ) );
-  M_ss = res.Mxy.ss( i_tau, i_f0 );
-  M_sc = res.Mxy.sc( i_tau, i_f0 );
-  M_cc = res.Mxy.cc( i_tau, i_f0 );
+  M_ss = Mxy.ss( i_tau, i_f0 );
+  M_sc = Mxy.sc( i_tau, i_f0 );
+  M_cc = Mxy.cc( i_tau, i_f0 );
   SNR_inj = sqrt ( A_s^2 * M_ss + 2 * A_s * M_sc * A_c + A_c^2 * M_cc );
 
   PErecovery.SNR_inj   = SNR_inj;

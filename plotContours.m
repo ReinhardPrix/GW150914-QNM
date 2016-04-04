@@ -14,15 +14,14 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotContours ( resV, select = [], plotMarkers = [] )
+function plotContours ( resV, resCommon, plotMarkers = [] )
 
   Nsearches = length ( resV );
-  if ( isempty ( select ) )
-    select = [ 1 : Nsearches ];
-  endif
+  ff0 = resCommon.ff0;
+  ttau = resCommon.ttau;
 
   maxlog10B = 0;
-  for l = select
+  for l = 1 : Nsearches
     log10B_l = log10 ( resV(l).BSG );
     if ( log10B_l > maxlog10B )
       maxlog10B = log10B_l;
@@ -38,11 +37,11 @@ function plotContours ( resV, select = [], plotMarkers = [] )
     endfor
   endif
 
-  for l = select
+  for l = 1 : Nsearches
     log10B_l = log10 ( resV(l).BSG );
     color_l = "black"; %% (1 - log10B_l / maxlog10B) * [ 1, 1, 1];
     if ( !isempty ( resV(l).isoConf2 ) )
-      [C, H] = contour ( resV(1).ff0, resV(1).ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );
+      [C, H] = contour ( ff0, ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );
     endif
     set ( H, "linecolor", color_l, "linewidth", 2 );
     leg = sprintf ( "tM + %.1fms", resV(l).tOffs * 1e3 );
@@ -59,4 +58,4 @@ function plotContours ( resV, select = [], plotMarkers = [] )
 
   return;
 
-endfunction
+endfunction %% plotContours()

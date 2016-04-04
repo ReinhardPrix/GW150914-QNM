@@ -79,7 +79,7 @@ switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tMerger = tMergerGW150914;
-    t0V = tMerger + [3] * 1e-3;
+    t0V = tMerger + [7] * 1e-3;
 
     doPlotSnapshots = true;
 
@@ -183,6 +183,12 @@ for m = 1 : numSearches
                            "prior_H", prior_H, ...
                            "skyCorr", skyCorr
                          );
+  %% save memory in case of large MC runs: keep 'common' results parts only once
+  if ( m == 1 )
+    resCommon = struct ( "Mxy", res_m.Mxy, "ff0", res_m.ff0, "ttau", res_m.ttau, "skyCorr", {skyCorr}, "multiTS", {multiTS} );
+  endif
+  res_m = rmfield ( res_m, { "Mxy", "ff0", "ttau" } );
+
   %% 'augment' with derived results for easier plotting
   res_m.f0_est   = credibleInterval ( res_m.posterior_f0, confidence );
   res_m.tau_est  = credibleInterval ( res_m.posterior_tau, confidence );
@@ -195,19 +201,23 @@ for m = 1 : numSearches
   resV(m) = res_m;
   DebugPrintSummary ( 1, resV(m) );
 
-  %% ---------- plot snapshot for this t0Offs
-  if ( doPlotSnapshots )
-    plotSnapshot ( resV(m), plotMarkers );
-    fname = sprintf ( "%s/%s-snapshot.pdf", resDir, resV(m).bname );
-    ezprint ( fname, "width", 512 );
-  endif
-
   %% ----- if injection: quantify PE recovery quality ----------
   if ( !isempty ( injectionSources ) )
-    PErecovery(m) = testPErecovery ( resV(m), injectionSources(m) );
+    PErecovery(m) = testPErecovery ( resV(m), resCommon, injectionSources(m) );
   endif %% if injectionSources
 
 endfor %% m = 1 : numSearches
+
+
+%% ---------- plot snapshot for all t0Offs
+if ( doPlotSnapshots )
+  for m = 1 : numSearches
+    plotSnapshot ( resV(m), resCommon, plotMarkers );
+    fname = sprintf ( "%s/%s-snapshot.pdf", resDir, resV(m).bname );
+    ezprint ( fname, "width", 512 );
+  endfor
+endif
+
 
 %% ----- plot quantities vs tOffs ----------
 if ( doPlotT0Evolution )
@@ -217,7 +227,7 @@ if ( doPlotT0Evolution )
 endif
 
 if ( doPlotContours )
-  plotContours ( resV, [], plotMarkers )
+  plotContours ( resV, resCommon, plotMarkers )
   fname = sprintf ( "%s/Posterior-Contours.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif

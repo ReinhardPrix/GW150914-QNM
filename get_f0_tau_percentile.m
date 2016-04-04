@@ -7,8 +7,6 @@ function percentile = get_f0_tau_percentile ( f0Val, tauVal, ff0, ttau, BSG_f0_t
 
   f0s = unique ( ff0(:) );
   taus = unique ( ttau(:) );
-  assert ( (f0Val >= min(f0s(:))) && (f0Val <= max(f0s(:))) );
-  assert ( (tauVal >= min(taus(:))) && (tauVal <= max(taus(:))) );
 
   [x, i_f0]  = min ( abs ( f0Val - f0s(:) ) );
   [x, i_tau] = min ( abs ( tauVal - taus(:) ) );
