@@ -53,7 +53,7 @@ if ( !exist("noMismatchInj") )  noMismatchInj = false; endif		%% inject at exact
 if ( !exist("numTrials") )      numTrials = 10; endif			%% for 'MC-like' search types {offSource, injections}
 
 %% ----- 'GR predictions/values on GW150914 ----------
-tMergerGW150914 = 1126259462.42285;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
+tMergerGW150914 = 1126259462.423;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
 f0GR = struct ( "val", 251, "lerr", 9, "uerr", 5 );	%% taken from 'testing GR paper' v21: DCC https://dcc.ligo.org/LIGO-P1500213-v21
 taumsGR = struct ( "val", 4, "lerr", 0.2, "uerr", 0.4 );
 plotMarkers = struct ( "name", "IMR", "f0", f0GR.val, "tau", taumsGR.val * 1e-3 );	%% by default: show IMR parameters on PE plots
