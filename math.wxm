@@ -23,9 +23,13 @@ integrate ( priorA(A, H), A, 0, inf );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-plot2d ( [priorA(A,0.5), priorA(A,1), priorA(A,2), priorA(A, 4), priorA(A,6)], [A, 0, 10],
+makelist ( i, i, 1, 6 );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+plot2d ( makelist ( priorA(A,H), H, 2, 10 ), [A, 0, 20],
         [xlabel, "Amplitude A [1e-22]"], [ylabel, "P(A|QNM)"],
-        [legend, "H = 0.5e-22", "H = 1e-22", "H = 2e-22", "H = 4e-22", "H = 6e-22" ],
+        [title, "H = [2:10]x1e-22" ],
         [grid2d, true])$
 /* [wxMaxima: input   end   ] */
 
