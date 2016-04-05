@@ -1,4 +1,5 @@
 function [H_err, H_coverage] = plotPErecovery ( PErecovery )
+  global debugLevel = 1;
 
   set (0, "defaultlinemarkersize", 3);
 
@@ -79,19 +80,32 @@ function [H_err, H_coverage] = plotPErecovery ( PErecovery )
   ylabel ( "log10(BSG)");
   %% ----------
 
-  H_coverage = figure();
+  H_coverage = figure(); clf;
   perc = [PErecovery.f0_tau_percentile] ( find ( [PErecovery.BSG] > 1 ) ); %% restrict 'coverage' tests to things we'd actually call 'detections'
   perc = sort ( perc );
   Nn = length(perc);
   cdf = [1:Nn] / Nn;
+  persistent covLU = [];
+  if ( isempty ( covLU ) || any(size(covLU) != [2,Nn]) )
+    DebugPrintf ( 1, "Computing new covLU[] ... ");
+    covLU = zeros ( 2, Nn );
+    for i = 1 : Nn
+      [covLU(1, i), covLU(2, i)] = binomialConfidenceInterval ( Nn, i, 0.9 );
+    endfor
+    DebugPrintf ( 1, "done.\n");
+  else
+    DebugPrintf ( 1, "Re-using covLU[]\n");
+  endif
   hold on;
+  fill ( [ perc, fliplr(perc)], [covLU(1,:), fliplr(covLU(2,:))], "g", "facealpha", 0.5 );
+  plot ( [0,1], [0,1], "--", "color", "black", "linewidth", 2 );
   stairs ( perc, cdf );
-  plot ( [0,1], [0,1], "-", "color", "green" );
-  legend ( "measured", "exact" );
+  legend ( "90%-credible estimate", "exact" );
+
   grid on;
-  xlabel ( "nominal coverage" );
-  ylabel ( "posterior-coverage (BSG>1)" );
-  legend ( "location", "northwest" );
+  xlabel ( "posterior percentile" );
+  ylabel ( "measured coverage (BSG>1)" );
+  legend ( "location", "southeast" );
 
   return;
 
