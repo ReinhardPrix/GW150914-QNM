@@ -76,8 +76,8 @@ function plotSnapshot ( res, resCommon, plotMarkers = [] )
   subplot ( 2, 2, 2 );
   plot ( res.posterior_tau.px, tau * 1e3, "linewidth", 2 );
   xrange = xlim();
-  if ( !isempty ( res.tau_est ) )
-    line ( xrange, [res.tau_est.MPE, res.tau_est.MPE]*1e3 );
+  line ( xrange, [res.tau_est.MPE, res.tau_est.MPE]*1e3 );
+  if ( !isna ( res.tau_est.pIso ) )
     line ( [res.tau_est.pIso, res.tau_est.pIso], [res.tau_est.MPE - res.tau_est.lerr, res.tau_est.MPE + res.tau_est.uerr]* 1e3 );
   endif
   xlim ( xrange );
@@ -97,7 +97,7 @@ function plotSnapshot ( res, resCommon, plotMarkers = [] )
   for X = 1 : length ( ts )
     sleg = sprintf (";OW[%s] ;", ts{X}.IFO );
     Dti_ms = 1e3 * ( ts{X}.epoch + ts{X}.ti - tMerger );
-    plot ( Dti_ms, ts{X}.xiOW * res.lambdaMP.SX(X), sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X}, "markersize", markersize(X) );
+    plot ( Dti_ms, ts{X}.xiOW * resCommon.SXmid(X), sleg, "linewidth", 2, "color", colors{X}, "marker", markers{X}, "markersize", markersize(X) );
   endfor
 
   tOffs_ms = (res.t0 - res.tMerger ) * 1e3;

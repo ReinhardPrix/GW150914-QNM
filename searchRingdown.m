@@ -93,14 +93,7 @@ function res = searchRingdown ( varargin )
   [ BSG_MP, iMP ] = max ( BSG_f0_tau(:) );
   f0MP = ff0(iMP);
   tauMP = ttau(iMP);
-  %% for plotting OW-timeseries re-scaled to MP template: store noise-values at MP frequency
-  SX_MP = zeros ( 1, numIFOs );
-  for X = 1 : numIFOs
-    [val, freqInd] = min ( abs ( uvar.multiPSD{X}.fk - f0MP ) );
-    SX_MP(X) = uvar.multiPSD{X}.Sn ( freqInd );
-    DebugPrintf ( 2, "X = %d: sqrt(SX)|_MP = %g /sqrt(Hz)\n", X, sqrt ( SX_MP(X) ) );
-  endfor
-  lambdaMP = struct ( "iMP", iMP, "BSG_MP", BSG_MP, "f0", f0MP, "tau", tauMP, "SX", SX_MP );
+  lambdaMP = struct ( "iMP", iMP, "BSG_MP", BSG_MP, "f0", f0MP, "tau", tauMP );
   match_k = match(iMP);
   Mxy_k = struct ( "ss", Mxy.ss(iMP), "cc", Mxy.cc(iMP), "sc", Mxy.sc(iMP) );
 

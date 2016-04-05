@@ -44,11 +44,17 @@ function [multiTS, multiPSD] = whitenNarrowBandTS ( multiTS, multiPSD, FreqRange
     assert ( all((ts.ti == tsW.ti)(:)) && all((ts.ti == tsOW.ti)(:)) );
 
     %% ----- store return values
+    multiPSD{X} = psd;
+
     multiTS{X} = ts;
     multiTS{X}.xiW  = tsW.xi;
     multiTS{X}.xiOW = tsOW.xi;
 
-    multiPSD{X} = psd;
+    %% also store spectra, for plotting
+    multiTS{X}.fk   = ft.fk;
+    multiTS{X}.xk   = ft.xk;
+    multiTS{X}.xkW  = ftW.xk;
+    multiTS{X}.xkOW = ftOW.xk;
 
   endfor %% X = 1 : numIFOs
 

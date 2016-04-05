@@ -79,33 +79,42 @@ switch ( searchType )
   case "verify"
     %% ---------- test-case to compare different code-versions on ----------
     tMerger = tMergerGW150914;
-    t0V = tMerger + [7] * 1e-3;
+    t0V = tMerger + [6.85] * 1e-3;
 
     doPlotSnapshots = true;
 
   case "onSource"
     %% ---------- "ON-SOURCE ----------
     tMerger = tMergerGW150914;
-    t0V = tMerger + [ 1, 3, 5, 7 ] * 1e-3;
+    t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7 ] * 1e-3;
 
     doPlotSnapshots = true;
     doPlotContours  = true;
     doPlotT0Evolution   = true;
     doPlotH         = true;
+    doPlotSpectra   = true;
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
-    tMerger = tMergerGW150914 + 4;
-    t0V = tMerger + unifrnd ( -3, 3, 1, numTrials );
+    tMerger = tMergerGW150914;
+    %% use time around (avoiding +-0.5s of data containing) GW150914
+    t0VL = tMerger + unifrnd ( -3, -0.5, 1, numTrials/2 );
+    t0VU = tMerger + unifrnd (  0.5,  3, 1, numTrials/2 );
+    t0V = [ t0VL, t0VU ];
     plotMarkers = [];
 
     doPlotT0Evolution   = true;
     doPlotBSGHist   = true;
+    doPlotSpectra   = true;
 
   case "injections"
     %% NOTE: injections defaults to injections into real-data, but override with 'injectSqrtSX' and 'assumeSqrtSX' settings
-    tMerger = tMergerGW150914 + 4;	%% go to some 'off source' time-stretch
-    t0V = tMerger + unifrnd ( -3, 3, 1, numTrials );
+    tMerger = tMergerGW150914;
+    %% use time around (avoiding 1s of data containing) GW150914
+    t0VL = tMerger + unifrnd ( -3, 0.5, 1, numTrials/2 );
+    t0VU = tMerger + unifrnd (  0.5, 3, 1, numTrials/2 );
+    t0V = [ t0VL, t0VU ];
+
     injectionSources = struct();
     for m = 1 : numTrials
       injectionSources(m) = struct ( "name", 	sprintf("QNM-%d", m), ...
@@ -123,6 +132,7 @@ switch ( searchType )
     endfor
 
     doPlotPErecovery= true;
+    doPlotSpectra   = true;
 
   otherwise
     error ("Unknown searchType = '%s' specified\n", searchType );
@@ -156,6 +166,14 @@ DebugPrintf ( 1, "Loading SFT data + PSD-estimation ... ");
 [multiTS0, multiPSD0] = loadData ( "SFTpaths", SFTs, "TimeRange", TimeRange, "fSamp", fSamp, "assumeSqrtSX", assumeSqrtSX, "injectSqrtSX", injectSqrtSX );
 DebugPrintf ( 1, "done.\n");
 
+%% for plotting OW-timeseries re-scaled to ~template: store noise-values at mid-frequency
+f0Mid = mean ( prior_f0Range);
+for X = 1 : numIFOs
+  [val, freqInd] = min ( abs ( multiPSD0{X}.fk - f0Mid ) );
+  SXmid(X) = multiPSD0{X}.Sn ( freqInd );
+  DebugPrintf ( 1, "IFO(%d) = %s: sqrt(SX)|_mid = %g /sqrt(Hz)\n", X, multiTS0{X}.IFO, sqrt ( SXmid(X) ) );
+endfor
+
 %% ----- template search-grid in {f0, tau} ----------
 f0Grid  = [min(prior_f0Range):  df0 : max(prior_f0Range)];
 tauGrid = [min(prior_tauRange): dtau : max(prior_tauRange)];
@@ -185,7 +203,7 @@ for m = 1 : numSearches
                          );
   %% save memory in case of large MC runs: keep 'common' results parts only once
   if ( m == 1 )
-    resCommon = struct ( "Mxy", res_m.Mxy, "ff0", res_m.ff0, "ttau", res_m.ttau, "skyCorr", {skyCorr}, "multiTS", {multiTS} );
+    resCommon = struct ( "Mxy", res_m.Mxy, "ff0", res_m.ff0, "ttau", res_m.ttau, "skyCorr", {skyCorr}, "multiTS", {multiTS}, "SXmid", SXmid );
   endif
   res_m = rmfield ( res_m, { "Mxy", "ff0", "ttau" } );
 
@@ -199,6 +217,7 @@ for m = 1 : numSearches
   res_m.bname    = sprintf ( "Search%04d-GPS%.6fs", m, t0V(m) );
 
   resV(m) = res_m;
+  DebugPrintf ( 1, "m = %04d / %04d: ", m, numSearches );
   DebugPrintSummary ( 1, resV(m) );
 
   %% ----- if injection: quantify PE recovery quality ----------
@@ -252,14 +271,17 @@ if ( doPlotBSGHist )
   subplot ( 2,2, 1);
   hist ( log10 ( [resV.BSG] ), 100 );
   grid on;
+  xmax = max ( xlim() );
+  xlim ( [ -1.3, xmax ] );
   xlabel ( "log10<BSG>" );
 
   subplot ( 2,2, 2); hold on;
-  hist ( [[resV.AmpML].SNR], 100 );
   hist ( [[resV.AmpMP].SNR], 100 );
+  %%hist ( [[resV.AmpML].SNR], 100 );
   grid on;
-  legend ("SNR-ML", "SNR-MP");
-  xlabel ( "<SNR>" );
+  xmax = max ( xlim() );
+  xlim ( [ 0, xmax ] );
+  xlabel ( "SNR" );
 
   subplot ( 2,2, 3);
   f0MP = [[resV.lambdaMP].f0]';
@@ -267,10 +289,10 @@ if ( doPlotBSGHist )
   hist3 ( [ f0MP, taumsMP ], 20 );
   xlim ( prior_f0Range );
   ylim ( prior_tauRange * 1e3 );
-  xlabel ("f0-MP2D [Hz]");
-  ylabel ("tau-MP2D [ms]");
+  xlabel ("f0 [Hz]");
+  ylabel ("tau [ms]");
 
-  fname = sprintf ( "%s/BSG-PE-hists.pdf", resDir );
+  fname = sprintf ( "%s/BSG-hists.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif
 
@@ -285,7 +307,19 @@ if ( doPlotPErecovery )
   ezprint ( fname, "width", 512 );
 endif %% doPlotPErecovery()
 
-%% ----- store complete results dump ----------
+%% ----- plot data spectra ----------
+if ( doPlotSpectra )
+  [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD );
+  set ( 0, "currentfigure", H_psd )
+  fname = sprintf ( "%s/PSDs.pdf", resDir );
+  ezprint ( fname, "width", 512 );
+
+  set ( 0, "currentfigure", H_spect )
+  fname = sprintf ( "%s/W-OW-Spectra.pdf", resDir );
+  ezprint ( fname, "width", 512 );
+endif %% doPlotSpectra
+
+%% ----- store complete results dump including all git-versions ----------
 versioning.octave = version();
 versioning.octapps = octapps_gitID();
 versioning.scripts = octapps_gitID(".", "QNM-scripts");

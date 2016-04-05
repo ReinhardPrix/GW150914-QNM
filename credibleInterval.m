@@ -25,31 +25,36 @@ function x_est = credibleInterval ( posterior, confidence = 0.9 )
 
   x      = posterior.x;
   prob_x = posterior.px;
+
+  %% MP estimate
+  [val, iMaxP ] = max ( prob_x(:) );
+  x_MP = [posterior.x] ( iMaxP );
+
+  %% find credible interval
   try
     [pIso, delta, INFO, OUTPUT] = fzero ( @(pIso)  sum ( prob_x ( find ( prob_x >= pIso ) ) ) - confidence, ...
                                           [ min(prob_x), max(prob_x) ]
                                         );
     assert ( INFO == 1 );
+
+    inds0 = find ( prob_x >= pIso );
+    i_min = min(inds0);
+    i_max = max(inds0);
+    %% check if these are respective closest to p_iso
+    if ( (i_min > 1) && abs(prob_x(i_min-1) - pIso) < abs(prob_x(i_min) - pIso) )
+      i_min --;
+    endif
+    if ( (i_max < length(prob_x)) && abs(prob_x(i_max+1) - pIso) < abs(prob_x(i_max) - pIso) )
+      i_max ++;
+    endif
+
+    lerr = x_MP - x(i_min);
+    uerr = x(i_max) - x_MP;
   catch
     DebugPrintf (0, "fzero() failed\n");
-    x_est = [];
-    return;
+    lerr = uerr = pIso = NA;
   end_try_catch
 
-  [val, iMaxP ] = max ( prob_x(:) );
-  x_MP = [posterior.x] ( iMaxP );
-
-  inds0 = find ( prob_x >= pIso );
-  i_min = min(inds0);
-  i_max = max(inds0);
-  %% check if these are respective closest to p_iso
-  if ( (i_min > 1) && abs(prob_x(i_min-1) - pIso) < abs(prob_x(i_min) - pIso) )
-    i_min --;
-  endif
-  if ( (i_max < length(prob_x)) && abs(prob_x(i_max+1) - pIso) < abs(prob_x(i_max) - pIso) )
-    i_max ++;
-  endif
-
-  x_est = struct ( "MPE", x_MP, "lerr", x_MP - x(i_min), "uerr", x(i_max) - x_MP, "pIso", pIso );
+  x_est = struct ( "MPE", x_MP, "lerr", lerr, "uerr", uerr, "pIso", pIso );
   return;
 endfunction

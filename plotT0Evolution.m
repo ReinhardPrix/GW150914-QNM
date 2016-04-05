@@ -68,8 +68,7 @@ function plotT0Evolution ( resV )
 
   %% ----- plot SNR(tOffs)
   subplot ( 2, 2, 3, "align" ); hold on;
-  plot ( tOffsVms, [[resV.AmpMP].SNR], "-o;MP;" );
-  plot ( tOffsVms, [[resV.AmpML].SNR], "-x;ML;" );
+  plot ( tOffsVms, [[resV.AmpMP].SNR], "-o" );
   grid on;
   xlim ( xrange );
   ylabel ("SNR");

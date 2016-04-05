@@ -56,10 +56,10 @@ function [H_err, H_coverage] = plotPErecovery ( PErecovery )
   %% ----------
   subplot ( 3, 2, 5 ); hold on;
   plot ( SNR_inj, SNR_inj, "-o;SNR-inj;", "color", "green" );
-  plot ( SNR_inj, [ PErecovery.SNR_MP ], "+;SNR-MP;" );
-  plot ( SNR_inj, [ PErecovery.SNR_ML ], "x;SNR-ML;" );
+  plot ( SNR_inj, [ PErecovery.SNR_MP ], "+" );
+  %%plot ( SNR_inj, [ PErecovery.SNR_ML ], "x;SNR-ML;" );
   xlim ( [ 0, max_x ] );
-  ylim ( [ 0, max([ PErecovery.SNR_MP, PErecovery.SNR_ML, SNR_inj ](:) ) ] );
+  ylim ( [ 0, max( [PErecovery.SNR_MP] ) ] );
   grid on;
   legend ( "location", "northwest" );
   xlabel ( "SNR-inj" ); ylabel ("SNR");
