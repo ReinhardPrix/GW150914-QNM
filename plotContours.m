@@ -37,22 +37,24 @@ function plotContours ( resV, resCommon, plotMarkers = [] )
     endfor
   endif
 
+  colors = {"green", "magenta", "red", "yellow"};
   for l = 1 : Nsearches
     log10B_l = log10 ( resV(l).BSG );
-    color_l = "black"; %% (1 - log10B_l / maxlog10B) * [ 1, 1, 1];
+    color_l = colors { mod (l - 1, length(colors) ) + 1 };
     if ( !isempty ( resV(l).isoConf2 ) )
       [C, H] = contour ( ff0, ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );
     endif
-    set ( H, "linecolor", color_l, "linewidth", 2 );
+    set ( H, "linecolor", color_l, "linewidth", 5, "linestyle", "--" );
     leg = sprintf ( "tM + %.1fms", resV(l).tOffs * 1e3 );
     cl = clabel ( C, H, "FontSize", 12, "Color", color_l);
     set ( cl, "string", "" );
     %%set ( cl(1), "string", leg );
     set ( cl(end), "string", leg );
-    plot ( resV(l).lambdaMP.f0, resV(l).lambdaMP.tau * 1e3, "x;MPE;", 'markeredgecolor', color_l, "markersize", 5 );
+    plot ( resV(l).lambdaMP.f0, resV(l).lambdaMP.tau * 1e3, sprintf ( "x;%s;", leg ), 'markeredgecolor', color_l, "markersize", 5 );
   endfor
   xlabel ( "Freq [Hz]" );
   ylabel ( "tau [ms]" );
+  ylim ( [ 0, 14.5 ] );
   hold off;
   grid on;
 
