@@ -23,19 +23,22 @@ integrate ( priorA(A, H), A, 0, inf );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-makelist ( i, i, 1, 6 );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d ( makelist ( priorA(A,H), H, 2, 10 ), [A, 0, 20],
-        [xlabel, "Amplitude A [1e-22]"], [ylabel, "P(A|QNM)"],
-        [title, "H = [2:10]x1e-22" ],
-        [grid2d, true])$
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
 priorAJeff ( A ) := sum ( 1/H * priorA(A,H), H, 2, 10 );
 plot2d ( priorAJeff ( A ), [A, 0, 15 ] );
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+plist1 : makelist ( priorA(A,H), H, 2, 10 )$
+clist1 : makelist ( black, H, 2, 10 )$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+plot2d ( append ( [priorAJeff(A)], plist1 ), [A, 0, 20],
+         append ( [color, red ], clist1 ),
+        [xlabel, "Amplitude A [1e-22]"], [ylabel, "P(A|H)"],
+        [title, "H = [2:10]x1e-22" ],
+        [grid2d, true],
+        [legend, false])$
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: subsect start ]
