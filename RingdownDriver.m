@@ -36,7 +36,7 @@ skyCorr = struct ( "IFO", {"H1", "L1"}, "timeShift", { 0, 7e-3 }, "ampFact", { 1
 confidence = 0.90;
 
 doPlotSnapshots = false;
-doPlotContours  = false;
+doPlotContours  = [];
 doPlotT0Evolution = false;
 doPlotSpectra   = false;
 doPlotBSGHist   = false;
@@ -89,9 +89,8 @@ switch ( searchType )
     t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7, 8, 8.5, 9, 9.5, 10 ] * 1e-3;
 
     doPlotSnapshots = true;
-    doPlotContours  = true;
+    doPlotContours  = [1, 2, 3, 4];
     doPlotT0Evolution   = true;
-    doPlotH         = true;
     doPlotSpectra   = true;
 
   case "offSource"
@@ -245,8 +244,8 @@ if ( doPlotT0Evolution )
   ezprint ( fname, "width", 512 );
 endif
 
-if ( doPlotContours )
-  plotContours ( resV, resCommon, plotMarkers )
+if ( !isempty(doPlotContours) )
+  plotContours ( resV, resCommon, doPlotContours, plotMarkers )
   fname = sprintf ( "%s/Posterior-Contours.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif

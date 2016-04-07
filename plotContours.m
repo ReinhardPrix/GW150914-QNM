@@ -14,7 +14,7 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotContours ( resV, resCommon, plotMarkers = [] )
+function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
 
   Nsearches = length ( resV );
   ff0 = resCommon.ff0;
@@ -39,6 +39,7 @@ function plotContours ( resV, resCommon, plotMarkers = [] )
 
   colors = {"green", "magenta", "red", "yellow"};
   for l = 1 : Nsearches
+    if ( !isempty(select) && all ( l != select ) ) continue; endif
     log10B_l = log10 ( resV(l).BSG );
     color_l = colors { mod (l - 1, length(colors) ) + 1 };
     if ( !isempty ( resV(l).isoConf2 ) )
