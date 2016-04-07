@@ -86,7 +86,7 @@ switch ( searchType )
   case "onSource"
     %% ---------- "ON-SOURCE ----------
     tMerger = tMergerGW150914;
-    t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7 ] * 1e-3;
+    t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7, 8, 8.5, 9, 9.5, 10 ] * 1e-3;
 
     doPlotSnapshots = true;
     doPlotContours  = true;
