@@ -25,16 +25,17 @@ function [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD )
 
     %% ----- plot PSD for detector X
     subplot ( numIFOs, 1, X ); hold on;
-    semilogy ( ts.fk, abs ( ts.xk ) / sqrt(T), "+-", "color", "blue" ); legend ( sprintf ( "%s: |xk(f)|/sqrt(T)", IFO ) );
+    semilogy ( ts.fk, abs ( ts.xk ) / sqrt(T), sprintf ( "+-;%s;", IFO), "color", "blue" );
     if ( !isempty( "psd0" ) )
-      semilogy ( psd0(:,1), sqrt(psd0(:,2)), "x;LALInference;", "color", "magenta" );
+      semilogy ( psd0(:,1), sqrt(psd0(:,2)), "x", "color", "magenta" );
     endif
-    semilogy ( psd.fk, sqrt(psd.Sn), "o;PSD-pwelch;", "color", "green" );
-    xlim ( [ts.fMin, ts.fMax] );
-    ylim ( [ 1e-26, 1e-20 ] );
+    semilogy ( psd.fk, sqrt(psd.Sn), "o", "color", "green" );
+    xlim ( [0, 2e3] );
+    ylim ( [ 1e-24, 1e-20 ] );
     grid on;
     xlabel ("Freq [Hz]");
-    legend ( "location", "southeast" );
+    legend ( "location", "NorthEast" );
+    ylabel ( "sqrt(Sn) [Hz^(-1/2)]" );
 
   endfor %% X = 1:numIFOs
 
@@ -45,19 +46,22 @@ function [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD )
 
     %% ----- plot whitened and over-whitened spectra for detector X
     subplot ( 2, numIFOs, X );
-    plot ( ts.fk, abs ( ts.xkW ), "+-", "color", "blue" ); legend ( sprintf ( "%s: |xk|/sqrtSX", IFO) );
-    xlim ( [ts.fMin, ts.fMax] );
+    plot ( ts.fk, abs ( ts.xkW ), sprintf("+-;%s;",IFO), "color", "blue" );
+    xlim ( [0, 2e3] );
     ylim ( [ 0, 20 ] );
     grid on;
     xlabel ("Freq [Hz]");
+    legend ( "location", "NorthEast" );
+    if ( X == 1 ) ylabel ( "|x|/sqrt(SX)" ); endif
 
     subplot ( 2, numIFOs, X + numIFOs );
-    plot ( ts.fk, abs ( ts.xkOW ), "+-", "color", "blue" ); legend ( sprintf ( "%s: |xk|/SX", IFO) );
-    xlim ( [ts.fMin, ts.fMax] );
+    plot ( ts.fk, abs ( ts.xkOW ), sprintf("+-;%s;",IFO), "color", "blue" );
+    xlim ( [0, 2e3] );
     ylim ( [ 0, 2e24 ] );
     xlabel ("Freq [Hz]");
     grid on;
     legend ( "location", "NorthEast" );
+    if ( X == 1 ) ylabel ( "|x|/SX" ); endif
 
   endfor %% X = 1 : numIFOs
 
