@@ -300,7 +300,7 @@ if ( doPlotPErecovery )
   [H_err, H_coverage] = plotPErecovery ( PErecovery );
   set ( 0, "currentfigure", H_err )
   fname = sprintf ( "%s/Injections-PE-errors.pdf", resDir );
-  ezprint ( fname, "width", 512 );
+  ezprint ( fname, "width", 700 );
 
   set ( 0, "currentfigure", H_coverage )
   fname = sprintf ( "%s/Injections-PE-coverage.pdf", resDir );
