@@ -95,7 +95,7 @@ switch ( searchType )
 
   case "onInjection"
     tMerger = tMergerGW150914 + 1;
-    t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7] * 1e-3;
+    t0V = tMerger + [ 1 ] * 1e-3;
     nS = length(t0V);
     injectionSources = struct();
     for m = 1 : nS
@@ -110,8 +110,6 @@ switch ( searchType )
     endfor
 
     doPlotSnapshots = true;
-    doPlotContours  = find ( t0V != 0 );
-    doPlotT0Evolution   = true;
     doPlotSpectra   = true;
 
   case "offSource"
