@@ -129,7 +129,7 @@ switch ( searchType )
     %% NOTE: injections defaults to injections into real-data, but override with 'injectSqrtSX' and 'assumeSqrtSX' settings
     tMerger = tMergerGW150914;
     %% use time around (avoiding 1s of data containing) GW150914
-    t0VL = tMerger + unifrnd ( -3, 0.5, 1, numTrials/2 );
+    t0VL = tMerger + unifrnd ( -3, -0.5, 1, numTrials/2 );
     t0VU = tMerger + unifrnd (  0.5, 3, 1, numTrials/2 );
     t0V = [ t0VL, t0VU ];
 
