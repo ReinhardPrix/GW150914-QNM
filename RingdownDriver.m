@@ -66,7 +66,7 @@ dtau = 0.5e-3;
 prior_HRange    = [ 2, 10 ] * 1e-22;
 dH = 1e-22;
 
-if ( !exist("injectionRanges") ) injectionRanges = struct ( "A", [3e-22, 8e-22], "f0", prior_f0Range, "tau", prior_tauRange ); endif
+if ( !exist("injectionRanges") ) injectionRanges = struct ( "name", "injectPriorRanges", "A", [3e-22, 8e-22], "f0", prior_f0Range, "tau", prior_tauRange ); endif
 
 if ( !exist ( "prior_H" ) )
   H_i = [ min(prior_HRange) : dH : max(prior_HRange) ];
@@ -135,6 +135,8 @@ switch ( searchType )
     t0VU = tMerger + unifrnd (  0.5, 3, 1, floor(numTrials/2) );
     t0V = [ t0VL, t0VU ];
 
+    if ( isfield ( injectionRanges, "name" ) ) extraLabel = sprintf ( "%s-%s", extraLabel, injectionRanges.name ); endif
+
     injectionSources = struct();
     for m = 1 : numTrials
       injectionSources(m) = struct ( "name", 	sprintf("QNM-%d", m), ...
@@ -166,6 +168,7 @@ gm = gmtime ( time () );
 dateTag = sprintf ( "%02d%02d%02d-%02dh%02d", gm.year - 100, gm.mon + 1, gm.mday, gm.hour, gm.min );
 resDir = sprintf ( "Results/Results-%s-%s%d-data%.0fHz-%.0fHz", dateTag, searchType, numSearches, FreqRange );
 resDir = sprintf ( "%s-Prior-f%.0fHz-%.0fHz-df%.1fHz-tau%.1fms-%.1fms-dtau%.1fms-H%.1f-%.1f-dH%.1f", resDir, prior_f0Range, df0, 1e3 * prior_tauRange, 1e3*dtau, 1e22 * prior_HRange, 1e22 * dH );
+resDir = sprintf ( "%s%s", resDir, extraLabel );
 
 if ( noMismatchInj )
   resDir = strcat ( resDir, "-noMismatchInj" );
