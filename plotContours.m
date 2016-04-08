@@ -38,10 +38,12 @@ function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
   endif
 
   colors = {"green", "magenta", "red", "yellow"};
+  counter = 0;
   for l = 1 : Nsearches
     if ( !isempty(select) && all ( l != select ) ) continue; endif
+    counter ++;
     log10B_l = log10 ( resV(l).BSG );
-    color_l = colors { mod (l - 1, length(colors) ) + 1 };
+    color_l = colors { mod (counter - 1, length(colors) ) + 1 };
     if ( !isempty ( resV(l).isoConf2 ) )
       [C, H] = contour ( ff0, ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );
     endif
