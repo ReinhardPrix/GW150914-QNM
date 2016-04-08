@@ -93,6 +93,27 @@ switch ( searchType )
     doPlotT0Evolution   = true;
     doPlotSpectra   = true;
 
+  case "onInjection"
+    tMerger = tMergerGW150914 + 1;
+    t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7] * 1e-3;
+    nS = length(t0V);
+    injectionSources = struct();
+    for m = 1 : nS
+      injectionSources(m) = struct ( "name", 	"QNM-0", ...
+                                     "t0", 	tMerger, ...
+                                     "A", 	2e-21, ...
+                                     "phi0", 	2.5, ...
+                                     "f0",	251, ...
+                                     "tau", 	4e-3, ...
+                                     "skyCorr", skyCorr ...
+                                   );
+    endfor
+
+    doPlotSnapshots = true;
+    doPlotContours  = find ( t0V != 0 );
+    doPlotT0Evolution   = true;
+    doPlotSpectra   = true;
+
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
     tMerger = tMergerGW150914;
