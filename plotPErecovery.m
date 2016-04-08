@@ -7,13 +7,16 @@ function [H_err, H_coverage] = plotPErecovery ( PErecovery )
 
   %% ----- histogram the data over bins for 'data-compression'
   x = SNR_inj;
-  xVals = [ ceil(min(x)) : floor(max(x)) ];	%% put bin-centers on integer values of SNR-inj
+  x0 = round ( min(x) );
+  x1 = round ( max(x) );
+  xVals = [ x0 : x1 ];	%% put bin-centers on integer values of SNR-inj
   num_xBins = length(xVals);
   binsL = xVals - 0.5;
   binsR = xVals + 0.5;
   hgrms.A = hgrms.phi0 = hgrms.f0 = hgrms.tau = hgrms.SNR = hgrms.log10BSG = cell ( 1, num_xBins );
   for i = 1:num_xBins
     inds_xBin_i = find ( (x >= binsL(i)) & (x < binsR(i)) );
+    if ( isempty ( inds_xBin_i ) ) continue; endif
 
     hgrms.A{i}.hgrm = Hist ( 1, {"lin", "dbin", 0.01 } );
     hgrms.A{i}.hgrm = addDataToHist ( hgrms.A{i}.hgrm, [PErecovery.A_relerr]'(inds_xBin_i) );
@@ -77,7 +80,7 @@ function [H_err, H_coverage] = plotPErecovery ( PErecovery )
   plotHists ( xVals, hgrms.SNR );
   plot ( SNR_inj, SNR_inj, "--;SNR-inj;", "color", "green", "linewidth", 2 );
   xlim ( [ 0, max_x ] );
-  ylim ( [ 0, max( [PErecovery.SNR_MP] ) ] );
+  ylim ( [ 0, 1.1 * max( [PErecovery.SNR_MP] ) ] );
   legend ( "location", "northwest" );
   xlabel ( "SNR-inj" ); ylabel ("SNR-MP");
 
@@ -125,18 +128,39 @@ endfunction
 
 
 function plotHists ( x, hists, varargin  = [] )
-  ## calculate median and 2.5%, 25%, 75%, 97.5% quantiles
-  p2sderr = cellfun(@(E) quantileFuncOfHist(contractHist(E.hgrm,1), 0.025), hists);
-  p1sderr = cellfun(@(E) quantileFuncOfHist(contractHist(E.hgrm,1), 0.250), hists);
-  meanerr = cellfun(@(E) quantileFuncOfHist(contractHist(E.hgrm,1), 0.500), hists);
-  m1sderr = cellfun(@(E) quantileFuncOfHist(contractHist(E.hgrm,1), 0.750), hists);
-  m2sderr = cellfun(@(E) quantileFuncOfHist(contractHist(E.hgrm,1), 0.975), hists);
+
+  numHists = length ( hists );
+  assert ( length(x) == numHists );
+
+  x_plot = p2sderr = p1sderr = meanerr = m1sderr = m2sderr = [];
+  for l = 1 : numHists
+    if ( isempty ( hists{l} ) ) continue; endif;
+    h_l = hists{l}.hgrm;
+    %% deal with singular (1-point or empty) histograms first
+    count = histTotalCount ( h_l );
+    if ( count == 0 ) continue; endif
+
+    x_plot(end+1)  = x(l);
+
+    if ( count == 1 )
+      ii = find ( histProbs ( h_l ) );
+      bin_ii = histBins( h_l, 1, "centre" )(ii);
+      meanerr(end+1) = p2sderr(end+1) = p1sderr(end+1) = m1sderr(end+1) = m2sderr(end+1) = bin_ii;
+    else
+      ## calculate median and 2.5%, 25%, 75%, 97.5% quantiles
+      p2sderr(end+1) = quantileFuncOfHist ( h_l, 0.025 );
+      p1sderr(end+1) = quantileFuncOfHist ( h_l, 0.250 );
+      meanerr(end+1) = quantileFuncOfHist ( h_l, 0.500 );
+      m1sderr(end+1) = quantileFuncOfHist ( h_l, 0.750 );
+      m2sderr(end+1) = quantileFuncOfHist ( h_l, 0.975 );
+    endif
+  endfor %% l = 1 : numHists
 
   ## do plots
   isHold = ishold();
   hold on;
-  h1 = errorbar(x, meanerr, meanerr - m1sderr, p1sderr - meanerr, "~");
-  h2 = plot(x, m2sderr, "--o", x, p2sderr, "--o" );
+  h1 = errorbar(x_plot, meanerr, meanerr - m1sderr, p1sderr - meanerr, "~");
+  h2 = plot(x_plot, m2sderr, "--o", x_plot, p2sderr, "--o" );
   if ( !isHold ) hold; endif
 
   ## set plot properties
