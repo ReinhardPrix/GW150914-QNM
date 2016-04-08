@@ -29,7 +29,7 @@ function TS = freqBand2TS ( ft, fMin, fMax, fSamp )
   fMax0 = fk(max(bins0));
 
   %% window FT bins before inv-FFTing:
-  win = tukeywin ( length ( bins0 ), 0.1 );
+  win = tukeywin ( length ( bins0 ), 0.02 );
   xkWin = xk(bins0) .* win;
 
   %% ========== place this band into a full spectrum including negative frequencies ==========
@@ -60,11 +60,6 @@ function TS = freqBand2TS ( ft, fMin, fMax, fSamp )
   TS.fMax = fMax0;
   TS.fMin = fMin0;
   TS.fSamp = fSamp;
-
-  %% window final TS to avoid switch on/off artifacts:
-  win = tukeywin ( Nsamp, 0.1 );
-  xiWin = TS.xi(:) .* win(:);
-  TS.xi = xiWin';
 
   return;
 
