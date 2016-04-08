@@ -22,6 +22,8 @@ function [multiTS, multiPSD] = whitenNarrowBandTS ( multiTS, multiPSD, FreqRange
     psd.Sn = psd.Sn ( binsFreqRange );
 
     %% compute narrow-banded FFT of input TS
+    win = tukeywin ( length(ts.xi), 0.1 )';
+    ts.xi .*= win;
     xFFT = dt * fft ( ts.xi );
     xk = xFFT ( binsFreqRange );
 
