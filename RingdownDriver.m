@@ -28,7 +28,7 @@ SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800
 numIFOs = length ( SFTs );
 fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such that 7.0ms timeshift between IFOs
                 %% can be represented by exactly by an integer bin-shift: 7e-3 s * 4e3 Hz =  28.0 bins
-FreqRange  = [ 30, 1900 ]; %% SFT data spans [10,2e3]Hz, but avoid PSD 'ramp up/down' at boundaries
+FreqRange  = [ 20, 1900 ]; %% SFT data spans [10,2e3]Hz, but avoid PSD 'ramp up/down' at boundaries
 
 %% collect time-delay and antenna-pattern factors into one object
 skyCorr = struct ( "IFO", {"H1", "L1"}, "timeShift", { 0, 7e-3 }, "ampFact", { 1, -1 } );	%% values specific to GW150914
@@ -89,13 +89,13 @@ switch ( searchType )
     t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7, 8, 8.5, 9, 9.5, 10 ] * 1e-3;
 
     doPlotSnapshots = true;
-    doPlotContours  = [1, 2, 3, 4];
+    doPlotContours  = [1, 3, 5, 7];
     doPlotT0Evolution   = true;
     doPlotSpectra   = true;
 
   case "onInjection"
     tMerger = tMergerGW150914 + 1;
-    t0V = tMerger + [ 1 ] * 1e-3;
+    t0V = tMerger + [ 0, 1, 2, 3, 4, 5 ] * 1e-3;
     nS = length(t0V);
     injectionSources = struct();
     for m = 1 : nS
