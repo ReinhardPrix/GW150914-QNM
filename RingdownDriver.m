@@ -97,14 +97,14 @@ switch ( searchType )
 
   case "onInjection"
     tMerger = tMergerGW150914 + unifrnd (  0.5,  3 );
-    phi0 = unifrnd ( 0, 2*pi );
+    phi0 = 0;
     t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7, 8, 9, 10 ] * 1e-3;
     nS = length(t0V);
     injectionSources = struct();
     for m = 1 : nS
       injectionSources(m) = struct ( "name", 	"QNM-0", ...
                                      "t0", 	tMerger, ...
-                                     "A", 	2e-21, ...
+                                     "A", 	2.5e-21, ...
                                      "phi0", 	phi0, ...
                                      "f0",	251, ...
                                      "tau", 	4e-3, ...
@@ -112,7 +112,7 @@ switch ( searchType )
                                    );
     endfor
 
-    doPlotSnapshots = true;
+    doPlotSnapshots = false;
     doPlotT0Evolution   = true;
     doPlotContours  = [1, 3, 5, 7];
 
@@ -273,7 +273,7 @@ endif
 if ( !isempty(doPlotContours) )
   plotContours ( resV, resCommon, doPlotContours, plotMarkers )
   fname = sprintf ( "%s/Posterior-Contours.pdf", resDir );
-  ezprint ( fname, "width", 512 );
+  ezprint ( fname, "width", 256 );
 endif
 
 if ( doPlotH )
