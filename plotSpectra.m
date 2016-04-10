@@ -23,6 +23,20 @@ function [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD )
       psd0 = [];
     endif
 
+    if ( !isfield ( ts, "fk" ) )
+      binsFreqRange = binRange ( ts.fMin, ts.fMax, psd.fk );
+      %% compute narrow-banded FFT of input TS
+      win = tukeywin ( length(ts.xi), 0.1 )';
+      ts.xi .*= win;
+      xFFT = dt * fft ( ts.xi );
+      ts.xk = xFFT ( binsFreqRange );
+      ts.fk = psd.fk ( binsFreqRange );
+      Sn = psd.Sn ( binsFreqRange );
+      ts.xkW = ts.xk ./ sqrt ( Sn );
+      ts.xkOW = ts.xk ./ Sn;
+      multiTS{X} = ts;
+    endif
+
     %% ----- plot PSD for detector X
     subplot ( numIFOs, 1, X ); hold on;
     semilogy ( ts.fk, abs ( ts.xk ) / sqrt(T), sprintf ( "+-;%s;", IFO), "color", "blue" );
