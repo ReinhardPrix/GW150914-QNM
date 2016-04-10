@@ -59,13 +59,20 @@
 A number of changes compared to the previous version (v3,v3+) that went into the submitted paper (\href{http://arxiv.org/abs/1602.03841}{arXiv:1602.03841}).
 
 \begin{itemize}
-\item bug 1: previous results suffered from a small bug in (old version of) octapps \texttt{FourierTransform} wrapper, which contained an ``off-by-one'' type
+\item bug: previous results suffered from a small bug in (old version of) octapps \texttt{FourierTransform} wrapper, which contained an ``off-by-one'' type
   error, leading to slight de-phasing of the data time-series
 
-\item bug 2: previously the 'SNR-term' in the likelihood $\scalar{s}{s}$ was computed over the full SFT frequency band $[10,2000]\,\Hz$, instead of
+\item bug: previously the 'SNR-term' in the likelihood $\scalar{s}{s}$ was computed over the full SFT frequency band $[10,2000]\,\Hz$, instead of
   the relevant narrow-banded data $[30,1000]\,\Hz$ actually used in the search-term $\scalar{x}{s}$
 
-\item expanded band-passed data-range from ${[30,1000]}\,\Hz$ to ${[30,1900]}\,\Hz$ (but avoid lower and upper boundaries near 10Hz and 2000Hz respectively, where pwelch() psd estimation trails off).
+\item bug/inconsistency (up to version 'v4-'): used tukey(0.1) on SFT data before inv-FFTing into time-domain, but used data from 30Hz, which was
+  still affected by Tukey-window (visible in PSD estimates). Reduced to tukey(0.02) now, which is enough to avoid creating spurious time-domain noise,
+  and stays outside the actually-used frequency band.
+
+\item expanded used data-range from ${[30,1000]}\,\Hz$ to ${[20,1900]}\,\Hz$ (avoid lower and upper boundaries near 10Hz and 2000Hz affected by tukey(0.02)-windowing).
+
+\item apply tukey(0.1)-windowing to time-series data before FFTing (for whitening): avoid red-noise artifacts, especially visible in L1 whitened
+  spectra in previous versions (up to 'v4-')
 
 \item PSD estimation: avoid using the data-segment of $8\,\sec$ containing GW150914 (or any injections) to avoid affecting the PSD estimate
 
@@ -87,8 +94,44 @@ A number of changes compared to the previous version (v3,v3+) that went into the
 
 All results shown in this version of the notes were produced using the ringdown pipeline in
 \href{https://git.ligo.org/BlackHole-QNM-Ringdown/Bayesian-QNM-PE-octave}{gitLab}, version
-\href{https://git.ligo.org/BlackHole-QNM-Ringdown/Bayesian-QNM-PE-octave/commit/aebcd96ada3bb0aa393dc0f6bf13ea1a8503a5e3}{aebcd96a}.
+\href{https://git.ligo.org/BlackHole-QNM-Ringdown/Bayesian-QNM-PE-octave/commit/ed4ff88fbe557f371fab4fded258f0b4fe03c67c}{ed4ff88f}.
 
+\newpage
+\subsection{Proposed updated statements for PRL "Testing GR" paper}
+\label{sec:prop-updat-stat}
+
+Qualitatively these results agree with what was stated and presented in the submitted PRL version.
+However the numbers and posterior contours are different.
+This version is more mature/converged, and more fully tested and characterized, after a number of bugs and possible inconsistencies have been fixed
+since v3 (and even v4-).
+We propose to update the text and results when re-submitting the paper to PRL in the following way:
+
+\begin{center}
+  \parbox{0.7\textwidth}{
+    We use data band-passed to ${[20,1900]}\,\Hz$\\
+    \ldots\\
+    The $90\%$ posterior contour overlaps the GR prediction from
+    the IMR waveform after about $\tStart \gtrsim \tMerger + 3\,\ms$, or $\sim10\,M$
+    after merger. The corresponding Bayes factor at this point
+    is $\log_{10}B \sim 14$ and the MAP waveform SNR is $\sim 8$.
+    At $\tStart = \tMerger + 5\,\ms$ the MAP parameters fall within the contour
+    predicted in GR for the least-damped QNM, with $\log_{10}B \sim 6.5$
+    and SNR\ $\sim 6.5$. At $\tStart = \tMerger + 6.5\,\ms$, or about $\sim20\,M$ after merger,
+    the posterior uncertainty becomes quite large, and the Bayes
+    factor drops to $\log_{10}B \sim 3.5$ with SNR\ $\sim 4.8$. The signal
+    becomes undetectable at about $\tStart \gtrsim \tMerger + 8.5\,\ms$,
+    where $B \lesssim 1$.
+  }
+\end{center}
+
+and new posterior-contour plot for these selected time-steps (new plot on the right, current plot on the left):
+\newcommand{\onSourceDir}{./Results/Results-160410-08h23-onSource13-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/}
+\parbox{\textwidth}{
+\includegraphics[width=0.49\textwidth]{./QNM-contours-orig.png}
+\includegraphics[width=0.49\textwidth]{{\onSourceDir/Posterior-Contours}.pdf}
+}
+
+\newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
 \label{Intro}
@@ -400,7 +443,7 @@ Isotropic 2D Gaussian amplitude prior \eqref{eq:22} on $\{\As,\Ac\}$ with charac
 an isotropic prior in $\phi_0$ and an $A$-prior of \eqref{eq:28}, as shown here:
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.8\textwidth]{prior_A.pdf}
+  \includegraphics[width=0.5\textwidth]{prior_A.pdf}
   \caption{Amplitude prior as a hyper-prior (superposition) of several 2D-Gaussian distributions with different scale parameters $H\in{[2:10]}\times10^{-22}$}
   \label{fig:AmpPrior}
 \end{figure}
@@ -415,12 +458,9 @@ Time-shifted L1 data by (delaying it by $+7\,\ms$) and multiplied it by $(-1)$ t
 We estimate the (single-sided) PSD $S_X$ by a standard welch method using 8s windows over the 1800s SFT data.
 
 The resulting original spectrum (top row), rms-whitened spectrum (middle row) and over-whitened spectrum (bottom row) are shown in the following
-plots, for H1 and L1, respectively.
-
-\includegraphics[width=0.8\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/PSDs}.pdf}\\
-
-\includegraphics[width=0.8\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/W-OW-Spectra}.pdf}
-
+plots, for H1 and L1, respectively.\\
+\includegraphics[width=1\textwidth]{{\onSourceDir/PSDs}.pdf}\\
+\includegraphics[width=1\textwidth]{{\onSourceDir/W-OW-Spectra}.pdf}
 
 \subsection{Search results on GW150914}
 \label{sec:numerical-results}
@@ -430,128 +470,80 @@ $d\tau=0.5\,\ms$, respectively.
 The following plots show snapshots of the posterior at different fixed start-times $\tStart$.
 The offset from merger assumes a merger time $\tMerger = 1126259462.423$ (in H1 arrival time), as taken from
 \href{https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence}{Ian's wiki} and rounded to ms accuracy.
-We show results for QNM start-times $\tStart - \tMerger \in \{1,2,3,4,5,6,6.5,7\}\,\ms$ (referring to H1 arrival times).
+We compute snapshots for different QNM start-times $\tStart - \tMerger$ (referring to H1 arrival times).
 
 \newpage
 \parbox{\textwidth}{
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Search0001-GPS1126259462.424000s-snapshot}.pdf}\\
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Search0002-GPS1126259462.425000s-snapshot}.pdf}
+\includegraphics[width=0.9\textwidth]{{\onSourceDir/Search0001-GPS1126259462.424000s-snapshot}.pdf}\\
+\includegraphics[width=0.9\textwidth]{{\onSourceDir/Search0002-GPS1126259462.425000s-snapshot}.pdf}
 }
 
 \newpage
 \parbox{\textwidth}{
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Search0003-GPS1126259462.426000s-snapshot}.pdf}\\
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Search0004-GPS1126259462.427000s-snapshot}.pdf}
+\includegraphics[width=0.9\textwidth]{{\onSourceDir/Search0003-GPS1126259462.426000s-snapshot}.pdf}\\
+\includegraphics[width=0.9\textwidth]{{\onSourceDir/Search0004-GPS1126259462.427000s-snapshot}.pdf}
 }
 
 \newpage
 \parbox{\textwidth}{
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Search0005-GPS1126259462.428000s-snapshot}.pdf}\\
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Search0006-GPS1126259462.429000s-snapshot}.pdf}
+\includegraphics[width=0.9\textwidth]{{\onSourceDir/Search0005-GPS1126259462.428000s-snapshot}.pdf}\\
+\includegraphics[width=0.9\textwidth]{{\onSourceDir/Search0006-GPS1126259462.429000s-snapshot}.pdf}
 }
 
 \newpage
 \parbox{\textwidth}{
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Search0007-GPS1126259462.429500s-snapshot}.pdf}\\
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Search0008-GPS1126259462.430000s-snapshot}.pdf}
+\includegraphics[width=0.9\textwidth]{{\onSourceDir/Search0007-GPS1126259462.429500s-snapshot}.pdf}\\
+\includegraphics[width=0.9\textwidth]{{\onSourceDir/Search0008-GPS1126259462.430000s-snapshot}.pdf}
 }
 
-\newpage
-\subsection{Summary plots}
 
+\newpage
+\subsection{Dependence on $\tStart - \tMerger$}
 \parbox{\textwidth}{
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/t0Evolution}.pdf}
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Posterior-Contours}.pdf}
-}
-
-\newpage
-\subsection{H-scale posteriors}
-
-\includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h46-onSource8-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Posterior_H}.pdf}
-
-\newpage
-
-\subsection{Proposed updated statements for PRL "Testing GR" paper}
-\label{sec:prop-updat-stat}
-
-Qualitatively these results agree with what was stated and presented in the submitted PRL version.
-However the numbers \emph{are} slightly different.
-Because we consider this version more ``mature'', more fully tested and characterized (and the previous results did contain a few minor bugs and
-inconsistencies that have been fixed), we propose to update the text and results when re-submitting the paper to PRL in the following way:
-
-\begin{center}
-  \parbox{0.7\textwidth}{
-    The $90\%$ posterior contour starts to overlap with GR prediction from
-    the IMR waveform for $\tStart = \tMerger + 3\,\ms$, or $\sim10\,M$
-    after merger. The corresponding log Bayes factor at this point
-    is $\log_{10}B \sim 17$ and the MAP waveform SNR is $\sim 9$. For
-    $\tStart = \tMerger + 5\,\ms$ the MAP parameters fall within the contour
-    predicted in GR for the least-damped QNM, with $\log_{10}B \sim \replace{9}{8}$
-    and SNR\ $\sim 7$. At $\tStart = \tMerger + \replace{7}{6.5}\,\ms$, or about $\sim20\,M$ after merger,
-    the posterior uncertainty becomes quite large, and the Bayes
-    factor drops to $\log_{10}B \sim \replace{2.6}{3}$ with SNR\ $\sim \replace{4.4}{5}$. The signal
-    becomes undetectable shortly thereafter, for $t0 \ge \tMerger + \replace{8}{9}\,\ms$,
-    where $B \sim 1$.
-  }
-\end{center}
-
-and new posterior-contour plot for these selected time-steps (new plot on the right, current plot on the left):
-
-\parbox{\textwidth}{
-\includegraphics[width=0.49\textwidth]{./QNM-contours-orig.png}
-\includegraphics[width=0.49\textwidth]{{./Results/Results-160406-12h01-onSource4-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Posterior-Contours}.pdf}
+  \centering
+  \includegraphics[width=0.9\textwidth]{{\onSourceDir/t0Evolution}.pdf}
+  \includegraphics[width=0.8\textwidth]{{\onSourceDir/Posterior-Contours}.pdf}
 }
 
 \section{Testing and characterizing pipeline performance}
 
-We perform two types of tests to characterize the performance of the search pipeline and parameter estimation (PE).
-First, we test the distribution of Bayes factors, SNR and PE-intervals on ``off-source'' pure noise data, in order to assess the significance of the
-``on source'' values found for GW150914.
-Second, we perform searches on QNM-injections with known parameters and quantify the accuracy of parameter-estimation and of posterior coverage.
+\newcommand{\offSourceGaussDir}{./Results/Results-160410-08h29-offSource10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24}
+\newcommand{\offSourceDir}{./Results/Results-160410-10h52-offSource10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0}
 
 \subsection{Off-source searches}
 \label{sec:source-searches}
-
-We test off-source search performance on Gaussian white noise, as well as on real detector data around GW150914, using $1000$ random start times
-$\tStart \in \left( {[-3,-0.5]}\,\sec \cup {[0.5,3]}\,\sec\right) + \tMerger$.
-
-\newpage
-\subsubsection{Gaussian white noise with PSD $\sqrt{S_X} = 8\times10^{-24}/\sqrt{\Hz}$}
-\label{sec:gaussian-white-noise}
-
 \parbox{\textwidth}{
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-19h18-offSource1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24/BSG-hists}.pdf}\\
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-19h18-offSource1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24/t0Evolution}.pdf}
+  We test off-source search performance on Gaussian white noise, as well as on real detector data around GW150914, using
+  $10,000$ random start times $\tStart \in \left( {[-3,-0.5]}\,\sec \cup {[0.5,3]}\,\sec\right) + \tMerger$.\\[0.5cm]
+  \textbf{Searches in Gaussian noise:}\\[-0.5cm]
+  \includegraphics[width=0.8\textwidth]{{\offSourceGaussDir/BSG-hists}.pdf}\\[0.5cm]
+  \textbf{Searches in real (off-source) data:}\\[-0.5cm]
+  \includegraphics[width=0.8\textwidth]{{\offSourceDir/BSG-hists}.pdf}
 }
 
-\newpage
-\subsubsection{Off-source detector data around GW150914}
-\label{sec:gaussian-white-noise}
-
-\parbox{\textwidth}{
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-19h33-offSource1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/BSG-hists}.pdf}\\
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-19h33-offSource1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/t0Evolution}.pdf}
-}
 
 \newpage
-
 \subsection{Testing parameter-estimation accuracy on injections}
 \label{sec:test-param-estim}
 
-We test off-source search and PE performance on injected QNM signals with perfectly-matched start-time $\tStart$, using $1000$ random start times
-$\tStart \in \left( {[-3,-0.5]}\,\sec \cup {[0.5,3]}\,\sec\right) + \tMerger$. The QNM parameters are drawn from the following \emph{uniform} distributions
+We test PE performance on injected QNM signals with perfectly-matched start-time $\tStart$, using $10,000$ random start times
+$\tStart \in \left( {[-3,-0.5]}\,\sec \cup {[0.5,3]}\,\sec\right) + \tMerger$.
+
+We consider two cases: (i) QNM parameters drawn from the following uniform distributions
 \begin{align}
   \label{eq:24}
   A      & \in {[3,8]}\times10^{-22}\,,\\
   \phi_0 &\in {[0,2\pi]}\,,\\
-  f_0    &\in {[200,300]}\,\Hz\,,\\
+  \freq  &\in {[200,300]}\,\Hz\,,\\
   \tau   &\in {[0.5,20]}\,\ms\,,
 \end{align}
 which correspond to the assumed prior distributions for these parameters, except for the amplitude $A$, which has a more complicated (non-flat) prior,
 as shown in Fig.~\ref{fig:AmpPrior}.
-In order to avoid injecting a discontinuity at $\tStart$ (which would create problems when band-passing and FFTing the data), we include a smooth
-``ringup'' with characteristic timescale $-\tau/10$ in the injections, i.e.\ $s(t<\tStart) = A\,e^{10\frac{t-\tStart}{\tau}}\cos\left(2\pi \freq
-  (t-\tStart) + \phi_0\right)$ instead of $s(t<\tStart)=0$ as used in the template.
+(ii) QNM parameters with fixed ``IMR values'' $\freq =  251\,\Hz,\;\tau = 4\,\ms$, with $A,\phi_0$ drawn randomly as in (i).
+
+In order to avoid injecting a discontinuity at $\tStart$ (which would create problems when band-passing and FFTing the data), we preface the ringdown
+with a smooth short ``ringup'' with characteristic timescale $\tau/10$ in the injections, i.e.\
+$s(t<\tStart) = A\,e^{10\frac{t-\tStart}{\tau}}\cos\left(2\pi \freq (t-\tStart) + \phi_0\right)$ instead of $s(t<\tStart)=0$ as for the template.
 
 --> plot figure
 
@@ -580,42 +572,138 @@ We consider 4 injection scenarios:
 Cases 1-3 essentially serve to test self-consistency of the method and implementation, given that we know exactly what to expect, i.e.\ in order to
 catch mistakes or bugs. Case 4 serves to test the validity of our assumptions (mostly about the noise) in real detector data.
 
+\newcommand{\InjSignalOnlyPriorRangesDir}{./Results/Results-160408-19h21-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectPriorRanges-injectSqrtSX_0_0-assumeSqrtSX_8e-24_8e-24}
+\newcommand{\InjKnownGaussPriorRangesDir}{./Results/Results-160408-21h14-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectPriorRanges-injectSqrtSX_8e-24_8e-24-assumeSqrtSX_8e-24_8e-24}
+\newcommand{\InjUnknownGaussPriorRangesDir}{./Results/Results-160408-23h07-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectPriorRanges-injectSqrtSX_8e-24_8e-24}
+\newcommand{\InjOffSourcePriorRangesDir}{./Results/Results-160409-01h00-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectPriorRanges}
+
 \newpage
-\subsubsection{Case 1: Signal-only injections into assumed white noise}
+\subsubsection{Case 1(i): Prior-range $\{\freq,\tau\}$ injections, signal-only with assumed white noise}
 \label{sec:case-1:injections-signal-only}
 
 \parbox{\textwidth}{
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-19h47-injections1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_0_0-assumeSqrtSX_8e-24_8e-24/Injections-PE-errors}.pdf}\\
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-19h47-injections1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_0_0-assumeSqrtSX_8e-24_8e-24/Injections-PE-coverage}.pdf}
+  \includegraphics[width=0.9\textwidth]{{\InjSignalOnlyPriorRangesDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjSignalOnlyPriorRangesDir/Injections-PE-coverage}.pdf}
 }
 
 \newpage
-\subsubsection{Case 2: Injections into \textbf{known} Gaussian noise of $\sqrt{S_X}=8\times10^{-24}/\sqrt{\Hz}$}
+\subsubsection{Case 2(i): Prior-range $\{\freq,\tau\}$ injections, \textbf{known} Gaussian white noise}
 \label{sec:case-2:injections-known-Gauss}
 
 \parbox{\textwidth}{
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h02-injections1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24-assumeSqrtSX_8e-24_8e-24/Injections-PE-errors}.pdf}\\
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h02-injections1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24-assumeSqrtSX_8e-24_8e-24/Injections-PE-coverage}.pdf}
+  \includegraphics[width=0.9\textwidth]{{\InjKnownGaussPriorRangesDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjKnownGaussPriorRangesDir/Injections-PE-coverage}.pdf}
 }
 
 \newpage
-\subsubsection{Case 3: Injections into \textbf{unknown} Gaussian noise of $\sqrt{S_X}=8\times10^{-24}/\sqrt{\Hz}$}
+\subsubsection{Case 3(i): Prior-range $\{\freq,\tau\}$ injections, \textbf{unknown} Gaussian white noise}
 \label{sec:case-3:injections-unknown-Gauss}
 
 \parbox{\textwidth}{
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h16-injections1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24/Injections-PE-errors}.pdf}\\
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h16-injections1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24/Injections-PE-coverage}.pdf}
+  \includegraphics[width=0.9\textwidth]{{\InjUnknownGaussPriorRangesDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjUnknownGaussPriorRangesDir/Injections-PE-coverage}.pdf}
+}
+
+\newpage
+\subsubsection{Case 4(i): Prior-range $\{\freq,\tau\}$ injections, off-source detector data}
+\label{sec:case-4:injections-real-noise}
+
+\parbox{\textwidth}{
+  \includegraphics[width=0.9\textwidth]{{\InjOffSourcePriorRangesDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjOffSourcePriorRangesDir/Injections-PE-coverage}.pdf}
+}
+
+\newcommand{\InjSignalOnlyIMRDir}{./Results/Results-160409-02h53-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectIMR-injectSqrtSX_0_0-assumeSqrtSX_8e-24_8e-24}
+\newcommand{\InjKnownGaussIMRDir}{./Results/Results-160409-04h46-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectIMR-injectSqrtSX_8e-24_8e-24-assumeSqrtSX_8e-24_8e-24}
+\newcommand{\InjUnknownGaussIMRDir}{./Results/Results-160409-06h39-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectIMR-injectSqrtSX_8e-24_8e-24}
+\newcommand{\InjOffSourceIMRDir}{./Results/Results-160409-08h32-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectIMR}
+
+\newpage
+\subsubsection{Case 1(ii): IMR $\{\freq,\tau\}$ injections, signal-only with assumed white noise}
+\label{sec:case-1:injections-signal-only}
+
+\parbox{\textwidth}{
+  \includegraphics[width=0.9\textwidth]{{\InjSignalOnlyIMRDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjSignalOnlyIMRDir/Injections-PE-coverage}.pdf}
+}
+
+\newpage
+\subsubsection{Case 2(ii): IMR $\{\freq,\tau\}$ injections, \textbf{known} Gaussian white noise}
+\label{sec:case-2:injections-known-Gauss}
+
+\parbox{\textwidth}{
+  \includegraphics[width=0.9\textwidth]{{\InjKnownGaussIMRDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjKnownGaussIMRDir/Injections-PE-coverage}.pdf}
+}
+
+\newpage
+\subsubsection{Case 3(ii): IMR $\{\freq,\tau\}$ injections, \textbf{unknown} Gaussian white noise}
+\label{sec:case-3:injections-unknown-Gauss}
+
+\parbox{\textwidth}{
+  \includegraphics[width=0.9\textwidth]{{\InjUnknownGaussIMRDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjUnknownGaussIMRDir/Injections-PE-coverage}.pdf}
+}
+
+\newpage
+\subsubsection{Case 4(ii): IMR $\{\freq,\tau\}$ injections, off-source detector data}
+\label{sec:case-4:injections-real-noise}
+
+\parbox{\textwidth}{
+  \includegraphics[width=0.9\textwidth]{{\InjOffSourceIMRDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjOffSourceIMRDir/Injections-PE-coverage}.pdf}
 }
 
 
 \newpage
-\subsubsection{Case 4: Injections into off-source detector data around GW150914}
-\label{sec:case-4:injections-real-noise}
 
-\parbox{\textwidth}{
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h31-injections1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Injections-PE-errors}.pdf}\\
-  \includegraphics[width=0.9\textwidth]{{./Results/Results-160405-20h31-injections1000-data30Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/Injections-PE-coverage}.pdf}
-}
+\subsection{Varying $\tStart$ at fixed IMR injection $\{A = 2.5\times10^{21}, \phi_0 = 0\}$}
+\label{sec:varying-tstart-at}
+
+\newcommand{\onInjectionDir}{./Results/Results-160410-11h03-onInjection11-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24}
+\begin{figure}[htbp]
+  \vspace*{-1cm}
+  \includegraphics[width=0.8\textwidth]{{\onInjectionDir/t0Evolution}.pdf}\\[-0.7cm]
+  \includegraphics[width=0.8\textwidth]{{\onInjectionDir/Posterior-Contours}.pdf}
+  \caption{Example 1 in Gaussian noise}
+\end{figure}
+
+\renewcommand{\onInjectionDir}{./Results/Results-160410-11h04-onInjection11-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24}
+\begin{figure}[htbp]
+  \includegraphics[width=0.9\textwidth]{{\onInjectionDir/t0Evolution}.pdf}
+  \includegraphics[width=0.8\textwidth]{{\onInjectionDir/Posterior-Contours}.pdf}
+  \caption{Example 2 in Gaussian noise}
+\end{figure}
+
+\renewcommand{\onInjectionDir}{./Results/Results-160410-11h06-onInjection11-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24}
+\begin{figure}[htbp]
+  \includegraphics[width=0.9\textwidth]{{\onInjectionDir/t0Evolution}.pdf}
+  \includegraphics[width=0.8\textwidth]{{\onInjectionDir/Posterior-Contours}.pdf}
+  \caption{Example 3 in Gaussian noise}
+\end{figure}
+
+
+\renewcommand{\onInjectionDir}{./Results/Results-160410-11h23-onInjection11-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0}
+\begin{figure}[htbp]
+  \includegraphics[width=0.9\textwidth]{{\onInjectionDir/t0Evolution}.pdf}
+  \includegraphics[width=0.8\textwidth]{{\onInjectionDir/Posterior-Contours}.pdf}
+  \caption{Example 1 in real off-source data}
+\end{figure}
+
+\renewcommand{\onInjectionDir}{./Results/Results-160410-11h24-onInjection11-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0}
+\begin{figure}[htbp]
+  \includegraphics[width=0.9\textwidth]{{\onInjectionDir/t0Evolution}.pdf}
+  \includegraphics[width=0.8\textwidth]{{\onInjectionDir/Posterior-Contours}.pdf}
+  \caption{Example 2 in real off-source data}
+\end{figure}
+
+
+\renewcommand{\onInjectionDir}{./Results/Results-160410-11h26-onInjection11-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0}
+\begin{figure}[htbp]
+  \includegraphics[width=0.9\textwidth]{{\onInjectionDir/t0Evolution}.pdf}
+  \includegraphics[width=0.8\textwidth]{{\onInjectionDir/Posterior-Contours}.pdf}
+  \caption{Example 3 in real off-source data}
+\end{figure}
 
 
 \newpage
