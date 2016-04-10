@@ -108,7 +108,8 @@ function plotSnapshot ( res, resCommon, plotMarkers = [] )
   plot( Dti_ms, tmpl_MPE.xi, ";MPE ;", "linewidth", 4, "color", "black" );
   legend ( "location", "NorthEast");
   yrange = [-1.8e-21, 1.7e-21 ];
-  xrange = [tOffs_ms - 15, tOffs_ms + 5 * tau_ms ];
+  taumsMax = 1e3 * max ( tauRange );
+  xrange = [tOffs_ms - taumsMax/2, tOffs_ms + 1.3 * taumsMax ];
   line ( [ 0, 0 ],   yrange, "linestyle", "-", "linewidth", 2 );
   line ( tOffs_ms * [1,1], yrange, "linestyle", "--", "linewidth", 3 );
   xlabel ( sprintf ( "H1:%.6f s + tOffs [ms]", tMerger ) );
