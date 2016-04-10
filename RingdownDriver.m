@@ -293,29 +293,36 @@ endif
 if ( doPlotBSGHist )
   figure (); clf;
 
-  subplot ( 2,2, 1);
+  subplot ( 2, 2, 1); hold on;
   hist ( log10 ( [resV.BSG] ), 100 );
+  log10Bmax = max ( log10([resV.BSG]) );
+  line ( log10Bmax * [1,1], ylim, "linestyle", "--", "linewidth", 2 );
   grid on;
   xmax = max ( xlim() );
   xlim ( [ -1.3, xmax ] );
   xlabel ( "log10<BSG>" );
 
-  subplot ( 2,2, 2); hold on;
+  subplot ( 2, 2, 2); hold on;
   hist ( [[resV.AmpMP].SNR], 100 );
   %%hist ( [[resV.AmpML].SNR], 100 );
   grid on;
   xmax = max ( xlim() );
   xlim ( [ 0, xmax ] );
-  xlabel ( "SNR" );
+  xlabel ( "SNR-MPE" );
 
-  subplot ( 2,2, 3);
+  subplot ( 2, 2, 3); hold on;
   f0MP = [[resV.lambdaMP].f0]';
-  taumsMP = [[resV.lambdaMP].tau]' * 1e3;
-  hist3 ( [ f0MP, taumsMP ], 20 );
+  hist ( f0MP, 40 );
+  grid on;
   xlim ( prior_f0Range );
-  ylim ( prior_tauRange * 1e3 );
-  xlabel ("f0 [Hz]");
-  ylabel ("tau [ms]");
+  xlabel ("f0-MPE [Hz]");
+
+  subplot ( 2, 2, 4); hold on;
+  taumsMP = [[resV.lambdaMP].tau]' * 1e3;
+  hist ( taumsMP, 40 );
+  grid on;
+  xlim ( prior_tauRange * 1e3 );
+  xlabel ("tau-MPE [ms]");
 
   fname = sprintf ( "%s/BSG-hists.pdf", resDir );
   ezprint ( fname, "width", 512 );
