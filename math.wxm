@@ -145,7 +145,9 @@ heTD : exp ( -Dt * (1/tau + %i*2*%pi * f0 ) );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-plot2d ( ev ( [ hsAbs2, hcAbs2 ], f0=250, tau=4.5e-3, t0=0), [f, 0, 1e3] );
+plot2d ( ev ( [ sqrt(hsAbs2), sqrt(hcAbs2) ], f0=250, tau=2e-3, t0=0), [f, 0, 2e3],
+[legend, "|hsFT|", "|hcFT|"]
+ );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
@@ -154,10 +156,6 @@ hsAbs2;
 
 /* [wxMaxima: input   start ] */
 heFT2 : integrate ( heTD * exp(-%i*2*%pi*f*Dt), Dt, 0, inf );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d ( ev([ realpart(heFT), imagpart(heFT), realpart(heFT2), imagpart(heFT2)], f0=210, tau=4e-3, t0=0), [f, -1e3, 1e3] );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
