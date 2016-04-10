@@ -19,12 +19,25 @@
 
 global debugLevel = 1;
 
+if ( !exist("searchType") )     searchType = "verify"; endif
+if ( !exist("extraLabel") )     extraLabel = ""; endif
+if ( !exist("Tseg") )		Tseg = 8; endif				%% length of data segment (in s) to analyse, centered on 'tMerger'
+if ( !exist("injectionSources") ) injectionSources = []; endif
+if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = []; endif
+if ( !exist("injectSqrtSX") ) 	injectSqrtSX = []; endif
+if ( !exist("noMismatchInj") )  noMismatchInj = false; endif		%% inject at exact {f0,tau} grid-points for zero mismatch
+if ( !exist("numTrials") )      numTrials = 10; endif			%% for 'MC-like' search types {offSource, injections}
+
 %% --------------------------------------------------
 %% run a ringdown search as function of start-time 't0' on GW150914
 %% --------------------------------------------------
 
 %% ========== driver parameters ==========
-SFTs = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C01-1126258841-1800.sft" };
+SFTs_C00 = {"./Data/H-1_H1_1800SFT_ER8-C00-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C00-1126258841-1800.sft" };
+SFTs_C01 = {"./Data/H-1_H1_1800SFT_ER8-C01-1126257832-1800.sft"; "./Data/L-1_L1_1800SFT_ER8-C01-1126258841-1800.sft" };
+%%SFTs = SFTs_C00; extraLabel = "-C00";
+SFTs = SFTs_C01;
+
 numIFOs = length ( SFTs );
 fSamp = 4000;	%% full sampling frequency of fmax=2kHz SFT, and conveniently such that 7.0ms timeshift between IFOs
                 %% can be represented by exactly by an integer bin-shift: 7e-3 s * 4e3 Hz =  28.0 bins
@@ -42,15 +55,6 @@ doPlotSpectra   = false;
 doPlotBSGHist   = false;
 doPlotH         = false;
 doPlotPErecovery= false;
-
-if ( !exist("searchType") )     searchType = "verify"; endif
-if ( !exist("extraLabel") )     extraLabel = ""; endif
-if ( !exist("Tseg") )		Tseg = 8; endif				%% length of data segment (in s) to analyse, centered on 'tMerger'
-if ( !exist("injectionSources") ) injectionSources = []; endif
-if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = []; endif
-if ( !exist("injectSqrtSX") ) 	injectSqrtSX = []; endif
-if ( !exist("noMismatchInj") )  noMismatchInj = false; endif		%% inject at exact {f0,tau} grid-points for zero mismatch
-if ( !exist("numTrials") )      numTrials = 10; endif			%% for 'MC-like' search types {offSource, injections}
 
 %% ----- 'GR predictions/values on GW150914 ----------
 tMergerGW150914 = 1126259462.423;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
