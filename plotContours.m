@@ -37,7 +37,7 @@ function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
     endfor
   endif
 
-  colors = {"green", "magenta", "red", "yellow"};
+  colors = {[0,128,0]./256, [128,0,128]./256, [220,20,60]./256, [255, 165, 0]./256 };
   counter = 0;
   for l = 1 : Nsearches
     if ( !isempty(select) && all ( l != select ) ) continue; endif
@@ -48,12 +48,12 @@ function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
       [C, H] = contour ( ff0, ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );
     endif
     set ( H, "linecolor", color_l, "linewidth", 5, "linestyle", "--" );
-    leg = sprintf ( "tM + %.1fms", resV(l).tOffs * 1e3 );
+    leg = sprintf ( "%.1fms", resV(l).tOffs * 1e3 );
     cl = clabel ( C, H, "FontSize", 12, "Color", color_l);
     set ( cl, "string", "" );
     %%set ( cl(1), "string", leg );
     set ( cl(end), "string", leg );
-    plot ( resV(l).lambdaMP.f0, resV(l).lambdaMP.tau * 1e3, sprintf ( "x;%s;", leg ), 'markeredgecolor', color_l, "markersize", 5 );
+    plot ( resV(l).lambdaMP.f0, resV(l).lambdaMP.tau * 1e3, "*", 'markeredgecolor', color_l, "markersize", 6 );
   endfor
   xlabel ( "Freq [Hz]" );
   ylabel ( "tau [ms]" );
