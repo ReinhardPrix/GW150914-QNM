@@ -70,7 +70,7 @@ dtau = 0.5e-3;
 prior_HRange    = [ 2, 10 ] * 1e-22;
 dH = 1e-22;
 
-if ( !exist("injectionRanges") ) injectionRanges = struct ( "name", "injectPriorRanges", "A", [3e-22, 8e-22], "f0", prior_f0Range, "tau", prior_tauRange ); endif
+if ( !exist("injectionRanges") ) injectionRanges = struct ( "name", "injectPriorRanges", "f0", prior_f0Range, "tau", prior_tauRange ); endif
 
 if ( !exist ( "prior_H" ) )
   H_i = [ min(prior_HRange) : dH : max(prior_HRange) ];
@@ -78,6 +78,18 @@ if ( !exist ( "prior_H" ) )
   p_i /= sum ( p_i(:) );
   prior_H = struct ( "x", H_i, "px", p_i );
 endif
+function pA = priorAJeffrey ( A, prior_H )
+  pA = zeros ( size ( A ) );
+  for i = 1 : length ( prior_H.x )
+    H_i = [prior_H.x](i);
+    p_i = [prior_H.px](i);
+    pA_H = (A/H_i^2) .* exp(-A.^2 / (2*H_i^2) );
+    pA += p_i * pA_H;
+  endfor
+  return;
+endfunction
+pAfunc = @(A) priorAJeffrey ( A, prior_H );
+priorAHist = initHistFromFunc ( Hist ( 1, {"lin", "dbin", 0.1e-22} ), pAfunc, [ 0.1e-22, 25e-22] );
 
 PErecovery = struct();
 
@@ -145,9 +157,14 @@ switch ( searchType )
 
     injectionSources = struct();
     for m = 1 : numTrials
+      if ( isfield ( injectionRanges, "A" ) && isvector ( injectionRanges.A ) )
+        A = unifrnd ( min(injectionRanges.A), max(injectionRanges.A)*(1+eps) );
+      else
+        A = drawFromHist ( priorAHist, 1 );
+      endif
       injectionSources(m) = struct ( "name", 	sprintf("QNM-%d", m), ...
                                      "t0", 	t0V(m), ...
-                                     "A", 	unifrnd ( min(injectionRanges.A), max(injectionRanges.A)*(1+eps) ), ...
+                                     "A", 	A, ...
                                      "phi0", 	unifrnd ( 0, 2*pi ), ...
                                      "f0",	unifrnd ( min(injectionRanges.f0), max(injectionRanges.f0)*(1+eps) ), ...
                                      "tau", 	unifrnd ( min(injectionRanges.tau), max(injectionRanges.tau)*(1+eps) ), ...
@@ -236,11 +253,6 @@ for m = 1 : numSearches
   endif
   res_m = rmfield ( res_m, { "Mxy", "ff0", "ttau" } );
 
-  %% 'augment' with derived results for easier plotting
-  res_m.f0_est   = credibleInterval ( res_m.posterior_f0, confidence );
-  res_m.tau_est  = credibleInterval ( res_m.posterior_tau, confidence );
-  res_m.isoConf2 = credibleContourLevel ( res_m.BSG_f0_tau, confidence );
-
   res_m.tMerger  = tMerger;
   res_m.tOffs    = t0V(m) - tMerger;
   res_m.bname    = sprintf ( "Search%04d-GPS%.6fs", m, t0V(m) );
@@ -260,6 +272,12 @@ endfor %% m = 1 : numSearches
 %% ---------- plot snapshot for all t0Offs
 if ( doPlotSnapshots )
   for m = 1 : numSearches
+
+    %% 'augment' with derived results for easier plotting
+    resV(m).f0_est   = credibleInterval ( resV(m).posterior_f0, confidence );
+    resV(m).tau_est  = credibleInterval ( resV(m).posterior_tau, confidence );
+    resV(m).isoConf2 = credibleContourLevel ( resV(m).BSG_f0_tau, confidence );
+
     plotSnapshot ( resV(m), resCommon, plotMarkers );
     fname = sprintf ( "%s/%s-snapshot.pdf", resDir, resV(m).bname );
     ezprint ( fname, "width", 512 );
