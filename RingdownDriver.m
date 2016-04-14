@@ -22,6 +22,7 @@ global debugLevel = 1;
 if ( !exist("searchType") )     searchType = "verify"; endif
 if ( !exist("extraLabel") )     extraLabel = ""; endif
 if ( !exist("Tseg") )		Tseg = 8; endif				%% length of data segment (in s) to analyse, centered on 'tMerger'
+if ( !exist("multiModeInjectionSources") ) multiModeInjectionSources = []; endif
 if ( !exist("injectionSources") ) injectionSources = []; endif
 if ( !exist("assumeSqrtSX") ) 	assumeSqrtSX = []; endif
 if ( !exist("injectSqrtSX") ) 	injectSqrtSX = []; endif
@@ -179,6 +180,25 @@ switch ( searchType )
     doPlotPErecovery= true;
     doPlotSpectra   = true;
 
+  case "multiModeInjections"
+    tMerger = tMergerGW150914 + 1;
+
+    if ( isempty ( multiModeInjectionSources ) )
+      multiModeInjectionSources = struct ( "name", {"inj1", "inj2"}, ...
+                                           "t0", {tMerger, tMerger}, ...
+                                           "A", {2.5e-21, 2.5e-21}, ...
+                                           "phi0", {0, 0}, ...
+                                           "f0", {180, 380}, ...
+                                           "tau", {3e-3, 3e-3}, ...
+                                           "skyCorr", {skyCorr, skyCorr}
+                                         );
+    endif
+
+    t0V = tMerger;
+    doPlotSnapshots = true;
+    plotMarkers = multiModeInjectionSources;
+    prior_f0Range   = [ 100, 400 ];
+
   otherwise
     error ("Unknown searchType = '%s' specified\n", searchType );
 
@@ -231,6 +251,8 @@ for m = 1 : numSearches
   if ( !isempty ( injectionSources ) )
     %% ----- inject QNM signal(s) into analysis segment (wouldn't have changed PSD estimate, which excluded TimeRange)
     multiTS0Inj = injectQNMs ( multiTS0, injectionSources(m) );
+  elseif ( !isempty ( multiModeInjectionSources ) )
+    multiTS0Inj = injectQNMs ( multiTS0, multiModeInjectionSources );
   else
     multiTS0Inj = multiTS0;
   endif
