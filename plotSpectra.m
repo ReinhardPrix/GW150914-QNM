@@ -1,4 +1,4 @@
-function [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD )
+function [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD, xrange = [0, 2e3] )
 
   psd0_H1 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0H1-PSD.dat" );
   psd0_L1 = load ( "./Data/lalinferencemcmc-0-H1L1-1126259462.39-0L1-PSD.dat");
@@ -38,20 +38,20 @@ function [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD )
     endif
 
     %% ----- plot PSD for detector X
-    subplot ( numIFOs, 1, X ); hold on;
+    subplot ( numIFOs, 1, X, "align" ); hold on;
     semilogy ( ts.fk, abs ( ts.xk ) / sqrt(T), sprintf ( "+-;%s;", IFO), "color", "blue" );
     if ( !isempty( "psd0" ) )
       semilogy ( psd0(:,1), sqrt(psd0(:,2)), "x", "color", "magenta" );
     endif
     semilogy ( psd.fk, sqrt(psd.Sn), "o", "color", "green" );
-    xlim ( [0, 2e3] );
+    xlim ( xrange );
     ylim ( [ 1e-24, 1e-20 ] );
     grid on;
-    xlabel ("Freq [Hz]");
     legend ( "location", "NorthEast" );
     ylabel ( "sqrt(Sn) [Hz^(-1/2)]" );
 
   endfor %% X = 1:numIFOs
+  xlabel ("Freq [Hz]");
 
   H_spect = figure(); clf;
   for X = 1 : numIFOs
@@ -59,18 +59,17 @@ function [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD )
     IFO = ts.IFO;
 
     %% ----- plot whitened and over-whitened spectra for detector X
-    subplot ( 2, numIFOs, X );
+    subplot ( 2, numIFOs, X, "align" );
     plot ( ts.fk, abs ( ts.xkW ), sprintf("+-;%s;",IFO), "color", "blue" );
-    xlim ( [0, 2e3] );
+    xlim ( xrange );
     ylim ( [ 0, 20 ] );
     grid on;
-    xlabel ("Freq [Hz]");
     legend ( "location", "NorthEast" );
     if ( X == 1 ) ylabel ( "|x|/sqrt(SX)" ); endif
 
     subplot ( 2, numIFOs, X + numIFOs );
     plot ( ts.fk, abs ( ts.xkOW ), sprintf("+-;%s;",IFO), "color", "blue" );
-    xlim ( [0, 2e3] );
+    xlim ( xrange );
     ylim ( [ 0, 2e24 ] );
     xlabel ("Freq [Hz]");
     grid on;
@@ -78,6 +77,7 @@ function [H_psd, H_spect] = plotSpectra ( multiTS, multiPSD )
     if ( X == 1 ) ylabel ( "|x|/SX" ); endif
 
   endfor %% X = 1 : numIFOs
+  xlabel ("Freq [Hz]");
 
   return;
 
