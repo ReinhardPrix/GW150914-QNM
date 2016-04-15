@@ -65,16 +65,18 @@ A number of changes compared to the previous version (v3,v3+) that went into the
 \item bug: previously the 'SNR-term' in the likelihood $\scalar{s}{s}$ was computed over the full SFT frequency band $[10,2000]\,\Hz$, instead of
   the relevant narrow-banded data $[30,1000]\,\Hz$ actually used in the search-term $\scalar{x}{s}$
 
-\item bug/inconsistency (up to version 'v4-'): used tukey(0.1) on SFT data before inv-FFTing into time-domain, but used data from 30Hz, which was
-  still affected by Tukey-window (visible in PSD estimates). Reduced to tukey(0.02) now, which is enough to avoid creating spurious time-domain noise,
-  and stays outside the actually-used frequency band.
+\item bug/inconsistency (up to version 'v4-'): I had used a tukey(0.1) window on SFT data (spanning ${[10,2000]}\Hz$) before inv-FFTing into
+  time-domain, and then used data starting from 30Hz. At these low frequencies, however, the data was still affected by the Tukey-window (clearly
+  visible in the previous PSD estimates). I've now reduced this to tukey(0.02), which is enough to avoid creating spurious time-domain noise, and even
+  allowed me to push the low-frequency end down to $20\,\Hz$.
 
-\item expanded used data-range from ${[30,1000]}\,\Hz$ to ${[20,1900]}\,\Hz$ (avoid lower and upper boundaries near 10Hz and 2000Hz affected by tukey(0.02)-windowing).
+\item expanded used data-range from previously ${[30,1000]}\,\Hz$ to ${[20,1900]}\,\Hz$ (which avoids the lower and upper boundaries near 10Hz and 2000Hz affected by tukey(0.02)-windowing).
 
-\item apply tukey(0.1)-windowing to time-series data before FFTing (for whitening): avoid red-noise artifacts, especially visible in L1 whitened
-  spectra in previous versions (up to 'v4-')
+\item apply tukey(0.1)-windowing to the $T=8\,$s time-series data before FFTing for whitening: this avoids red-noise artifacts, especially visible in
+  L1 whitened spectra in previous versions (up to 'v4-'). Contrary to the frequency domain, none of the data near the start and end is actually used,
+  so a wider window is used.
 
-\item PSD estimation: avoid using the data-segment of $8\,\sec$ containing GW150914 (or any injections) to avoid affecting the PSD estimate
+\item PSD estimation: avoid using the central data-segment of $T=8\,\sec$ containing GW150914 (or any injections) to avoid affecting the PSD estimate
 
 \item slight inconsistency: previous results used  $\tMerger = 1126259462.42285$, while the paper stated  $\tMerger = 1126259462.423$
   (rounded to $\ms$). While small, this \emph{does} change the numbers (and posteriors) slightly, especially towards the end ($+7\ms$), due to the
@@ -100,15 +102,16 @@ All results shown in this version of the notes were produced using the ringdown 
 \subsection{Proposed updated statements for PRL "Testing GR" paper}
 \label{sec:prop-updat-stat}
 
-Qualitatively these results agree with what was stated and presented in the submitted PRL version.
-However the numbers and posterior contours are different.
-This version is more mature/converged, and more fully tested and characterized, after a number of bugs and possible inconsistencies have been fixed
-since v3 (and even v4-).
-We propose to update the text and results when re-submitting the paper to PRL in the following way:
+Qualitatively these results agree with what was stated and presented in the originally submitted PRL version.
+However the numbers and posterior contours are somewhat different.
+However, this version is clearly more mature/converged, and more fully tested and characterized, and a number of bugs and possible inconsistencies
+have been fixed since v3 (and even v4-).
+We therefore propose to update the text and results when re-submitting the paper to PRL in the following way:
 
 \begin{center}
   \parbox{0.7\textwidth}{
-    We use data band-passed to ${[20,1900]}\,\Hz$\\
+    We use 1800s of detector data containing GW150914 from H1 and L1, band-passed to ${[20,1900]}\,\Hz$.
+    We assume the signal arrived $7\,\ms$ earlier in L1 compared to H1, and that the amplitude has opposite sign in both detectors. [ref detection paper?]\\
     \ldots\\
     The $90\%$ posterior contour overlaps the GR prediction from
     the IMR waveform after about $\tStart \gtrsim \tMerger + 3\,\ms$, or $\sim10\,M$
@@ -119,12 +122,13 @@ We propose to update the text and results when re-submitting the paper to PRL in
     and SNR\ $\sim 6.5$. At $\tStart = \tMerger + 6.5\,\ms$, or about $\sim20\,M$ after merger,
     the posterior uncertainty becomes quite large, and the Bayes
     factor drops to $\log_{10}B \sim 3.5$ with SNR\ $\sim 4.8$. The signal
-    becomes undetectable at about $\tStart \gtrsim \tMerger + 8.5\,\ms$,
+    becomes undetectable after about $\tStart \gtrsim \tMerger + 8.5\,\ms$,
     where $B \lesssim 1$.
   }
 \end{center}
 
-and new posterior-contour plot for these selected time-steps (new plot on the right, current plot on the left):
+New posterior contours [the official plot will again be produced by Walter] for selected time-steps (new result on the right, current plot on the
+left):\\
 \newcommand{\onSourceDir}{./Results/Results-160410-08h23-onSource13-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0/}
 \parbox{\textwidth}{
 \includegraphics[width=0.49\textwidth]{./QNM-contours-orig.png}
@@ -137,68 +141,86 @@ and new posterior-contour plot for these selected time-steps (new plot on the ri
 \label{Intro}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Signal model: damped sinusoid starting at $\tStart$:
+Signal model: damped sinusoid starting at $\tStart$, writing $\Dt \equiv t - \tStart$:
 \begin{align}
   \label{eq:1}
-  s(t;\,A, \phi_0\,, \tStart, \tau, \freq) &= A\,w(t-\tStart,\,\tau)\,\cos\left(2\pi\,\freq\,(t-\tStart) + \phi_0\right)\,,\\
-  w(t, \tau) &=
+  s(t;\, A,\phi_0,\,\tStart,\tau,\freq) &=
   \begin{cases}
-    \exp\left( -\frac{t}{\tau} \right) & \text{if } t \ge 0\,\\
-    0  & \text{if } t < 0
+    A\,\exp\left(-\frac{\Dt}{\tau}\right)\,\cos\left(2\pi\,\freq\,\Dt + \phi_0\right)\,, & \text{if } \Dt \ge 0\,,\\
+    0  & \text{if } \Dt < 0\,.
   \end{cases}
 \end{align}
-Rewrite waveform in terms of two unknown amplitudes $\As = -A\,\sin\phi_0,\,\Ac = A\,\cos\phi_0$ in ``JKS'' factorization
-\cite{bretthorst1988:_bayesian_spectrum,jks98:_data}:
+We re-parametrize $\{A,\phi_0\}$ in terms of two amplitudes, namely
+\begin{align}
+  \label{eq:47}
+  \As &= -A\,\sin\phi_0\,,\\
+  \Ac &= \;\;A\,\cos\phi_0\,,
+\end{align}
+and it is useful to distinguish ``amplitude parameters'' $\parA$ and ``evolution parameters'' $\parE$ as
+\begin{equation}
+  \label{eq:11}
+  \parA \equiv \left(\As,\Ac\right)\,,
+  \quad \parE \equiv \{\tStart,\tau, \freq\}\,.
+\end{equation}
+Using this ``JKS'' factorization \cite{bretthorst1988:_bayesian_spectrum,jks98:_data}, the signal model Eq.~\eqref{eq:1} now reads as:
 \begin{equation}
   \label{eq:2}
-  s(t; \parmsAll) = \As \, \hs(t;\parmsEvol) + \Ac\,\hc(t;\parmsEvol)\,,
+  s(t; \parA,\parE) = \As \, \hs(t;\parE) + \Ac\,\hc(t;\parE)\,,
 \end{equation}
 with \emph{basis functions}
 \begin{align}
   \label{eq:14}
-  \hs(t;\parmsEvol) &\equiv w(t-\tStart,\tau)\,\sin(2\pi \,\freq\,(t-\tStart))\,,\\
-  \hc(t;\parmsEvol) &\equiv w(t-\tStart,\tau)\,\cos(2\pi \,\freq\,(t-\tStart))\,,
+  \hs(t;\parE) &\equiv \exp\left(-\Dt/\tau\right)\,\sin(2\pi \,\freq\,\Dt)\,,\\
+  \hc(t;\parE) &\equiv \exp\left(-\Dt/\tau\right)\,\cos(2\pi \,\freq\,\Dt)\,.
 \end{align}
-and the set of signal parameters separating into ``amplitude parameters'' $\Avec$ and ``evolution parameters'' $\parmsEvol$:
-\begin{equation}
-  \label{eq:11}
-  \parmsAll \equiv \{\Avec, \parmsEvol\}\,,
-  \quad \Avec \equiv \left(\As,\Ac\right)\,,
-  \quad \parmsEvol \equiv \{\tStart,\tau, \freq\}\,.
-\end{equation}
-The likelihoods for Gaussian (colored) noise $\HypG$ and the ringdown model $\HypS$ are
+The likelihoods for Gaussian (colored) noise $\HypG$ and for the ringdown signal model $\HypS$ are
 \begin{align}
-  \label{eq:4}
-  \prob{x}{\HypG} &= c\,e^{-\frac{1}{2}\scalar{x}{x}}\,,\\
-  \prob{x}{\HypS,\parmsAll} &= c\,e^{-\frac{1}{2}\scalar{x-s(\parmsAll)}{x-s(\parmsAll)}}\,,
+  \prob{x}{\HypG} &= c\,\exp\left[-\frac{1}{2}\scalar{x}{x}\right]\,,   \label{eq:4a}\\
+  \prob{x}{\HypS,\parA,\parE} &= c\,\exp\left[-\frac{1}{2}\scalar{x-s\left(\parA,\parE\right)}{x-s\left(\parA,\parE\right)}\right]\,,  \label{eq:4b}
 \end{align}
-with the multi-detector scalar product (over detector index $X$) defined as
+with the multi-detector scalar product (over detectors indexed by $X$) defined as
 \begin{equation}
   \label{eq:5}
-  \scalar{x}{y}\equiv \sum_{X} \scalar{x^X}{y^X} = \sum_X 2\int_{-\infty}^{\infty} \frac{\FT{x}^X(f)\,\FT{y}^{*X}(f)}{S_X(f)}\,df\,,
+  \scalar{x}{y}\equiv \sum_{X} \scalar{x^X}{y^X} = \sum_X 4\Re\int_{0}^{\infty} \frac{\FT{x}^X(f)\,\FT{y}^{*X}(f)}{S_X(f)}\,df\,,
 \end{equation}
-with the per-detector single-sided noise PSD $S_X(f)$ (which results in the prefactor of '2').
+where $S_X(f)$ is the single-sided noise PSD for detector $X$.
 The (marginal) likelihood for the signal model can be expressed as
 \begin{equation}
   \label{eq:6}
-  \prob{x}{\HypS} = \int \prob{x}{\HypS,\parmsAll}\,\prob{\parmsAll}{\HypS}\,d\parmsAll\,,
+  \prob{x}{\HypS} = \int \prob{x}{\HypS,\parA,\parE}\,\prob{\parA,\parE}{\HypS}\,d\parA\,d\parE\,,
 \end{equation}
-and the corresponding Bayes factor (or marginal likelihood ratio)
+and the corresponding Bayes factor (or marginal likelihood ratio) is
 \begin{equation}
   \label{eq:7}
-  \BSG(x) \equiv \frac{\prob{x}{\HypS}}{\prob{x}{\HypG}} = \int \Lr(x;\parmsAll)\,\prob{\parmsAll}{\HypS}\,d\parmsAll\,,
+  \BSG(x) \equiv \frac{\prob{x}{\HypS}}{\prob{x}{\HypG}} = \int \Lr(x;\parA,\parE)\,\prob{\parA,\parE}{\HypS}\,d\parA\,d\parE\,,
 \end{equation}
-with the likelihood-ratio \emph{function}
+with the likelihood-ratio \emph{function} obtained from Eqs.~\eqref{eq:4a} and~\eqref{eq:4b} as
 \begin{equation}
   \label{eq:8}
-  \Lr(x;\parmsAll) \equiv \frac{\prob{x}{\HypS,\parmsAll}}{\prob{x}{\HypG}} = \exp\left(\scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\right)\,.
+  \Lr(x;\parA,\parE) \equiv \frac{\prob{x}{\HypS,\parA,\parE}}{\prob{x}{\HypG}} = \exp\left[\scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\right]\,.
 \end{equation}
-We can further introduce a partially-marginalized (over unknown amplitude parameters $\Avec$) Bayes factor $\BSG(x;\parmsEvol)$ as
+We further introduce the partially-marginalized (over amplitude parameters $\parA$) Bayes factor $\BSG(x;\parE)$ as
+\begin{equation}
+  \BSG(x;\parE) \equiv \int \Lr(x;\parA,\parE) \, \prob{\parA}{\parE,\HypS}\,d\parA\,,  \label{eq:23b}
+\end{equation}
+such that
 \begin{align}
-  \BSG(x) &= \int \Lr(x;\parmsAll)\,\prob{\parmsAll}{\HypS}\,d\parmsAll \notag\\
-          &= \int \Lr(x;\Avec,\parmsEvol)\,\prob{\Avec}{\parmsEvol,\HypS}\,\prob{\parmsEvol}{\HypS}\,d^2\A\,d\parmsEvol \notag\\
-          &= \int \BSG(x;\parmsEvol) \,\prob{\parmsEvol}{\HypS}\,d\parmsEvol\,,   \label{eq:23a}\\
-  \BSG(x;\parmsEvol) &\equiv \int \Lr(x;\A,\parmsEvol)\prob{\A}{\parmsEvol,\HypS}\,d^2\A\,.  \label{eq:23b}
+  \BSG(x) &= \int \left[ \int \Lr(x;\parA,\parE)\,\prob{\parA}{\parE,\HypS}\,d\parA\right] \prob{\parE}{\HypS} \,d\parE \notag\\
+          &= \int \BSG(x;\parE) \,\prob{\parE}{\HypS}\,d\parE\,.   \label{eq:23a}
+\end{align}
+
+The posterior on the signal parameters is
+\begin{align}
+  \label{eq:49}
+  \prob{\parA,\parE}{x,\HypS} &= \prob{x}{\HypS,\parA,\parE}\,\frac{\prob{\parA,\parE}{\HypS}}{\prob{x}{\HypS}} \notag\\
+    &\propto \Lr(x;\parA,\parE)\,\prob{\parA}{\parE,\HypS}\,\prob{\parE}{\HypS}\,,
+\end{align}
+where we dropped all factors that independent of $\{\parA,\parE\}$.
+The (marginal) posterior on the evolution parameters $\parE$ is therefore
+\begin{align}
+  \label{eq:50}
+  \prob{\parE}{x,\HypS} &= \int \prob{\parA,\parE}{x,\HypS}\,d\parA \notag\\
+  &\propto \BSG(x;\parE) \,\prob{\parE}{\HypS}\,.
 \end{align}
 
 \section{Computing the Bayes factor $\BSG$}
@@ -222,34 +244,42 @@ where the multi-detector noise floor $\Sn(f)$ is defined as the harmonic mean
 Using the factorization of Eq.~\eqref{eq:2}, which in frequency domain yields
 \begin{equation}
   \label{eq:34}
-  \FT{s}(f;\parmsAll) = \As\,\FT{\hs}(f;\parmsEvol) + \Ac\,\FT{\hc}(f;\parmsEvol)\,,
+  \FT{s}(f;\parA,\parE) = \As\,\FT{\hs}(f;\parE) + \Ac\,\FT{\hc}(f;\parE)\,,
 \end{equation}
 we can further write this as
 \begin{equation}
   \label{eq:36}
-  \scalar{s}{s} = \Avec \cdot \M(\parmsEvol) \cdot \Avec\,,
+  \scalar{s}{s} = \parA \cdot \M(\parE) \cdot \parA\,,
 \end{equation}
 with
 \begin{align}
   \label{eq:35}
-  \M(\parmsEvol) &\equiv
+  \M(\parE) &\equiv
   2\Ndet \begin{pmatrix}
     \Is  & \Isc \\
     \Isc  & \Ic\\
   \end{pmatrix}\,,\\
-  \Is(\parmsEvol) &= 2 \int_{0}^{\infty} \frac{|\FT{\hs}(f)|^2}{\Sn(f)}\,df \,,\\
-  \Ic(\parmsEvol) &= 2 \int_{0}^{\infty} \frac{|\FT{\hc}(f)|^2}{\Sn(f)}\,df \,,\\
-  \Isc(\parmsEvol)&= 2 \int_{0}^{\infty} \frac{\Re[\FT{\hs}(f)\,\FT{\hc}^{*}\!\!(f)]}{\Sn(f)}\,df \,.
+  \Is(\parE) &= 2 \int_{0}^{\infty} \frac{|\FT{\hs}(f)|^2}{\Sn(f)}\,df \,,\\
+  \Ic(\parE) &= 2 \int_{0}^{\infty} \frac{|\FT{\hc}(f)|^2}{\Sn(f)}\,df \,,\\
+  \Isc(\parE)&= 2 \int_{0}^{\infty} \frac{\Re[\FT{\hs}(f)\,\FT{\hc}^{*}\!\!(f)]}{\Sn(f)}\,df \,.
 \end{align}
 The Fourier transforms $\FT{\hs},\FT{\hc}$ of the signal basis functions can be computed analytically
 \begin{align}
   \label{eq:37}
-  \FT{\hs}(f;\parmsEvol) &= \tau\,\frac{2\pi\freq\,\tau}{1 + i\,4\pi\,f\,\tau -  4\pi^2(f^2 - \freq^2)\tau^2} \, e^{-i2\pi f\tStart} \,,\\
-  \FT{\hc}(f;\parmsEvol) &= \tau\,\frac{1 + i\,2\pi\,f\,\tau}{1 + i\,4\pi\,f\,\tau - 4\pi^2(f^2 - \freq^2)\tau^2} \, e^{-i2\pi f\tStart} \,.
+  \FT{\hs}(f;\parE) &= \tau\,\frac{2\pi\freq\,\tau}{1 + i\,4\pi\,f\,\tau -  4\pi^2(f^2 - \freq^2)\tau^2} \, e^{-i2\pi f\tStart} \,,\\
+  \FT{\hc}(f;\parE) &= \tau\,\frac{1 + i\,2\pi\,f\,\tau}{1 + i\,4\pi\,f\,\tau - 4\pi^2(f^2 - \freq^2)\tau^2} \, e^{-i2\pi f\tStart} \,,
 \end{align}
+and are shown for two parameter-space choices in Fig.~\ref{fig:RingdownFT}.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.49\textwidth]{{hs_hc_f0200_tau2.0ms}.pdf}
+  \includegraphics[width=0.49\textwidth]{{hs_hc_f0200_tau15.0ms}.pdf}
+  \caption{Fourier power of ringdown components $|\FT{\hs}|$ and $|\FT{\hc}|$ for $\freq=200\,\Hz$ and two different damping times, $\tau=2\,\ms$
+    (left) and $\tau=15\,\ms$ (right).}
+  \label{fig:RingdownFT}
+\end{figure}
 
-
-\subsection{Expressing the ``matched filter'' $\scalar{x}{s(\parmsAll)}$}
+\subsection{Expressing the ``matched filter'' $\scalar{x}{s(\parA,\parE)}$}
 \label{sec:computing-scalarxs}
 
 Note that in the scalar product involving the data $x^X$ (assume time-shifted and antenna-pattern corrected) we can conveniently absorb the
@@ -266,7 +296,7 @@ data to be in phase and of (approximately) same amplitude and phase. This means 
 which allows us to write the scalar product in time-domain form
 \begin{align}
   \label{eq:13}
-  \scalar{x}{s(\parmsAll)} &= \sum_X 2\int_{-\infty}^{\infty} \FT{y}^X(f)\,\FT{s}^{*X}(f)\,df \\
+  \scalar{x}{s} &= \sum_X 2\int_{-\infty}^{\infty} \FT{y}^X(f)\,\FT{s}^{*X}(f)\,df \\
   &= 2\int_{-\infty}^{\infty} \FT{y}(f)\,\FT{s}^{*}(f)\,df \\
   &=  2\int_{\tStart}^{\tStart + T} y(t)\,s(t)\,dt\,,
 \end{align}
@@ -276,18 +306,18 @@ where $T \gg \tau$ is some duration long enough so that $s(\tStart+T)\approx0$, 
 Using Eq.~\eqref{eq:2} we can further write
 \begin{equation}
   \label{eq:9}
-  \scalar{x}{s(\parmsAll)} = \Avec\cdot\xvec(\parmsEvol) = \As\,\xs(\parmsEvol) + \Ac\,\xc(\parmsEvol)\,,
+  \scalar{x}{s(\parA,\parE)} = \parA\cdot\xvec(\parE) = \As\,\xs(\parE) + \Ac\,\xc(\parE)\,,
 \end{equation}
 with
 \begin{align}
   \label{eq:10}
-  \xs(\parmsEvol) &\equiv 2\int_{\tStart}^{\tStart+T} y(t)\,\hs(t;\parmsEvol)\,dt\,,\\
-  \xc(\parmsEvol) &\equiv 2\int_{\tStart}^{\tStart+T} y(t)\,\hc(t;\parmsEvol)\,dt\,.
+  \xs(\parE) &\equiv 2\int_{\tStart}^{\tStart+T} y(t)\,\hs(t;\parE)\,dt\,,\\
+  \xc(\parE) &\equiv 2\int_{\tStart}^{\tStart+T} y(t)\,\hc(t;\parE)\,dt\,.
 \end{align}
 Note that it will be convenient to write
 \begin{equation}
   \label{eq:38}
-  \hexp \equiv \hc(t;\parmsEvol) - i\,\hs(t;\parmsEvol) = e^{-\Dt/\tau}\,e^{-i\,2\pi\,\freq\,\Dt} = e^{-\Dt \,\varpi}\,,
+  \hexp \equiv \hc(t;\parE) - i\,\hs(t;\parE) = e^{-\Dt/\tau}\,e^{-i\,2\pi\,\freq\,\Dt} = e^{-\Dt \,\varpi}\,,
 \end{equation}
 with $\Dt \equiv t - \tStart$ and complex frequency $\varpi$ defined as
 \begin{equation}
@@ -307,22 +337,22 @@ which is the Laplace transform of the over-whitened data $y(t)$.
 Combining these expressions in the likelihood-ratio function of Eq.~\eqref{eq:8}, we can write this as
 \begin{align}
   \label{eq:21}
-  \ln \Lr(x;\parmsAll) &= \scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\\
-  &= -\frac{1}{2}\,\Avec\cdot\M\cdot\Avec + \Avec\cdot\xvec\,,
+  \ln \Lr(x;\parA,\parE) &= \scalar{x}{s} - \frac{1}{2}\scalar{s}{s}\\
+  &= -\frac{1}{2}\,\parA\cdot\M\cdot\parA + \parA\cdot\xvec\,,
 \end{align}
 i.e.\ a 2-dimensional Gaussian in $\{\As,\Ac\}$ with covariance matrix $\M^{-1}$.
-This can be marginalized analytically to yield $\BSG(x;\parmsEvol)$ in Eq.~\eqref{eq:23a} for a suitable choice of prior
-$\prob{\Avec}{\parmsEvol,\HypS}$.
+This can be marginalized analytically to yield $\BSG(x;\parE)$ in Eq.~\eqref{eq:23a} for a suitable choice of prior
+$\prob{\parA}{\parE,\HypS}$.
 
-First we assume that the amplitude prior is \emph{logically} independent of the evolution parameters $\parmsEvol$, which simply expresses ignorance about a
+First we assume that the amplitude prior is \emph{logically} independent of the evolution parameters $\parE$, which simply expresses ignorance about a
 possible dependence, not a claim about \emph{physical} independence \cite{jaynes:_logic_of_science},
-i.e.\ $\prob{\Avec}{\parmsEvol,\HypS} = \prob{\Avec}{\HypS}$
+i.e.\ $\prob{\parA}{\parE,\HypS} = \prob{\parA}{\HypS}$
 
 Further we use a simple isotropic Gaussian amplitude prior, which expresses ignorance about the initial phase $\phi_0$, and posits an (unknown)
 characteristic scale $H$ for the amplitude $A$, namely
 \begin{equation}
   \label{eq:22}
-  \prob{\Avec}{\HypS,H} = \frac{1}{2\pi\,H^2}\,e^{-\frac{1}{2}{\Avec\cdot\Avec}/H^2}\,\,,
+  \prob{\parA}{\HypS,H} = \frac{1}{2\pi\,H^2}\,e^{-\frac{1}{2}{\parA\cdot\parA}/H^2}\,\,,
 \end{equation}
 which implies a prior on the amplitude $A$ (marginalized over $\phi_0$):
 \begin{equation}
@@ -332,14 +362,14 @@ which implies a prior on the amplitude $A$ (marginalized over $\phi_0$):
 Using this Gaussian amplitude prior we find the $H$-dependent Bayes factor:
 \begin{align}
   \label{eq:29}
-  \BSG(x;\parmsEvol,H) &\equiv \frac{\prob{x}{\HypS,\parmsEvol,H}}{\prob{x}{\HypG}}\\
-  &=\frac{1}{2\pi H^2}\int e^{-\frac{1}{2}\,\Avec\cdot\Gam^{-1}\cdot\Avec + \Avec\cdot\xvec}\,d^2\A\\
+  \BSG(x;\parE,H) &\equiv \frac{\prob{x}{\HypS,\parE,H}}{\prob{x}{\HypG}}\\
+  &=\frac{1}{2\pi H^2}\int e^{-\frac{1}{2}\,\parA\cdot\Gam^{-1}\cdot\parA + \parA\cdot\xvec}\,d\parA\\
   &= \frac{\sqrt{\det\Gam}}{H^2}\, e^{\frac{1}{2}\,\xvec\cdot\Gam\cdot\xvec}
 \end{align}
 with
 \begin{equation}
   \label{eq:25}
-  \Gam^{-1}(\parmsEvol) \equiv \M + H^{-2}\,\eye =
+  \Gam^{-1}(\parE) \equiv \M + H^{-2}\,\eye =
   \begin{pmatrix}
     \Is + H^{-2} & \Isc \\
     \Isc        & \Ic + H^{-2}\,.
@@ -354,7 +384,7 @@ and determinant
 inverse
 \begin{equation}
   \label{eq:41}
-  \Gam(\parmsEvol) = \frac{1}{\det\Gam^{-1}}
+  \Gam(\parE) = \frac{1}{\det\Gam^{-1}}
   \begin{pmatrix}
     \Ic + H^{-2} & -\Isc \\
     -\Isc        & \Is + H^{-2}
@@ -386,51 +416,37 @@ integrals on a few points ${H_i}$, allowing us to normalize this discrete ``hype
 We can therefore estimate the unknown $H$ parameter from the data via Eq.~\eqref{eq:29}, namely
 \begin{align}
   \label{eq:45}
-  \prob{H}{x} &= \int \prob{\parmsEvol,H}{x,\HypS}\,d\parmsEvol\\
-  &= \left[\int \prob{x}{\HypS,\parmsEvol,H}\,\prob{\parmsEvol}{\HypS}\,d\parmsEvol\right]\,\prob{H}{\HypS}\\
+  \prob{H}{x} &= \int \prob{\parE,H}{x,\HypS}\,d\parE\\
+  &= \left[\int \prob{x}{\HypS,\parE,H}\,\prob{\parE}{\HypS}\,d\parE\right]\,\prob{H}{\HypS}\\
   &\propto \BSG(x;H)\,\prob{H}{\HypS} \\
   &= c\,\frac{1}{H_i}\,\BSG(x;H_i)\,.
 \end{align}
 Furthermore, we can compute the $H$-independent Bayes factor and posterior by marginalizing over $H$ via
 \begin{align}
   \label{eq:46}
-  \prob{\parmsEvol}{\HypS,x} &\propto \BSG(x;\parmsEvol)\\
-  &=\int \BSG(x;\parmsEvol,H)\prob{H}{\HypS}\,dH\\
-  &= c\,\sum_i \frac{1}{H_i} \, \BSG(x;\parmsEvol,H_i)\,.
+  \prob{\parE}{\HypS,x} &\propto \BSG(x;\parE)\\
+  &=\int \BSG(x;\parE,H)\prob{H}{\HypS}\,dH\\
+  &= c\,\sum_i \frac{1}{H_i} \, \BSG(x;\parE,H_i)\,.
 \end{align}
 
 \section{Parameter estimation}
 \label{sec:parameter-estimation}
 
-The posterior is
-\begin{align}
-  \prob{\parmsAll}{x,\HypS} &\propto \prob{x}{\HypS,\parmsAll}\,\prob{\parmsAll}{\HypS} \notag\\
-    &\propto \Lr(x;\parmsAll)\,\prob{\A}{\HypS}\,\prob{\parmsEvol}{\HypS} \notag\\
-    &\propto \exp\left[-\frac{1}{2}\, \Avec\cdot\Gam^{-1}\cdot\Avec + \Avec\cdot\xvec\right]\,\prob{\parmsEvol}{\HypS}\,.  \label{eq:30}
-\end{align}
-where in the first line we have dropped the normalization $1/\prob{x}{\HypS}$, and in the second line we dropped $\prob{x}{\HypG}$, as both are
-independent of $\parmsAll$.
-After marginalization over $\{\As,\Ac\}$ we recover again the Bayes factor $\BSG(x;\parmsEvol)$ of \eqref{eq:29}, i.e.
-\begin{equation}
-  \label{eq:32}
-  \prob{\parmsEvol}{x,\HypS} \propto \BSG(x;\parmsEvol)\,.
-\end{equation}
-
-Finding the maximum-posterior estimates (MPE) for $\As,\Ac$ at fixed $\parmsEvol$ from \eqref{eq:30} yields
+Finding the maximum-posterior estimates (MPE) for $\As,\Ac$ at fixed $\parE$ from Eq.~\eqref{eq:49} yields
 \begin{equation}
   \label{eq:31}
-  \Avec' = \Gam(\parmsEvol)\cdot\xvec\,.
+  \parA' = \Gam(\parE)\cdot\xvec\,.
 \end{equation}
 Note that this depends on the unknown scale parameter $H$, but we will simplify this by using the MPE estimator for $H$ from Eq.~\eqref{eq:45}, i.e.\
 $H_{MPE}$ that maximizes  $\BSG(x;H) / H$.
-We will further evaluate this at the MPE values found for $\parmsEvol$ in the Bayes-factor search using \eqref{eq:32}.
+We will further evaluate this at the MPE values found for $\parE$ in the Bayes-factor search using \eqref{eq:32}.
 From these we can obtain $A' = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\left(\frac{\As}{\Ac}\right)$.
 
 From this can can also estimate an ``SNR'' in the MPE template, by substituting the MPE amplitude parameters into the SNR expression
 Eq.~\eqref{eq:36}, i.e.\
 \begin{equation}
   \label{eq:20}
-  \rho_0^2 = \Avec'\M\Avec'\,.
+  \rho_0^2 = \parA'\M\parA'\,.
 \end{equation}
 
 \section{QNM search applied to GW150914}
@@ -444,23 +460,54 @@ an isotropic prior in $\phi_0$ and an $A$-prior of \eqref{eq:28}, as shown here:
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.5\textwidth]{prior_A.pdf}
-  \caption{Amplitude prior as a hyper-prior (superposition) of several 2D-Gaussian distributions with different scale parameters $H\in{[2:10]}\times10^{-22}$}
+  \caption{Amplitude prior (red line) as a hyper-prior (weighted superposition) of several 2D-Gaussian distributions (black lines) with different
+    scale parameters $H\in{[2:10]}\times10^{-22}$}
   \label{fig:AmpPrior}
 \end{figure}
 
 \subsection{Data preparation}
 \label{sec:data-preparation}
 
-Use band-passed 1800s-SFTs (covering GW150914) containing $[10,2000]\,\Hz$ from each detector, band-passed to $[30,1900]\,\Hz$ to avoid boundary
+Use band-passed 1800s-SFTs (covering GW150914) containing $[10,2000]\,\Hz$ from each detector, band-passed to $[20,1900]\,\Hz$ to avoid boundary
 regions where pwelch() PSD estimation trails off.
 From this we extracted a $T=8\,$s timeseries $x^X(t)$ centered on the event to analyse.
 Time-shifted L1 data by (delaying it by $+7\,\ms$) and multiplied it by $(-1)$ to account for the inverse detector response.
 We estimate the (single-sided) PSD $S_X$ by a standard welch method using 8s windows over the 1800s SFT data.
 
-The resulting original spectrum (top row), rms-whitened spectrum (middle row) and over-whitened spectrum (bottom row) are shown in the following
-plots, for H1 and L1, respectively.\\
-\includegraphics[width=1\textwidth]{{\onSourceDir/PSDs}.pdf}\\
-\includegraphics[width=1\textwidth]{{\onSourceDir/W-OW-Spectra}.pdf}
+The resulting PSD estimates and data spectra are shown in Fig.~\ref{fig:PSDs}, and the whitened and over-whitened data spectra are shown in
+Fig.~\ref{fig:spectra}. Note that the 'data spectra' are only using the data from the $T=8\,$s ``on-source'' window, while the PSD-estimate is done on
+the 1800s of original data \emph{excluding} the $T=8\,$s of ``on source'' data.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.75\textwidth,clip]{{\onSourceDir/PSDs}.pdf}
+  \caption{Welch PSD estimate of $\sqrt{S_X(f)}$ (green 'o') over $f\in[20,1900]\,\Hz$ on 1800s of data (using an $T=8$s window) for X = H1 (upper plot) and X = L1 (lower plot).
+    LALInference PSD-estimate (magenta 'x') and normalized spectrum of $T=8\,$s of data used in the search, i.e. $|\FT{x}^X/\sqrt{T}|$ (blue line and '+').
+  }
+  \label{fig:PSDs}
+\end{figure}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.75\textwidth,clip]{{\onSourceDir/W-OW-Spectra}.pdf}
+  \caption{Whitened $|\FT{x}^X/\sqrt{S_X}|$ (upper row) and over-whitened $|\FT{x}^X/{S_X}|$ (lower row) spectra of $T=8\,$s of data used in the search,
+    for X = H1 (left column) and L1 (right column).}
+  \label{fig:spectra}
+\end{figure}
+
+Although the signal is quite wide-band in frequency domain (see Fig.~\ref{fig:RingdownFT}), in Figs.~\ref{fig:PSDs-zoom} and \ref{fig:spectra-zoom} we
+also show a zoom on the most relevant frequency range of ${[200,300]}\,\Hz$.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.75\textwidth,clip]{{\onSourceDir/PSDs-zoom}.pdf}
+  \caption{Same as Fig.~\ref{fig:PSDs} but zoomed on frequency range $f\in{[200,300]}\,\Hz$.}
+  \label{fig:PSDs-zoom}
+\end{figure}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.75\textwidth,clip]{{\onSourceDir/W-OW-Spectra-zoom}.pdf}
+  \caption{Same as Fig.~\ref{fig:spectra} but zoomed on frequency range $f\in{[200,300]}\,\Hz$.}
+  \label{fig:spectra-zoom}
+\end{figure}
+
 
 \subsection{Search results on GW150914}
 \label{sec:numerical-results}
@@ -539,7 +586,7 @@ We consider two cases: (i) QNM parameters drawn from the following uniform distr
 \end{align}
 which correspond to the assumed prior distributions for these parameters, except for the amplitude $A$, which has a more complicated (non-flat) prior,
 as shown in Fig.~\ref{fig:AmpPrior}.
-(ii) QNM parameters with fixed ``IMR values'' $\freq =  251\,\Hz,\;\tau = 4\,\ms$, with $A,\phi_0$ drawn randomly as in (i).
+(ii) QNM parameters with fixed ``GR values'' $\freq =  251\,\Hz,\;\tau = 4\,\ms$, with $A,\phi_0$ drawn randomly as in (i).
 
 In order to avoid injecting a discontinuity at $\tStart$ (which would create problems when band-passing and FFTing the data), we preface the ringdown
 with a smooth short ``ringup'' with characteristic timescale $\tau/10$ in the injections, i.e.\
@@ -581,10 +628,20 @@ catch mistakes or bugs. Case 4 serves to test the validity of our assumptions (m
 \subsubsection{Case 1(i): Prior-range $\{\freq,\tau\}$ injections, signal-only with assumed white noise}
 \label{sec:case-1:injections-signal-only}
 
-\parbox{\textwidth}{
-  \includegraphics[width=0.9\textwidth]{{\InjSignalOnlyPriorRangesDir/Injections-PE-errors}.pdf}\\
-  \includegraphics[width=0.9\textwidth]{{\InjSignalOnlyPriorRangesDir/Injections-PE-coverage}.pdf}
-}
+  \begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.75\textwidth]{{\InjSignalOnlyPriorRangesDir/Injections-PE-errors}.pdf}
+    \caption{MP estimation errors (top 2 rows), recovered SNR (bottom left) and Bayes-factor (bottom right) as functions of injected SNR. Solid line denotes the median, error-bars denote $\pm25\%$-ile and dashed lines are $2.5\%$- and $97.5\%$-iles, respectively.}
+    \label{fig:PEerrors-1i}
+  \end{figure}
+
+  \begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\textwidth]{{\InjSignalOnlyPriorRangesDir/Injections-PE-coverage}.pdf}
+    \caption{Posterior coverage versus percentile ("pp-plot"), showing mean (solid line) and $90\%$-credible interval (green).}
+    \label{fig:pp-case-1i}
+  \end{figure}
+
 
 \newpage
 \subsubsection{Case 2(i): Prior-range $\{\freq,\tau\}$ injections, \textbf{known} Gaussian white noise}
@@ -613,14 +670,14 @@ catch mistakes or bugs. Case 4 serves to test the validity of our assumptions (m
   \includegraphics[width=0.9\textwidth]{{\InjOffSourcePriorRangesDir/Injections-PE-coverage}.pdf}
 }
 
+\newpage
+\subsubsection{Case 1(ii): fixed-$\{\freq=251\Hz,\tau=4\ms\}$ injections, signal-only with assumed white noise}
+\label{sec:case-1:injections-signal-only}
+
 \newcommand{\InjSignalOnlyIMRDir}{./Results/Results-160409-02h53-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectIMR-injectSqrtSX_0_0-assumeSqrtSX_8e-24_8e-24}
 \newcommand{\InjKnownGaussIMRDir}{./Results/Results-160409-04h46-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectIMR-injectSqrtSX_8e-24_8e-24-assumeSqrtSX_8e-24_8e-24}
 \newcommand{\InjUnknownGaussIMRDir}{./Results/Results-160409-06h39-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectIMR-injectSqrtSX_8e-24_8e-24}
 \newcommand{\InjOffSourceIMRDir}{./Results/Results-160409-08h32-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectIMR}
-
-\newpage
-\subsubsection{Case 1(ii): IMR $\{\freq,\tau\}$ injections, signal-only with assumed white noise}
-\label{sec:case-1:injections-signal-only}
 
 \parbox{\textwidth}{
   \includegraphics[width=0.9\textwidth]{{\InjSignalOnlyIMRDir/Injections-PE-errors}.pdf}\\
@@ -628,7 +685,7 @@ catch mistakes or bugs. Case 4 serves to test the validity of our assumptions (m
 }
 
 \newpage
-\subsubsection{Case 2(ii): IMR $\{\freq,\tau\}$ injections, \textbf{known} Gaussian white noise}
+\subsubsection{Case 2(ii): fixed-$\{\freq=251\Hz,\tau=4\ms\}$ injections, \textbf{known} Gaussian white noise}
 \label{sec:case-2:injections-known-Gauss}
 
 \parbox{\textwidth}{
@@ -637,7 +694,7 @@ catch mistakes or bugs. Case 4 serves to test the validity of our assumptions (m
 }
 
 \newpage
-\subsubsection{Case 3(ii): IMR $\{\freq,\tau\}$ injections, \textbf{unknown} Gaussian white noise}
+\subsubsection{Case 3(ii): fixed-$\{\freq=251\Hz,\tau=4\ms\}$ injections, \textbf{unknown} Gaussian white noise}
 \label{sec:case-3:injections-unknown-Gauss}
 
 \parbox{\textwidth}{
@@ -646,7 +703,7 @@ catch mistakes or bugs. Case 4 serves to test the validity of our assumptions (m
 }
 
 \newpage
-\subsubsection{Case 4(ii): IMR $\{\freq,\tau\}$ injections, off-source detector data}
+\subsubsection{Case 4(ii): fixed-$\{\freq=251\Hz,\tau=4\ms\}$ injections, off-source detector data}
 \label{sec:case-4:injections-real-noise}
 
 \parbox{\textwidth}{
@@ -657,7 +714,7 @@ catch mistakes or bugs. Case 4 serves to test the validity of our assumptions (m
 
 \newpage
 
-\subsection{Varying $\tStart$ at fixed IMR injection $\{A = 2.5\times10^{21}, \phi_0 = 0\}$}
+\subsection{Varying noise-realization at fixed-$\{\freq=251\Hz,\tau=4\ms, A = 2.5\times10^{21}, \phi_0 = 0\}$ injection}
 \label{sec:varying-tstart-at}
 
 \newcommand{\onInjectionDir}{./Results/Results-160410-11h03-onInjection11-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24}
@@ -717,9 +774,9 @@ considered relatively ``narrow band'' ($\sim \pm 100\Hz$) with respect to this n
 \begin{align}
   \label{eq:17}
   \scalar{s}{s} &= \sum_X 2 \int_{-\infty}^{\infty} \frac{\FT{s}^X(f)\,\FT{s}^{*X}(f)}{S_X(f)}\,d f\\
-  &\sim \sum_X \frac{2}{S_X(f')} \, \int_{0}^{\infty} s^2(t;\parmsAll)\,dt\\
+  &\sim \sum_X \frac{2}{S_X(f')} \, \int_{0}^{\infty} s^2(t;\parA,\parE)\,dt\\
   & = \frac{2\,\Ndet}{\Sn(f')} \,\int \left( \As^2\,\hs^2(t) + 2\As\Ac\,\hs\hc + \Ac^2\,\hc^2\right)\,d t\\
-  & = \Avec \cdot \M \,\cdot\Avec\,,
+  & = \parA \cdot \M \,\cdot\parA\,,
 \end{align}
 with
 \begin{equation}
