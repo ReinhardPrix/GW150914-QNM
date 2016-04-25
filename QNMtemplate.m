@@ -27,3 +27,20 @@ function tsQNM = QNMtemplate ( t0GPS, A, phi0, f0, tau, ts, smooth = false )
   return;
 
 endfunction
+
+%!demo
+%! fSamp = 4e3;
+%! dt = 1/fSamp;
+%! ts.ti = [0 : 100] * dt;
+%! ts.epoch = 0;
+%! t0 = 20*dt; A = 1; phi0 = pi/4; f0 = 251; tau = 4e-3;
+%! tsQNM = QNMtemplate ( t0, A, phi0, f0, tau, ts, (smooth = false) );
+%! tsQNMsmooth = QNMtemplate ( t0, A, phi0, f0, tau, ts, (smooth = true) );
+%! figure(); clf; hold on;
+%! plot ( tsQNM.ti, tsQNM.xi, "o;QNM;", tsQNMsmooth.ti, tsQNMsmooth.xi, "-x;smooth=true;" );
+%! line ( t0 * [1,1], ylim, "linestyle", "--", "linewidth", 3 );
+%! grid on;
+%! hold off;
+%! title ( sprintf ( "t0 = %.3f s; A = %g, phi0 = %.1f, f0 = %.1f Hz, tau = %.1f ms", t0, A, phi0, f0, tau * 1e3 ) );
+%! xlabel ( "t [s]" );
+%! ezprint ( "QNMtemplate.pdf", "width", 512 );
