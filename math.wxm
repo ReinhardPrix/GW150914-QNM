@@ -24,7 +24,7 @@ integrate ( priorA(A, H), A, 0, inf );
 
 /* [wxMaxima: input   start ] */
 priorAJeff ( A ) := sum ( 1/H * priorA(A,H), H, 2, 10 );
-plot2d ( priorAJeff ( A ), [A, 0, 15 ] );
+plot2d ( priorAJeff ( A ), [A, 0, 15 ] )$
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
@@ -38,7 +38,9 @@ plot2d ( append ( [priorAJeff(A)], plist1 ), [A, 0, 20],
         [xlabel, "Amplitude A [1e-22]"], [ylabel, "P(A|H)"],
         [title, "H = [2:10]x1e-22" ],
         [grid2d, true],
-        [legend, false])$
+        [legend, false],
+        [pdf_file, "./prior_A.pdf"]
+)$
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: subsect start ]
@@ -136,18 +138,16 @@ Is / ( 2*Q ), Qsubst, ratsimp;
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-heFD : hcF - %i * hsFT$
-plot2d ( ev([ realpart(heFT), imagpart(heFT)], f0=210, tau=1e-3, t0=0), [f, -2e3, 2e3] );
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
 heTD : exp ( -Dt * (1/tau + %i*2*%pi * f0 ) );
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-plot2d ( ev ( [ sqrt(hsAbs2), sqrt(hcAbs2) ], f0=250, tau=2e-3, t0=0), [f, 0, 2e3],
-[legend, "|hsFT|", "|hcFT|"]
- );
+plotHsHc(f0,tau,t0) := plot2d ( [ sqrt(hsAbs2), sqrt(hcAbs2) ], [f, 0, 2e3],
+                                [legend, "|hsFT|", "|hcFT|"],
+                                [title, sconcat("f0 = ", f0, " Hz; tau = ", tau*1e3, " ms") ],
+                                [pdf_file, sconcat ( "./hs_hc_f0", f0, "_tau", tau * 1e3, "ms.pdf") ]
+                            )$
+ev ( plotHsHc(f0,tau,t0), [f0 = 200, tau = 15e-3, t0 = 0] )$
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
