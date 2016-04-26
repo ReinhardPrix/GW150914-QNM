@@ -44,7 +44,7 @@ function multiTS = injectQNMs ( multiTS, injectionSources = [] )
       else
         DebugPrintf ( 2, "Starting injection %d in %s at t_i(%d) = %.6f s, for t0 = %.6f s: {A = %g, phi0 = %g, f0 = %g Hz, tau = %g ms ... ",
                       l, tsX.IFO, iStart_l, tsX.epoch + tsX.ti(iStart_l), tsX.epoch + t0Eff_offs, inj_l.A, inj_l.phi0, inj_l.f0, inj_l.tau  * 1e3 );
-        tsQNM_l  = QNMtemplate ( t0Eff, AEff, inj_l.phi0, inj_l.f0, inj_l.tau, tsX, (smooth = true) );	%% include a 'smooth' ramp-up to avoid injecting discontinuities
+        tsQNM_l  = QNMtemplate ( t0Eff, AEff, inj_l.phi0, inj_l.f0, inj_l.tau, tsX, (ringup = true) );	%% include a 'ringup' to avoid injecting discontinuities
         tsX.xi  += tsQNM_l.xi;
         DebugPrintf ( 2, "done.\n");
       endif

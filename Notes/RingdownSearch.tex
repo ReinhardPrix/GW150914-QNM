@@ -583,13 +583,13 @@ as shown in Fig.~\ref{fig:AmpPrior}.
 (ii) QNM parameters with fixed ``GR values'' $\freq =  251\,\Hz,\;\tau = 4\,\ms$, with $A,\phi_0$ drawn randomly as in (i).
 
 In order to avoid injecting a discontinuity at $\tStart$ (which would create problems when band-passing and FFTing the data), we preface the ringdown
-with a smooth short ``ringup'' with characteristic timescale $\tau/10$ in the injections, i.e.\
+with a short ``ringup'' with characteristic timescale $\tau/10$ in the injections, i.e.\
 $s(t<\tStart) = A\,e^{10\frac{t-\tStart}{\tau}}\cos\left(2\pi \freq (t-\tStart) + \phi_0\right)$ instead of $s(t<\tStart)=0$ as for the template, as
 shown in Fig.~\ref{fig:QNMtemplate}.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.5\textwidth]{QNMtemplate.pdf}
-  \caption{Example QNM template (labelled 'QNM') used for matching, and smoothed QNM used for injections}
+  \caption{Example QNM template (labelled 'QNM') used for matching, and ringup+QNM used for injections}
   \label{fig:QNMtemplate}
 \end{figure}
 We consider 4 injection scenarios:
