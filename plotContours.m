@@ -15,6 +15,7 @@
 ## <http://www.gnu.org/licenses/>.
 
 function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
+  global debugLevel = 1;
 
   Nsearches = length ( resV );
   ff0 = resCommon.ff0;
@@ -43,6 +44,7 @@ function plotContours ( resV, resCommon, select = [], plotMarkers = [] )
     if ( !isempty(select) && all ( l != select ) ) continue; endif
     counter ++;
     log10B_l = log10 ( resV(l).BSG );
+    DebugPrintf ( 1, "t0 = tM + %.1fms: log10BSG = %.2g, SNR = %.2g\n", resV(l).tOffs * 1e3, log10B_l, resV(l).AmpMP.SNR );
     color_l = colors { mod (counter - 1, length(colors) ) + 1 };
     if ( !isempty ( resV(l).isoConf2 ) )
       [C, H] = contour ( ff0, ttau * 1e3, resV(l).BSG_f0_tau, resV(l).isoConf2 * [ 1, 1 ] );

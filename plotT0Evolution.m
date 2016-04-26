@@ -48,7 +48,7 @@ function plotT0Evolution ( resV )
   %% ----- plot log10BSG(tOffs)
   subplot ( 2, 2, 1, "align" );
   xrange = tOffs_Range;
-  yrange = [ -1, 20 ];
+  yrange = [ -1, 30 ];
   plot ( tOffsVms, log10([resV.BSG]), "-o" );
   xlim ( xrange );
   ylim ( yrange );

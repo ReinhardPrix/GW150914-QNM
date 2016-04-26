@@ -65,9 +65,9 @@ plotMarkers = struct ( "name", "IMR", "f0", f0GR.val, "tau", taumsGR.val * 1e-3 
 %% ---------- Prior range defaults ----------
 
 prior_f0Range   = [ 200, 300 ];
-df0  = 0.5;
+df0  = 1;
 prior_tauRange  = [ 0.5e-3, 20e-3 ];
-dtau = 0.5e-3;
+dtau = 0.2e-3;
 prior_HRange    = [ 2, 10 ] * 1e-22;
 dH = 1e-22;
 
@@ -105,10 +105,10 @@ switch ( searchType )
   case "onSource"
     %% ---------- "ON-SOURCE ----------
     tMerger = tMergerGW150914;
-    t0V = tMerger + [ 1, 2, 3, 4, 5, 6, 6.5, 7, 8, 8.5, 9, 9.5, 10 ] * 1e-3;
+    t0V = tMerger + [ 0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 6.5, 7, 8, 8.5, 9, 9.5, 10 ] * 1e-3;
 
     doPlotSnapshots = true;
-    doPlotContours  = [1, 3, 5, 7];
+    doPlotContours  = [3, 7, 9, 11];
     doPlotT0Evolution   = true;
     doPlotSpectra   = true;
 
