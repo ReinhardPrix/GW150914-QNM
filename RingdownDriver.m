@@ -61,7 +61,7 @@ doPlotPErecovery= false;
 tMergerGW150914 = 1126259462.423;	%% from https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/TestingGR/O1/G184098/ringdown_presence
 f0GR = struct ( "val", 251, "lerr", 9, "uerr", 5 );	%% taken from 'testing GR paper' v21: DCC https://dcc.ligo.org/LIGO-P1500213-v21
 taumsGR = struct ( "val", 4, "lerr", 0.2, "uerr", 0.4 );
-plotMarkers = struct ( "name", "IMR", "f0", f0GR.val, "tau", taumsGR.val * 1e-3 );	%% by default: show IMR parameters on PE plots
+plotMarkers = struct ( "name", "QNM-GR", "f0", f0GR.val, "tau", taumsGR.val * 1e-3 );	%% by default: show IMR parameters on PE plots
 %% ---------- Prior range defaults ----------
 
 prior_f0Range   = [ 200, 300 ];
@@ -119,7 +119,7 @@ switch ( searchType )
     nS = length(t0V);
     injectionSources = struct();
     for m = 1 : nS
-      injectionSources(m) = struct ( "name", 	"QNM-0", ...
+      injectionSources(m) = struct ( "name", 	"QNM-GR", ...
                                      "t0", 	tMerger, ...
                                      "A", 	2.5e-21, ...
                                      "phi0", 	phi0, ...
@@ -132,6 +132,7 @@ switch ( searchType )
     doPlotSnapshots = false;
     doPlotT0Evolution   = true;
     doPlotContours  = [1, 3, 5, 7];
+    plotMarkers = injectionSources;
 
   case "offSource"
     %% ---------- "OFF-SOURCE" for background estimation ----------
@@ -142,7 +143,7 @@ switch ( searchType )
     t0V = [ t0VL, t0VU ];
     plotMarkers = [];
 
-    doPlotT0Evolution   = true;
+    doPlotT0Evolution   = false;
     doPlotBSGHist   = true;
     doPlotSpectra   = true;
 
@@ -309,13 +310,13 @@ endif
 
 %% ----- plot quantities vs tOffs ----------
 if ( doPlotT0Evolution )
-  plotT0Evolution ( resV );
+  plotT0Evolution ( resV, plotMarkers );
   fname = sprintf ( "%s/t0Evolution.pdf", resDir );
   ezprint ( fname, "width", 512 );
 endif
 
 if ( !isempty(doPlotContours) )
-  plotContours ( resV, resCommon, doPlotContours, plotMarkers )
+  plotContours ( resV, resCommon, doPlotContours, plotMarkers );
   fname = sprintf ( "%s/Posterior-Contours.pdf", resDir );
   ezprint ( fname, "width", 256 );
 endif

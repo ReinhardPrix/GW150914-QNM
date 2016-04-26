@@ -1,7 +1,16 @@
-function [H_err, H_coverage] = plotPErecovery ( PErecovery )
+function [H_err, H_coverage] = plotPErecovery ( PErecovery, SNR_limit = 30 )
   global debugLevel = 1;
 
   set (0, "defaultlinemarkersize", 3);
+
+  if ( !isempty ( SNR_limit ) )
+    useBins = find ( [PErecovery.SNR_inj] < SNR_limit );
+    PErecovery = PErecovery(useBins);
+  endif
+
+  %% nuke all overflowed BSGs (too loud injections)
+  mInf = find ( isinf ( [PErecovery.BSG] ) );
+  PErecovery ( mInf ) = [];
 
   SNR_inj = [ PErecovery.SNR_inj ];
 
@@ -139,6 +148,7 @@ function plotHists ( x, hists, varargin  = [] )
     %% deal with singular (1-point or empty) histograms first
     count = histTotalCount ( h_l );
     if ( count == 0 ) continue; endif
+    if ( all ( isinf ( histBins ( h_l, 1, "centre" ) ) ) ) continue; endif
 
     x_plot(end+1)  = x(l);
 

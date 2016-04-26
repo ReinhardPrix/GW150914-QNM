@@ -14,7 +14,7 @@
 ## along with Octave; see the file COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
-function plotT0Evolution ( resV )
+function plotT0Evolution ( resV, plotMarker = [] )
 
   %% sort results by tOffs
   [tOffs, iSort] = sort ( [resV.tOffs] );
@@ -60,11 +60,15 @@ function plotT0Evolution ( resV )
   grid on;
 
   %% ----- plot f0_MPE(tOffs)
-  subplot ( 2, 2, 2, "align" );
+  subplot ( 2, 2, 2, "align" ); hold on;
   errorbar ( tOffsVms, f0_MPE, f0_lerr, f0_uerr, ";90%;" ); grid on;
+  if ( !isempty ( plotMarker ) )
+    plot ( xlim(), plotMarker.f0 * [ 1, 1 ], sprintf ( "--k;%s;", plotMarker.name ) );
+  endif
   xlim ( xrange );
   ylim ( f0_Range );
   ylabel ("f0 [Hz]");
+  legend ( "location", "northwest" );
 
   %% ----- plot SNR(tOffs)
   subplot ( 2, 2, 3, "align" ); hold on;
@@ -75,12 +79,16 @@ function plotT0Evolution ( resV )
   xlabel ( sprintf ( "%.6f s + tOffs [ms]", tMerger) );
 
   %% ----- plot tau_MPE(tOffs)
-  subplot ( 2, 2, 4, "align" );
+  subplot ( 2, 2, 4, "align" ); hold on;
   errorbar ( tOffsVms, taums_MPE, taums_lerr, taums_uerr, ";90%;" ); grid on;
+  if ( !isempty ( plotMarker ) )
+    plot ( xlim(), 1e3 * plotMarker.tau * [ 1, 1 ], sprintf ( "--k;%s;", plotMarker.name ) );
+  endif
   xlim ( xrange );
   ylim ( taums_Range );
   ylabel ("tau [ms]");
   xlabel ( sprintf ( "%.6f s + tOffs [ms]", tMerger) );
+  legend ( "location", "northwest" );
 
   return;
 

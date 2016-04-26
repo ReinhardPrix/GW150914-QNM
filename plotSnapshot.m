@@ -29,9 +29,6 @@ function plotSnapshot ( res, resCommon, plotMarkers = [] )
   tau = unique ( ttau(:) );
   tauRange = [ min(tau), max(tau) ];
 
-  f0_est  = res.f0_est;
-  tau_est = res.tau_est;
-
   figure (); clf;
 
   %% ----- posterior (f0, tau)
@@ -51,7 +48,7 @@ function plotSnapshot ( res, resCommon, plotMarkers = [] )
     endfor
   endif
 
-  if ( !isempty(res.isoConf2))
+  if ( isfield ( res, "isoConf2") && !isempty(res.isoConf2))
     [C, H] = contour ( ff0, ttau * 1e3, res.BSG_f0_tau, res.isoConf2 * [ 1, 1 ] );
     set ( H, "linecolor", "white", "linewidth", 1 );
   endif
@@ -62,7 +59,7 @@ function plotSnapshot ( res, resCommon, plotMarkers = [] )
   plot ( f0, res.posterior_f0.px, "linewidth", 2 );
   grid on;
   yrange = ylim();
-  if ( !isempty ( res.f0_est ) )
+  if ( isfield ( res, "f0_est" ) && !isempty ( res.f0_est ) )
     line ( [res.f0_est.MPE, res.f0_est.MPE], yrange );
     line ( [res.f0_est.MPE - res.f0_est.lerr, res.f0_est.MPE + res.f0_est.uerr], [res.f0_est.pIso, res.f0_est.pIso] );
   endif
@@ -76,9 +73,11 @@ function plotSnapshot ( res, resCommon, plotMarkers = [] )
   subplot ( 2, 2, 2 );
   plot ( res.posterior_tau.px, tau * 1e3, "linewidth", 2 );
   xrange = xlim();
-  line ( xrange, [res.tau_est.MPE, res.tau_est.MPE]*1e3 );
-  if ( !isna ( res.tau_est.pIso ) )
-    line ( [res.tau_est.pIso, res.tau_est.pIso], [res.tau_est.MPE - res.tau_est.lerr, res.tau_est.MPE + res.tau_est.uerr]* 1e3 );
+  if ( isfield ( res, "tau_est" ) && !isempty ( res.tau_est ) )
+    line ( xrange, [res.tau_est.MPE, res.tau_est.MPE]*1e3 );
+    if ( !isna ( res.tau_est.pIso ) )
+      line ( [res.tau_est.pIso, res.tau_est.pIso], [res.tau_est.MPE - res.tau_est.lerr, res.tau_est.MPE + res.tau_est.uerr]* 1e3 );
+    endif
   endif
   xlim ( xrange );
   ylim ( tauRange * 1e3 );
