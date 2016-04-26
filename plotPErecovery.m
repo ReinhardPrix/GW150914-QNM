@@ -96,7 +96,7 @@ function [H_err, H_coverage] = plotPErecovery ( PErecovery )
   %% ----------
 
   H_coverage = figure(); clf;
-  perc = [PErecovery.f0_tau_percentile] ( find ( [PErecovery.BSG] > 1 ) ); %% restrict 'coverage' tests to things we'd actually call 'detections'
+  perc = [PErecovery.f0_tau_percentile];
   perc = sort ( perc );
   Nn = length(perc);
   cdf = [1:Nn] / Nn;
@@ -119,7 +119,7 @@ function [H_err, H_coverage] = plotPErecovery ( PErecovery )
 
   grid on;
   xlabel ( "posterior percentile" );
-  ylabel ( "measured coverage (BSG>1)" );
+  ylabel ( "measured coverage" );
   legend ( "location", "southeast" );
 
   return;
