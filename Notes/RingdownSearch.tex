@@ -406,14 +406,19 @@ resulting in an ``Occam factor'' effect disfavoring the signal hypothesis.
 \subsubsection{Marginalizing unknown scale $H$}
 \label{sec:marg-unkn-scale}
 
-The most robust way to deal with the unknown scale parameter $H$ is to marginalize this out using a Jeffreys prior $\propto 1/H$. Given that we
+A robust way to deal with the unknown scale parameter $H$ is to marginalize this out using a Jeffreys prior $\propto 1/H$. Given that we
 \emph{roughly} know the scale of $H$ to fall somewhere in $H\in{[2,10]}\times10^{-22}$, we can simply discretize the corresponding marginalization
 integrals on a few points ${H_i}$, allowing us to normalize this discrete ``hyper-prior'' as
 \begin{equation}
   \label{eq:44}
   \prob{H_i}{\HypS} = c\,\frac{1}{H_i},,\quad\text{with}\quad c^{-1} = \sum_i H_i^{-1}\,.
 \end{equation}
-We can therefore estimate the unknown $H$ parameter from the data via Eq.~\eqref{eq:29}, namely
+The resulting amplitude prior is now obtained by marginalizing the fixed-H prior of Eq.~\eqref{eq:22} over H, which yields
+\begin{equation}
+  \label{eq:52}
+  \prob{\parA}{\HypS} = \sum_i \prob{\parA}{\HypS,H_i} \prob{H_i}{\HypS}\,.
+\end{equation}
+We can further estimate the unknown $H$ parameter from the data via Eq.~\eqref{eq:29}, namely
 \begin{align}
   \label{eq:45}
   \prob{H}{x} &= \int \prob{\parE,H}{x,\HypS}\,d\parE\\
@@ -429,24 +434,36 @@ Furthermore, we can compute the $H$-independent Bayes factor and posterior by ma
   &= c\,\sum_i \frac{1}{H_i} \, \BSG(x;\parE,H_i)\,.
 \end{align}
 
-\section{Parameter estimation}
+\section{Amplitude parameter estimation}
 \label{sec:parameter-estimation}
 
-Finding the maximum-posterior estimates (MPE) for $\As,\Ac$ at fixed $\parE$ from Eq.~\eqref{eq:49} yields
+The posterior for the amplitudes $\parA$ at fixed $\parE_\MP$ can directly be obtained from Eq.~\eqref{eq:49}, Eq.~\eqref{eq:52} and Eq.~\eqref{eq:22} as
+\begin{align}
+  \label{eq:51}
+  \prob{\parA}{x,\HypS} &\propto \Lr(x;\parA,\parE)\,\prob{\parA}{\HypS} \\
+  &= \sum_i \Lr(x;\parA,\parE)\,\prob{\parA}{\HypS,H_i}\,\prob{H_i}{\HypS}\,\\
+  &= \sum_i \frac{1}{H_i^2}\,\exp\left[ -\frac{1}{2}\parA\cdot\Gam^{-1}(H_i)\cdot\parA + \parA\cdot\xvec \right]\,\prob{H_i}{\HypS}\,.
+\end{align}
+We can compute this expression and maximize over $\prob{A}{x,\HypS}$ to obtain $\parA_\MP$.
+Alternatively, we could replace the unknown $H$ by its maximum-posterior estimate $H_\MP$ of Eq.~\eqref{eq:45}, and obtain the estimate
+\begin{equation}
+  \label{eq:53}
+  \prob{\parA}{x,\HypS,H_\MP} \propto \exp\left[ -\frac{1}{2}\parA\cdot\Gam^{-1}(H_\MP)\cdot\parA + \parA\cdot\xvec \right]\,,
+\end{equation}
+which can be maximized over $\parA$ analytically to yield
 \begin{equation}
   \label{eq:31}
-  \parA' = \Gam(\parE)\cdot\xvec\,.
+  \parA_\MP' \approx \Gam(H_\MP)\cdot\xvec\,.
 \end{equation}
-Note that this depends on the unknown scale parameter $H$, but we will simplify this by using the MPE estimator for $H$ from Eq.~\eqref{eq:45}, i.e.\
-$H_{MPE}$ that maximizes  $\BSG(x;H) / H$.
-We will further evaluate this at the MPE values found for $\parE$ in the Bayes-factor search using \eqref{eq:32}.
-From these we can obtain $A' = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\left(\frac{\As}{\Ac}\right)$.
+We will evaluate this at the MPE values found for $\parE$ in the Bayes-factor search using Eq.~\eqref{eq:32}.
 
-From this can can also estimate an ``SNR'' in the MPE template, by substituting the MPE amplitude parameters into the SNR expression
+From these estimates we can obtain $A = \sqrt{\As^2+\Ac^2}$ and $\phi_0' = - \tan^{-1}\left(\frac{\As}{\Ac}\right)$.
+
+We can further estimate an ``SNR'' in the MPE template $\parE_\MP$, by substituting the amplitude estimates $\parA_\MP$ into the SNR expression of
 Eq.~\eqref{eq:36}, i.e.\
 \begin{equation}
   \label{eq:20}
-  \rho_0^2 = \parA'\M\parA'\,.
+  \rho_0^2 = \parA_\MP\cdot\M\cdot\parA_\MP\,.
 \end{equation}
 
 \section{QNM search applied to GW150914}
