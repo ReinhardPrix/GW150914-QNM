@@ -80,7 +80,7 @@ function [H_err, H_coverage] = plotPErecovery ( PErecovery )
   plotHists ( xVals, hgrms.SNR );
   plot ( SNR_inj, SNR_inj, "--;SNR-inj;", "color", "green", "linewidth", 2 );
   xlim ( [ 0, max_x ] );
-  ylim ( [ 0, 1.1 * max( [PErecovery.SNR_MP] ) ] );
+  %%ylim ( [ 0, 1.1 * max( [PErecovery.SNR_MP] ) ] );
   legend ( "location", "northwest" );
   xlabel ( "SNR-inj" ); ylabel ("SNR-MP");
 
@@ -89,7 +89,7 @@ function [H_err, H_coverage] = plotPErecovery ( PErecovery )
   plotHists ( xVals, hgrms.log10BSG );
   min_y = -2; max_y = 5;
   xlim ( [ 0, max_x ] );
-  ylim ( [min_y, max_y ] );
+  %%ylim ( [min_y, max_y ] );
   line ( xlim(), [0,0], "linewidth", 2 );
   xlabel ( "SNR-inj" );
   ylabel ( "log10(BSG)");
