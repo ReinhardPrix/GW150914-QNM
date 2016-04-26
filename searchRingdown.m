@@ -109,7 +109,7 @@ function res = searchRingdown ( varargin )
   %% ---------- maximum-posterior amplitude estimate in MPE-point {f0,tau} ----------
   DebugPrintf ( 1, "Estimating MP amplitudes (A,phi0) and SNR in MP(f0,tau) ... ");
   maxH = max ( prior_H.x(:) );
-  vA = linspace ( -maxH, maxH, 100 );
+  vA = linspace ( -2*A_ML, 2*A_ML, 100 );
   [A_s, A_c] = meshgrid ( vA, vA );
   post_vA = zeros ( size ( A_s ) );
   for i = 1 : numH
@@ -196,7 +196,7 @@ function post_vA = posterior_A_at_lambda_H ( As, Ac, H, match_k, Mxy_k )
   A_x = As * x_s + Ac * x_c;
 
   ln_post_vA = - 0.5 * A_gamInv_A + A_x;
-  post_vA = exp ( ln_post_vA );
+  post_vA = Hm2 .* exp ( ln_post_vA );
   return;
 
 endfunction %% posterior_A_at_lambda_H
