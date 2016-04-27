@@ -25,7 +25,7 @@
 \input{definitions.tex}
 \input{git_tag.tex}
 
-\newcommand{\dcc}{LIGO-T1500618-v4pre+}
+\newcommand{\dcc}{LIGO-T1500618-v4}
 
 \begin{document}
 
@@ -580,7 +580,7 @@ We compute snapshots for different QNM start-times $\tStart - \tMerger$ (referri
 \section{Testing and characterizing pipeline performance}
 
 \newcommand{\offSourceGaussDir}{./Results/Results-160427-05h12-offSource10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df1.0Hz-tau0.5ms-20.0ms-dtau0.2ms-H2.0-10.0-dH1.0-injectSqrtSX_8e-24_8e-24}
-\newcommand{\offSourceDir}{./Results/Results-160410-10h52-offSource10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0}
+\newcommand{\offSourceDir}{./Results/Results-160427-08h50-offSource10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df1.0Hz-tau0.5ms-20.0ms-dtau0.2ms-H2.0-10.0-dH1.0}
 
 \subsection{Off-source searches}
 \label{sec:source-searches}
@@ -590,7 +590,7 @@ We compute snapshots for different QNM start-times $\tStart - \tMerger$ (referri
   \textbf{Searches in Gaussian noise:}\\[-0.5cm]
   \includegraphics[width=0.8\textwidth]{{\offSourceGaussDir/BSG-hists}.pdf}\\[0.5cm]
   \textbf{Searches in real (off-source) data:}\\[-0.5cm]
-  %%\includegraphics[width=0.8\textwidth]{{\offSourceDir/BSG-hists}.pdf}
+  \includegraphics[width=0.8\textwidth]{{\offSourceDir/BSG-hists}.pdf}
 }
 
 
@@ -697,14 +697,14 @@ We consider 5 different injection scenarios:
 }
 
 \newpage
-\newcommand{\InjOffSourceGRDir}{./Results/Results-160409-08h32-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df0.5Hz-tau0.5ms-20.0ms-dtau0.5ms-H2.0-10.0-dH1.0-injectGR}
+\newcommand{\InjOffSourceGRDir}{./Results/Results-160427-09h52-injections10000-data20Hz-1900Hz-Prior-f200Hz-300Hz-df1.0Hz-tau0.5ms-20.0ms-dtau0.2ms-H2.0-10.0-dH1.0-injectGR}
 
 \subsubsection{Case 2: fixed ``GR injections'' $\{A\in[3,8]\times10^{-22},\freq=251\Hz,\tau=4\ms\}$, off-source detector data}
 \label{sec:case-4:GR-injections-real-noise}
 
 \parbox{\textwidth}{
-%%  \includegraphics[width=0.9\textwidth]{{\InjOffSourceGRDir/Injections-PE-errors}.pdf}\\
-%%  \includegraphics[width=0.9\textwidth]{{\InjOffSourceGRDir/Injections-PE-coverage}.pdf}
+  \includegraphics[width=0.9\textwidth]{{\InjOffSourceGRDir/Injections-PE-errors}.pdf}\\
+  \includegraphics[width=0.9\textwidth]{{\InjOffSourceGRDir/Injections-PE-coverage}.pdf}
 }
 
 
