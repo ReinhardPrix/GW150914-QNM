@@ -294,6 +294,12 @@ endfor %% m = 1 : numSearches
 
 %% ---------- plot snapshot for all t0Offs
 if ( doPlotSnapshots )
+  %% dump posteriors for the snapshots in results-dir
+  fname = sprintf ( "%s/f0-grid.dat", resDir );
+  tmp = resCommon.ff0; save ( "-ascii", fname, "tmp" );
+  fname = sprintf ( "%s/tau-grid.dat", resDir );
+  tmp = resCommon.ttau; save ( "-ascii", fname, "tmp" );
+
   for m = 1 : numSearches
 
     %% 'augment' with derived results for easier plotting
@@ -304,6 +310,9 @@ if ( doPlotSnapshots )
     plotSnapshot ( resV(m), resCommon, plotMarkers );
     fname = sprintf ( "%s/%s-snapshot.pdf", resDir, resV(m).bname );
     ezprint ( fname, "width", 512 );
+
+    fname = sprintf ( "%s/%s-BSG_f0_tau.dat", resDir, resV(m).bname );
+    tmp = resV(m).BSG_f0_tau; save ( "-ascii", fname, "tmp" );
   endfor
 endif
 
